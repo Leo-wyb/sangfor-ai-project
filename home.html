@@ -1,120 +1,350 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230B318F"/><circle cx="50" cy="50" r="40" fill="none" stroke="%237ECEF4" stroke-width="6"/></svg>' />
+<meta name="theme-color" content="#0A0A0A" />
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230A0A0A"/><circle cx="50" cy="50" r="40" fill="none" stroke="%23D4D4D8" stroke-width="6"/></svg>' />
 <title>首页 · CyberNWT</title>
+<script>
+// 首屏前确定主题，避免闪烁：localStorage 优先，否则跟随系统
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('cyber-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark') {
+    t = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ---------- 主题变量（深色为默认，浅色覆盖） ---------- */
+  :root {
+    color-scheme: dark;
+    --bg: #0A0A0A;
+    --grid-line: rgba(255, 255, 255, 0.06);
+    --header-bg: rgba(10, 10, 10, 0.84);
+    --border: rgba(255, 255, 255, 0.14);
+    --panel: #111111;
+    --panel-border: rgba(255, 255, 255, 0.14);
+    --panel-hover: #171717;
+    --text: #EDEDED;
+    --text-2: #9CA3AF;
+    --accent: #FFFFFF;
+    --accent-contrast: #0A0A0A;
+    --accent-bg: rgba(255, 255, 255, 0.06);
+    --accent-border: rgba(255, 255, 255, 0.38);
+    --accent-strong: rgba(255, 255, 255, 0.8);
+    --chip-border: rgba(255, 255, 255, 0.20);
+    --prog-track: rgba(255, 255, 255, 0.18);
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --fab-size: 48px;    /* 悬浮白板按钮尺寸（whiteboard.js 读取） */
+    --fab-radius: 6px;   /* 悬浮白板按钮圆角 */
+  }
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #FAFAFA;
+    --grid-line: rgba(0, 0, 0, 0.07);
+    --header-bg: rgba(250, 250, 250, 0.86);
+    --border: rgba(0, 0, 0, 0.14);
+    --panel: #FFFFFF;
+    --panel-border: rgba(0, 0, 0, 0.14);
+    --panel-hover: #F1F1F3;
+    --text: #111111;
+    --text-2: #52525B;
+    --accent: #0A0A0A;
+    --accent-contrast: #FAFAFA;
+    --accent-bg: rgba(0, 0, 0, 0.05);
+    --accent-border: rgba(0, 0, 0, 0.35);
+    --accent-strong: rgba(0, 0, 0, 0.7);
+    --chip-border: rgba(0, 0, 0, 0.18);
+    --prog-track: rgba(0, 0, 0, 0.16);
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
   body {
-    min-height: 100vh; color: #e8f2ff;
+    min-height: 100vh; color: var(--text);
     font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-    background:
-      radial-gradient(900px 500px at 50% 20%, rgba(40,95,190,0.16), transparent 70%),
-      radial-gradient(700px 420px at 85% 85%, rgba(22,110,88,0.10), transparent 70%),
-      linear-gradient(160deg, #0a1521 0%, #1b263b 100%);
+    background: var(--bg);
     background-attachment: fixed;
+    transition: background-color 0.3s, color 0.3s;
   }
   body::before {
     content: ""; position: fixed; inset: 0; pointer-events: none;
     background-image:
-      linear-gradient(rgba(130,170,230,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(130,170,230,0.05) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 46px 46px;
   }
 
+  /* ---------- 顶栏 ---------- */
   header {
     position: sticky; top: 0; z-index: 10;
-    display: flex; align-items: center; gap: 22px;
+    display: flex; align-items: center; gap: 18px;
     padding: 0 36px; height: 62px;
-    background: rgba(10, 21, 33, 0.78);
+    background: var(--header-bg);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(126, 206, 244, 0.16);
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.3s, border-color 0.3s;
   }
-  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; font-family: var(--font-mono); }
   .logo .dot {
-    width: 11px; height: 11px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #6FBA2C, #00663B);
-    box-shadow: 0 0 10px rgba(111, 186, 44, 0.8);
+    width: 12px; height: 12px; border-radius: 50%;
+    background: transparent;
+    border: 2px solid var(--accent);
   }
   nav { display: flex; gap: 6px; flex: 1; }
   nav a {
-    padding: 8px 16px; border-radius: 8px; text-decoration: none;
-    color: #8fa8c7; font-size: 14px; transition: all 0.2s;
+    display: inline-flex; align-items: center;
+    height: 32px; padding: 0 16px; border-radius: 6px; text-decoration: none;
+    color: var(--text-2); font-size: 14px; transition: color 0.2s, background-color 0.2s;
   }
-  nav a:hover { color: #fff; background: rgba(126, 206, 244, 0.10); }
-  nav a.active { color: #fff; background: rgba(126, 206, 244, 0.16); font-weight: 600; }
-  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8fa8c7; }
+  nav a:hover { color: var(--text); background: var(--accent-bg); }
+  nav a.active { color: var(--text); background: var(--accent-bg); font-weight: 600; }
+  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-2); }
   .user .chip {
-    display: flex; align-items: center; gap: 7px;
-    padding: 6px 14px; border-radius: 999px;
-    background: rgba(126, 206, 244, 0.12);
-    border: 1px solid rgba(126, 206, 244, 0.25); color: #e8f2ff;
+    display: flex; align-items: center; gap: 8px;
+    height: 32px; padding: 0 12px; border-radius: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border); color: var(--text);
   }
   .user .chip i {
     width: 7px; height: 7px; border-radius: 50%;
-    background: #7ee2a8; box-shadow: 0 0 6px #7ee2a8;
+    background: var(--accent);
   }
+  .user .chip b { font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.5px; font-size: 13px; line-height: 1; }
   .logout {
-    padding: 7px 16px; border-radius: 8px; cursor: pointer;
-    border: 1px solid rgba(255, 145, 145, 0.35);
-    background: transparent; color: #ff9191; font-size: 13px; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 32px; padding: 0 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--text-2); font-size: 13px; line-height: 1;
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
     font-family: inherit;
   }
-  .logout:hover { background: rgba(255, 145, 145, 0.12); }
+  .logout:hover { color: var(--text); background: var(--accent-bg); border-color: var(--accent-border); }
+  .logout svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-  main { position: relative; max-width: 1120px; margin: 0 auto; padding: 56px 28px 60px; }
-  .hero h2 { font-size: 30px; font-weight: 700; }
-  .hero h2 span {
-    background: linear-gradient(90deg, #7ECEF4, #6FBA2C);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
+  /* 主题切换：分段式开关（太阳 / 月亮，随主题反转填充） */
+  .tswitch {
+    display: inline-flex; align-items: center; gap: 2px;
+    height: 32px; padding: 2px;
+    border-radius: 6px; cursor: pointer; font-family: inherit;
+    border: 1px solid var(--border); background: var(--panel);
+    transition: border-color 0.3s, background-color 0.3s;
   }
-  .hero p { margin-top: 10px; color: #8fa8c7; font-size: 14.5px; line-height: 1.8; }
-
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 40px; }
-  .feat {
-    position: relative; display: flex; flex-direction: column;
-    padding: 24px 24px 20px; border-radius: 14px;
-    background: rgba(11, 22, 38, 0.6);
-    border: 1px solid rgba(126, 206, 244, 0.16);
-    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
-  }
-  .feat:hover {
-    transform: translateY(-4px);
-    border-color: rgba(126, 206, 244, 0.45);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
-  }
-  .ficon {
-    width: 46px; height: 46px; border-radius: 12px; margin-bottom: 16px;
+  .tswitch:hover { border-color: var(--accent-border); }
+  .tswitch .seg {
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, rgba(26, 86, 196, 0.35), rgba(15, 138, 95, 0.3));
-    border: 1px solid rgba(126, 206, 244, 0.3);
+    width: 26px; height: 26px; border-radius: 4px;
+    transition: background-color 0.2s;
   }
-  .ficon svg { width: 24px; height: 24px; fill: none; stroke: #7ECEF4; stroke-width: 1.8;
+  .tswitch .seg:hover { background: var(--accent-bg); }
+  .tswitch svg {
+    width: 13px; height: 13px; fill: none;
+    stroke: var(--text-2); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    transition: stroke 0.3s;
+  }
+  [data-theme="light"] .tswitch .seg-sun { background: var(--accent); }
+  [data-theme="light"] .tswitch .seg-sun svg { stroke: var(--accent-contrast); }
+  [data-theme="dark"] .tswitch .seg-moon { background: var(--accent); }
+  [data-theme="dark"] .tswitch .seg-moon svg { stroke: var(--accent-contrast); }
+
+  /* ---------- 主区 ---------- */
+  main { position: relative; max-width: 1240px; margin: 0 auto; padding: 44px 28px 56px; }
+  .hero { margin-bottom: 28px; }
+  .hero h2 { font-size: 26px; font-weight: 700; }
+  .hero h2 span {
+    color: var(--accent);
+  }
+  .hero p { margin-top: 8px; color: var(--text-2); font-size: 14px; line-height: 1.7; }
+  /* 轮播控制：暂停 / 恢复自动轮播（WCAG 2.2.2 要求可见控制） */
+  .hero-ctrl { margin-top: 14px; }
+  .acc-pause {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 15px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--panel);
+    color: var(--text-2); font-size: 12px; font-family: inherit;
+    transition: color 0.2s, border-color 0.2s, background-color 0.2s, transform 0.15s;
+  }
+  .acc-pause:hover { color: var(--text); border-color: var(--accent-border); }
+  .acc-pause:active { transform: scale(0.97); }
+  .acc-pause svg { width: 11px; height: 11px; fill: currentColor; flex: none; }
+  .acc-pause .ic-play { display: none; }
+  .acc-pause.paused .ic-pause { display: none; }
+  .acc-pause.paused .ic-play { display: block; }
+
+  /* ---------- 横向手风琴 ---------- */
+  .accordion { display: flex; gap: 14px; height: clamp(440px, 58vh, 540px); }
+  .panel {
+    position: relative; flex: 1 1 0; min-width: 0; overflow: hidden;
+    border-radius: 6px; background: var(--panel);
+    border: 1px solid var(--panel-border);
+    transition: flex-grow 0.7s cubic-bezier(0.37, 0, 0.63, 1),
+                border-color 0.3s, box-shadow 0.3s, background-color 0.3s;
+  }
+  .panel.active {
+    flex: 3.4 1 0;
+    border-color: var(--accent-strong);
+  }
+  .panel:not(.active):hover { border-color: var(--accent-border); background: var(--panel-hover); }
+  .panel.active .strip { opacity: 0; pointer-events: none; }
+
+  /* 收起态：竖条（编号上 / 竖排标题中 / 图标下） */
+  .strip {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    padding: 20px 8px; border: none; background: transparent; cursor: pointer;
+    font-family: inherit; transition: opacity 0.25s;
+  }
+  .snum { font-size: 18px; letter-spacing: 2px; color: var(--text-2); opacity: 0.7; font-weight: 400; font-family: var(--font-mono); }
+  .stitle {
+    writing-mode: vertical-rl; margin: auto 0;
+    font-size: 26px; font-weight: 400; letter-spacing: 3px; color: var(--text);
+    transition: color 0.2s;
+  }
+  .panel:not(.active):hover .stitle { color: var(--accent); }
+  .sicon {
+    width: 34px; height: 34px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-bg); border: 1px solid var(--accent-border);
+  }
+  .sicon svg { width: 18px; height: 18px; fill: none; stroke: var(--accent); stroke-width: 1.8;
     stroke-linecap: round; stroke-linejoin: round; }
-  .feat h3 { font-size: 16.5px; display: flex; align-items: center; gap: 9px; }
-  .ftag { font-size: 10px; font-weight: 400; color: #7ECEF4; letter-spacing: 1.5px;
-    border: 1px solid rgba(126, 206, 244, 0.4); padding: 2px 8px; border-radius: 999px; }
-  .ftag.green { color: #a9d97e; border-color: rgba(111, 186, 44, 0.5); }
-  .feat p { font-size: 13px; color: #8fa8c7; line-height: 1.85; margin: 10px 0 14px; flex: 1; }
-  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-  .tags span { font-size: 11px; color: #9db8d4; background: rgba(126, 206, 244, 0.08);
-    border: 1px solid rgba(126, 206, 244, 0.14); padding: 3px 10px; border-radius: 999px; }
-  .fbtn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 10px 22px; border-radius: 10px; text-decoration: none; cursor: pointer;
-    background: linear-gradient(135deg, #1a56c4, #0f8a5f); color: #fff;
-    font-size: 13.5px; font-weight: 700; font-family: inherit; border: none;
-    letter-spacing: 1px; transition: all 0.2s; align-self: flex-start;
+  /* 伸缩手柄：收起态底部的圆形「+」组件，悬停旋转并填充 */
+  .splus {
+    width: 28px; height: 28px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--accent-border); background: var(--accent-bg);
+    transition: transform 0.35s, background-color 0.3s, border-color 0.3s;
   }
-  .fbtn:hover { box-shadow: 0 8px 24px rgba(26, 86, 196, 0.5); transform: translateY(-1px); }
-  .corner {
-    position: absolute; top: 18px; right: 20px; font-size: 11px; letter-spacing: 2px;
-    color: rgba(126, 206, 244, 0.35); font-weight: 600;
+  .splus svg { width: 13px; height: 13px; fill: none; stroke: var(--accent);
+    stroke-width: 2.2; stroke-linecap: round; transition: stroke 0.3s; }
+  .panel:not(.active):hover .splus {
+    transform: rotate(90deg); background: var(--accent); border-color: var(--accent);
+  }
+  .panel:not(.active):hover .splus svg { stroke: var(--accent-contrast); }
+
+  /* 卡片右下角装饰大图标：与卡片功能同款 Lucide 图标，粗线条微倾斜 */
+  .dbig {
+    position: absolute; right: 26px; bottom: 42px;
+    width: 192px; height: 192px;
+    fill: none; stroke: var(--accent); stroke-width: 1.4;
+    stroke-linecap: round; stroke-linejoin: round;
+    opacity: 0.16; pointer-events: none; user-select: none;
+    transform: rotate(-8deg);
   }
 
-  footer { text-align: center; padding: 26px 0 34px; font-size: 12px; color: rgba(143, 168, 199, 0.6); }
+  /* 展开态：完整内容（延迟淡入，避免变宽过程中文字抖动） */
+  .detail {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    padding: 26px 28px 46px;
+    opacity: 0; transform: translateY(10px); pointer-events: none;
+    visibility: hidden;   /* 阻断 Tab 焦点进入隐形面板（隐形 CTA 陷阱） */
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0.3s;
+  }
+  .panel.active .detail {
+    opacity: 1; transform: none; pointer-events: auto; visibility: visible;
+    transition-delay: 0.2s, 0.2s, 0s;
+  }
+  .dnum {
+    position: absolute; top: 12px; right: 22px; line-height: 1;
+    font-family: var(--font-mono);
+    font-size: 58px; font-weight: 700; color: transparent;
+    -webkit-text-stroke: 1.5px var(--accent); opacity: 0.5;
+    user-select: none; pointer-events: none;
+  }
+  .dicon {
+    width: 46px; height: 46px; border-radius: 8px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-bg); border: 1px solid var(--accent-border);
+  }
+  .dicon svg { width: 24px; height: 24px; fill: none; stroke: var(--accent); stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .detail h3 { margin-top: 16px; font-size: 19px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .ftag {
+    font-size: 10px; font-weight: 400; color: var(--accent); letter-spacing: 1.5px; font-family: var(--font-mono);
+    border: 1px solid var(--accent-border); padding: 2px 8px; border-radius: 999px;
+  }
+  .detail p { font-size: 13.5px; color: var(--text-2); line-height: 1.85; margin: 12px 0 14px; max-width: 46ch; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tags span {
+    font-size: 11px; color: var(--text-2); background: var(--accent-bg); font-family: var(--font-mono);
+    border: 1px solid var(--chip-border); padding: 3px 10px; border-radius: 999px;
+  }
+  .fbtn {
+    margin-top: auto; align-self: flex-start;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 24px; border-radius: 6px; text-decoration: none; cursor: pointer;
+    background: var(--accent); color: var(--accent-contrast);
+    font-size: 13.5px; font-weight: 700; font-family: inherit; border: 1px solid var(--accent);
+    letter-spacing: 1px;
+    transition: filter 0.2s, transform 0.2s, border-color 0.2s;
+  }
+  .fbtn:hover { filter: brightness(0.9); transform: translateY(-1px); border-color: var(--accent-strong); }
+  .fbtn:active { transform: translateY(0); filter: brightness(1.05); }
+  .fbtn svg { width: 14px; height: 14px; fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* 轮播进度条（仅展开卡显示；动画时长需与 JS 中 ROTATE 保持一致） */
+  .prog {
+    position: absolute; left: 28px; right: 28px; bottom: 18px; height: 3px;
+    border-radius: 99px; background: var(--prog-track); overflow: hidden; opacity: 0;
+  }
+  .panel.active .prog { opacity: 1; }
+  .prog i {
+    display: block; height: 100%; width: 100%;
+    background: var(--accent); transform-origin: left; transform: scaleX(0);
+  }
+  .panel.active .prog i { animation: progFill 6.5s linear forwards; }
+  .accordion.paused .prog i { animation-play-state: paused; }
+  @keyframes progFill { to { transform: scaleX(1); } }
+
+  footer { text-align: center; padding: 26px 0 34px; font-size: 12px; color: var(--text-2); opacity: 0.6; }
+
+  /* ---------- 可访问性 ---------- */
+  :focus:not(:focus-visible) { outline: none; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* 轻提示 toast（建设中占位导航等场景） */
+  .toast {
+    position: fixed; left: 50%; bottom: 34px; z-index: 60;
+    transform: translate(-50%, 12px);
+    padding: 10px 20px; border-radius: 999px;
+    background: var(--header-bg); border: 1px solid var(--accent-border);
+    color: var(--text); font-size: 13px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- 响应式：窄屏转纵向手风琴 ---------- */
+  @media (max-width: 920px) {
+    main { padding: 32px 18px 48px; }
+    .accordion { flex-direction: column; height: clamp(560px, 78vh, 660px); }
+    .panel { flex: 1 1 0; min-height: 58px; }
+    .panel.active { flex: 6 1 0; }
+    .strip { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 16px; }
+    .snum { order: 1; }
+    .sicon { order: 2; width: 30px; height: 30px; }
+    .stitle { order: 3; writing-mode: horizontal-tb; margin: 0; letter-spacing: 1px; }
+    .splus { order: 4; margin-left: auto; width: 26px; height: 26px; }
+    .detail { padding: 20px 22px 44px; overflow-y: auto; }   /* 矮屏防内容被裁切 */
+    .detail p { max-width: none; }
+    .prog { left: 22px; right: 22px; }
+  }
+  @media (max-width: 720px) {
+    header { padding: 0 16px; gap: 10px; }
+    nav { display: none; }              /* 窄屏隐藏导航，手风琴本身即是导航 */
+    .tswitch { margin-left: auto; }
+    .user .chip b { max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
+
+  /* 注：展开过渡与自动轮播均不跟随系统「减弱动态效果」——动效是本站核心交互，
+     需要静止时用轮播旁的「暂停轮播」按钮手动停止 */
 </style>
 </head>
 <body>
@@ -123,67 +353,131 @@
   <nav>
     <a href="home.html" class="active">首页</a>
     <a href="speedtest.html">功能展示</a>
-    <a href="#" title="建设中">数据看板</a>
-    <a href="#" title="建设中">关于项目</a>
+    <a href="#" class="wip" title="建设中">数据看板</a>
+    <a href="#" class="wip" title="建设中">关于项目</a>
   </nav>
+  <button class="tswitch" id="theme-toggle" aria-label="切换深浅色模式" title="切换深浅色模式" aria-pressed="false">
+    <span class="seg seg-sun"><svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></span>
+    <span class="seg seg-moon"><svg class="ic-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg></span>
+  </button>
   <div class="user">
     <span class="chip"><i></i><b id="username">…</b></span>
-    <button class="logout" id="logout-btn">退出登录</button>
+    <button class="logout" id="logout-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>退出登录</button>
   </div>
 </header>
 
 <main>
   <div class="hero">
     <h2>欢迎回来，<span id="hero-name">…</span></h2>
-    <p>CyberNWT 实施工具箱 —— 五大核心能力覆盖交付全流程：网络测速透视、内网拓扑感知、悬浮随心记录、AI 故障诊断与案例复盘。<br />右下角「随心记录」悬浮球在任意页面均可一键唤起。</p>
-  </div>
-
-  <div class="grid">
-    <div class="feat">
-      <span class="corner">01</span>
-      <div class="ficon"><svg viewBox="0 0 24 24"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M13.4 10.6L19 5"/><path d="M3.3 17a10 10 0 1 1 17.4 0"/><path d="M7 20.3a7 7 0 1 1 10 0"/></svg></div>
-      <h3>灵犀测速 <span class="ftag">SPEEDLENS</span></h3>
-      <p>颠覆传统测速工具：无需输入地址，一键完成握手、延迟、突发上下行测量，秒级出结果。不止给你数字——全链路透视每一跳，AI 直接告诉你“网速怎么回事”。</p>
-      <div class="tags"><span>全链路透视</span><span>智能诊断</span><span>秒级测量</span><span>JSON / Prometheus</span></div>
-      <a class="fbtn" href="speedtest.html">进入测速 →</a>
-    </div>
-
-    <div class="feat">
-      <span class="corner">02</span>
-      <div class="ficon"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
-      <h3>随心记录 <span class="ftag green">悬浮白板</span></h3>
-      <p>在任意界面点击右下角悬浮球，白板即刻浮现：随手画、随手打字，记录实施过程中的心得与进展。可拖动、可缩放，内容自动保存本机，支持导出 PNG。</p>
-      <div class="tags"><span>全局悬浮</span><span>自由绘制</span><span>点击即写</span><span>自动保存</span></div>
-      <button class="fbtn" id="open-board">立即唤起 ✎</button>
-    </div>
-
-    <div class="feat">
-      <span class="corner">03</span>
-      <div class="ficon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
-      <h3>故障诊断助手 <span class="ftag">AI ASSISTANT</span></h3>
-      <p>深信服设备实施故障 AI 专家：整机上架、割接切换、VPN 组网、链路质量、无线漫游……即问即答，给出结构化排查路径，支持直接粘贴日志分析。</p>
-      <div class="tags"><span>场景快捷入口</span><span>上下文对话</span><span>结构化排查</span></div>
-      <a class="fbtn" href="diagnose.html">开始诊断 →</a>
-    </div>
-
-    <div class="feat">
-      <span class="corner">04</span>
-      <div class="ficon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
-      <h3>案例复盘 <span class="ftag">AI REPORT</span></h3>
-      <p>把项目过程讲给灵犀听，AI 自动生成结构化复盘报告：过程时间线、关键问题与根因、可复制的方法论提炼、风险与改进项，帮助团队记录与学习。</p>
-      <div class="tags"><span>一键生成</span><span>方法论提炼</span><span>Markdown 导出</span></div>
-      <a class="fbtn" href="review.html">去复盘 →</a>
-    </div>
-
-    <div class="feat">
-      <span class="corner">05</span>
-      <div class="ficon"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/><path d="M12 7.2V9.8M7.2 12h2.6M14.2 12h2.6M12 14.2v2.6M6.6 10.4L9.4 7.8M14.6 7.8l2.8 2.6"/></svg></div>
-      <h3>内网感知 <span class="ftag green">NETSENSE</span></h3>
-      <p>笔记本接入客户内网（Wi-Fi / 有线均可），自动感知网络设备、网段与无线环境，一键生成可视化拓扑图，并给出深信服设备部署模式建议与上架检查清单。</p>
-      <div class="tags"><span>拓扑自动绘制</span><span>网段 / VLAN 识别</span><span>部署建议</span><span>Mermaid / PNG 导出</span></div>
-      <a class="fbtn" href="topology.html">开始感知 →</a>
+    <p>五大核心能力覆盖交付全流程 —— 测速透视、拓扑感知、悬浮记录、AI 诊断与案例复盘。</p>
+    <div class="hero-ctrl">
+      <button class="acc-pause" id="acc-pause" type="button" aria-controls="acc" aria-pressed="false">
+        <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/></svg>
+        <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>
+        <span id="acc-pause-label">暂停轮播</span>
+      </button>
     </div>
   </div>
+
+  <section class="accordion" id="acc" aria-label="核心功能">
+  <!-- 图标：Lucide (MIT) https://lucide.dev -->
+
+    <article class="panel active">
+      <button class="strip" type="button" aria-expanded="true" aria-label="展开 灵犀测速" tabindex="-1">
+        <span class="snum">01</span>
+        <span class="sicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg></span>
+        <span class="stitle">灵犀测速</span>
+        <span class="splus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="detail">
+        <span class="dnum">01</span>
+        <div class="dicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg></div>
+        <h3>灵犀测速 <span class="ftag">SPEEDLENS</span></h3>
+        <p>颠覆传统测速工具：无需输入地址，一键完成握手、延迟、突发上下行测量，秒级出结果。不止给你数字——全链路透视每一跳，AI 直接告诉你“网速怎么回事”。</p>
+        <div class="tags"><span>全链路透视</span><span>智能诊断</span><span>秒级测量</span><span>JSON / Prometheus</span></div>
+        <a class="fbtn" href="speedtest.html">进入测速</a>
+        <svg class="dbig" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+        <span class="prog"><i></i></span>
+      </div>
+    </article>
+
+    <article class="panel">
+      <button class="strip" type="button" aria-expanded="false" aria-label="展开 随心记录">
+        <span class="snum">02</span>
+        <span class="sicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>
+        <span class="stitle">随心记录</span>
+        <span class="splus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="detail">
+        <span class="dnum">02</span>
+        <div class="dicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></div>
+        <h3>随心记录 <span class="ftag">悬浮白板</span></h3>
+        <p>在任意界面点击右下角悬浮球，白板即刻浮现：随手画、随手打字，记录实施过程中的心得与进展。可拖动、可缩放，内容自动保存本机，支持导出 PNG。</p>
+        <div class="tags"><span>全局悬浮</span><span>自由绘制</span><span>点击即写</span><span>自动保存</span></div>
+        <button class="fbtn" id="open-board">立即唤起</button>
+        <svg class="dbig" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+        <span class="prog"><i></i></span>
+      </div>
+    </article>
+
+    <article class="panel">
+      <button class="strip" type="button" aria-expanded="false" aria-label="展开 故障诊断助手">
+        <span class="snum">03</span>
+        <span class="sicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></svg></span>
+        <span class="stitle">故障诊断助手</span>
+        <span class="splus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="detail">
+        <span class="dnum">03</span>
+        <div class="dicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></svg></div>
+        <h3>故障诊断助手 <span class="ftag">AI ASSISTANT</span></h3>
+        <p>深信服设备实施故障 AI 专家：整机上架、割接切换、VPN 组网、链路质量、无线漫游……即问即答，给出结构化排查路径，支持直接粘贴日志分析。</p>
+        <div class="tags"><span>场景快捷入口</span><span>上下文对话</span><span>结构化排查</span></div>
+        <a class="fbtn" href="diagnose.html">开始诊断</a>
+        <svg class="dbig" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></svg>
+        <span class="prog"><i></i></span>
+      </div>
+    </article>
+
+    <article class="panel">
+      <button class="strip" type="button" aria-expanded="false" aria-label="展开 案例复盘">
+        <span class="snum">04</span>
+        <span class="sicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>
+        <span class="stitle">案例复盘</span>
+        <span class="splus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="detail">
+        <span class="dnum">04</span>
+        <div class="dicon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div>
+        <h3>案例复盘 <span class="ftag">AI REPORT</span></h3>
+        <p>把项目过程讲给灵犀听，AI 自动生成结构化复盘报告：过程时间线、关键问题与根因、可复制的方法论提炼、风险与改进项，帮助团队记录与学习。</p>
+        <div class="tags"><span>一键生成</span><span>方法论提炼</span><span>Markdown 导出</span></div>
+        <a class="fbtn" href="review.html">前往复盘</a>
+        <svg class="dbig" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+        <span class="prog"><i></i></span>
+      </div>
+    </article>
+
+    <article class="panel">
+      <button class="strip" type="button" aria-expanded="false" aria-label="展开 内网感知">
+        <span class="snum">05</span>
+        <span class="sicon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg></span>
+        <span class="stitle">内网感知</span>
+        <span class="splus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="detail">
+        <span class="dnum">05</span>
+        <div class="dicon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg></div>
+        <h3>内网感知 <span class="ftag">NETSENSE</span></h3>
+        <p>笔记本接入客户内网（Wi-Fi / 有线均可），自动感知网络设备、网段与无线环境，一键生成可视化拓扑图，并给出深信服设备部署模式建议与上架检查清单。</p>
+        <div class="tags"><span>拓扑自动绘制</span><span>网段 / VLAN 识别</span><span>部署建议</span><span>Mermaid / PNG 导出</span></div>
+        <a class="fbtn" href="topology.html">开始感知</a>
+        <svg class="dbig" viewBox="0 0 24 24" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>
+        <span class="prog"><i></i></span>
+      </div>
+    </article>
+
+  </section>
 </main>
 
 <footer>CyberNWT · 演示环境</footer>
@@ -192,7 +486,7 @@
 (function () {
   'use strict';
 
-  // 会话校验：未登录跳回登录页
+  // ---------- 会话校验：未登录跳回登录页 ----------
   fetch('/api/me').then(function (r) {
     if (r.status === 401) { location.href = 'login.html'; return null; }
     return r.json();
@@ -203,15 +497,161 @@
     }
   }).catch(function () { location.href = 'login.html'; });
 
-  // 退出登录
   document.getElementById('logout-btn').addEventListener('click', function () {
     fetch('/api/logout', { method: 'POST' }).then(function () { location.href = 'login.html'; });
   });
 
-  // 唤起随心记录白板
   document.getElementById('open-board').addEventListener('click', function () {
     if (window.CyberBoard) CyberBoard.open();
   });
+
+  // ---------- 深浅色模式切换 ----------
+  var rootEl = document.documentElement;
+  var themeBtn = document.getElementById('theme-toggle');
+  var THEME_COLORS = { dark: '#0A0A0A', light: '#FAFAFA' };
+  function setTheme(t) {
+    rootEl.setAttribute('data-theme', t);
+    themeBtn.setAttribute('aria-pressed', t === 'light' ? 'true' : 'false');
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', THEME_COLORS[t]);
+  }
+  setTheme(rootEl.getAttribute('data-theme'));
+  themeBtn.addEventListener('click', function () {
+    var next = rootEl.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try { localStorage.setItem('cyber-theme', next); } catch (e) {}
+  });
+  // 用户未手动选择过主题时，跟随系统变化
+  var schemeMq = matchMedia('(prefers-color-scheme: light)');
+  (schemeMq.addEventListener ? schemeMq.addEventListener.bind(schemeMq, 'change')
+                             : schemeMq.addListener.bind(schemeMq))(function (e) {
+    var saved = null;
+    try { saved = localStorage.getItem('cyber-theme'); } catch (err) {}
+    if (saved !== 'light' && saved !== 'dark') {
+      setTheme(e.matches ? 'light' : 'dark');
+    }
+  });
+
+  // ---------- 建设中的占位导航 ----------
+  var toast = document.createElement('div');
+  toast.className = 'toast'; toast.setAttribute('role', 'status');
+  document.body.appendChild(toast);
+  var toastTimer = null;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('on'); }, 1800);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('nav a.wip'), function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); showToast(a.title + '，敬请期待'); });
+  });
+
+  // ---------- 手风琴：悬停展开 + 自动轮播 ----------
+  var acc = document.getElementById('acc');
+  var panels = Array.prototype.slice.call(acc.querySelectorAll('.panel'));
+  var strips = panels.map(function (p) { return p.querySelector('.strip'); });
+  var ROTATE = 6500;          // 与 CSS 中 progFill 动画时长保持一致
+  var HOVER_DELAY = 10;       // 悬停意图延迟，避免快速划过抖动
+
+  var cur = 0, timer = null, remaining = ROTATE, startedAt = 0;
+  var hovering = false, hoverDelay = null;
+  var userPaused = false;     // 用户通过暂停按钮显式暂停
+
+  // 轮播始终运行（不跟随系统减弱动态效果）；悬停、切页、手动暂停时冻结
+  function isPaused() { return hovering || document.hidden || userPaused; }
+  function syncPausedClass() {
+    acc.classList.toggle('paused', hovering || userPaused || document.hidden);
+  }
+  function syncPauseBtn() {
+    var btn = document.getElementById('acc-pause');
+    if (!btn) return;
+    btn.classList.toggle('paused', userPaused);
+    btn.setAttribute('aria-pressed', String(userPaused));
+    document.getElementById('acc-pause-label').textContent = userPaused ? '恢复轮播' : '暂停轮播';
+  }
+  function schedule() {
+    clearTimeout(timer);
+    startedAt = Date.now();
+    timer = setTimeout(advance, remaining);
+  }
+  function pauseTimer() {
+    if (timer === null) return;
+    clearTimeout(timer); timer = null;
+    remaining = Math.max(0, remaining - (Date.now() - startedAt));
+  }
+  function resumeTimer() {
+    if (isPaused()) return;
+    schedule();
+  }
+  function advance() { setActive((cur + 1) % panels.length); }
+
+  // 强制当前面板进度条重头播放（用户恢复轮播时避免与 JS 时钟脱节）
+  function restartProg() {
+    var bar = panels[cur].querySelector('.prog i');
+    if (!bar) return;
+    bar.style.animation = 'none';
+    void bar.offsetWidth;
+    bar.style.animation = '';
+  }
+
+  function setActive(i) {
+    if (i === cur && panels[i].classList.contains('active')) return;
+    panels[cur].classList.remove('active');
+    strips[cur].setAttribute('aria-expanded', 'false');
+    strips[cur].tabIndex = 0;
+    cur = i;
+    panels[cur].classList.add('active');
+    strips[cur].setAttribute('aria-expanded', 'true');
+    strips[cur].tabIndex = -1;
+    // 重置轮播时钟（进度条动画随 .active 重新应用自动从头开始）
+    remaining = ROTATE;
+    if (!isPaused()) schedule();
+  }
+
+  panels.forEach(function (panel, i) {
+    panel.addEventListener('mouseenter', function () {
+      hovering = true; syncPausedClass(); pauseTimer();
+      clearTimeout(hoverDelay);
+      if (i !== cur) hoverDelay = setTimeout(function () { setActive(i); }, HOVER_DELAY);
+    });
+    panel.addEventListener('mouseleave', function () { clearTimeout(hoverDelay); });
+    strips[i].addEventListener('click', function () {   // 触屏 / 键盘
+      clearTimeout(hoverDelay);
+      setActive(i);
+    });
+  });
+  acc.addEventListener('mouseleave', function () {
+    hovering = false; syncPausedClass();
+    clearTimeout(hoverDelay);
+    resumeTimer();
+  });
+  // 键盘用户聚焦到面板内任何可交互元素时，暂停轮播避免内容被切走
+  acc.addEventListener('focusin', function () { pauseTimer(); });
+  acc.addEventListener('focusout', function (e) {
+    if (!acc.contains(e.relatedTarget)) { resumeTimer(); }
+  });
+
+  // 暂停 / 恢复自动轮播（WCAG 2.2.2）
+  var pauseBtn = document.getElementById('acc-pause');
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', function () {
+      userPaused = !userPaused;
+      if (userPaused) pauseTimer();
+      else { remaining = ROTATE; restartProg(); resumeTimer(); }
+      syncPausedClass(); syncPauseBtn();
+    });
+    syncPauseBtn();
+  }
+  acc.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') { e.preventDefault(); setActive((cur + 1) % panels.length); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); setActive((cur - 1 + panels.length) % panels.length); }
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) pauseTimer();
+    else resumeTimer();
+  });
+
+  schedule();
 })();
 </script>
 </body>
