@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230B318F"/><circle cx="50" cy="50" r="40" fill="none" stroke="%237ECEF4" stroke-width="6"/></svg>' />
+<title>故障诊断助手 · CyberNWT</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; color: #e8f2ff;
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(900px 500px at 50% 20%, rgba(40,95,190,0.16), transparent 70%),
+      radial-gradient(700px 420px at 85% 85%, rgba(22,110,88,0.10), transparent 70%),
+      linear-gradient(160deg, #0a1521 0%, #1b263b 100%);
+    background-attachment: fixed;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(130,170,230,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(130,170,230,0.05) 1px, transparent 1px);
+    background-size: 46px 46px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 22px;
+    padding: 0 36px; height: 62px;
+    background: rgba(10, 21, 33, 0.78);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(126, 206, 244, 0.16);
+  }
+  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+  .logo .dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #6FBA2C, #00663B);
+    box-shadow: 0 0 10px rgba(111, 186, 44, 0.8);
+  }
+  nav { display: flex; gap: 6px; flex: 1; }
+  nav a {
+    padding: 8px 16px; border-radius: 8px; text-decoration: none;
+    color: #8fa8c7; font-size: 14px; transition: all 0.2s;
+  }
+  nav a:hover { color: #fff; background: rgba(126, 206, 244, 0.10); }
+  nav a.active { color: #fff; background: rgba(126, 206, 244, 0.16); font-weight: 600; }
+  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8fa8c7; }
+  .user .chip {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(126, 206, 244, 0.12);
+    border: 1px solid rgba(126, 206, 244, 0.25); color: #e8f2ff;
+  }
+  .user .chip i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #7ee2a8; box-shadow: 0 0 6px #7ee2a8;
+  }
+  .logout {
+    padding: 7px 16px; border-radius: 8px; cursor: pointer;
+    border: 1px solid rgba(255, 145, 145, 0.35);
+    background: transparent; color: #ff9191; font-size: 13px; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .logout:hover { background: rgba(255, 145, 145, 0.12); }
+
+  main { position: relative; max-width: 1180px; margin: 0 auto; padding: 36px 28px 50px;
+    display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: start; }
+  .card {
+    border-radius: 14px;
+    background: rgba(11, 22, 38, 0.6);
+    border: 1px solid rgba(126, 206, 244, 0.16);
+  }
+  .side { padding: 18px 16px; position: sticky; top: 80px; display: flex; flex-direction: column; gap: 14px; }
+  .side h3 { font-size: 13px; color: #8fa8c7; letter-spacing: 2px; font-weight: 400; }
+  .scene {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    padding: 11px 14px; border-radius: 10px; margin-top: 8px;
+    border: 1px solid rgba(126, 206, 244, 0.16); background: rgba(126, 206, 244, 0.05);
+    color: #cfe3f8; font-size: 13.5px; font-family: inherit; transition: all 0.18s;
+  }
+  .scene:hover { background: rgba(126, 206, 244, 0.13); border-color: rgba(126, 206, 244, 0.45); transform: translateX(3px); }
+  .scene small { display: block; color: #6f88a8; font-size: 11.5px; margin-top: 3px; }
+  .side .tip { font-size: 12px; color: #6f88a8; line-height: 1.8; padding: 12px 14px;
+    border-radius: 10px; background: rgba(111, 186, 44, 0.07); border: 1px dashed rgba(111, 186, 44, 0.35); }
+  .side .tip b { color: #a9d97e; }
+  .ghost {
+    padding: 9px 0; border-radius: 9px; cursor: pointer; width: 100%;
+    border: 1px solid rgba(255, 145, 145, 0.3); background: transparent;
+    color: #ff9191; font-size: 13px; font-family: inherit; transition: all 0.15s;
+  }
+  .ghost:hover { background: rgba(255, 145, 145, 0.1); }
+
+  /* 聊天区 */
+  .chat { display: flex; flex-direction: column; height: calc(100vh - 148px); min-height: 520px; }
+  .chat-head { display: flex; align-items: center; gap: 12px; padding: 15px 20px;
+    border-bottom: 1px solid rgba(126, 206, 244, 0.14); }
+  .avatar { width: 40px; height: 40px; border-radius: 12px; flex: none;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    background: linear-gradient(135deg, rgba(26,86,196,.5), rgba(15,138,95,.5));
+    border: 1px solid rgba(126, 206, 244, 0.35); }
+  .chat-head b { font-size: 15px; display: block; }
+  .chat-head small { color: #8fa8c7; font-size: 12px; }
+  .src-chip { margin-left: auto; font-size: 11px; padding: 4px 12px; border-radius: 999px;
+    color: #ffc85a; border: 1px solid rgba(255, 200, 90, 0.4); }
+  .src-chip.fastgpt { color: #7ee2a8; border-color: rgba(126, 226, 168, 0.5); }
+
+  .msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .msgs::-webkit-scrollbar { width: 8px; }
+  .msgs::-webkit-scrollbar-thumb { background: rgba(126, 206, 244, 0.2); border-radius: 4px; }
+  .msg { display: flex; gap: 10px; max-width: 86%; }
+  .msg .bub {
+    padding: 12px 16px; border-radius: 13px; font-size: 13.5px; line-height: 1.85;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .msg.ai .bub { background: rgba(126, 206, 244, 0.08); border: 1px solid rgba(126, 206, 244, 0.16);
+    border-top-left-radius: 4px; }
+  .msg.ai .bub b { color: #7ECEF4; }
+  .msg.ai .bub code { background: rgba(6,14,24,.8); padding: 1px 7px; border-radius: 5px;
+    font-family: Consolas, monospace; font-size: 12.5px; color: #a9d97e; }
+  .msg.me { align-self: flex-end; }
+  .msg.me .bub { background: linear-gradient(135deg, rgba(26,86,196,.55), rgba(15,110,90,.45));
+    border-top-right-radius: 4px; }
+  .msg .mini { width: 30px; height: 30px; border-radius: 9px; flex: none; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    background: rgba(126, 206, 244, 0.1); border: 1px solid rgba(126, 206, 244, 0.25); }
+  .msg.me .mini { order: 2; background: rgba(15,138,95,.2); }
+  .typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: #7ECEF4; opacity: .4;
+    animation: blink 1.1s infinite; }
+  .typing i:nth-child(2) { animation-delay: .18s; }
+  .typing i:nth-child(3) { animation-delay: .36s; }
+  @keyframes blink { 50% { opacity: 1; transform: translateY(-2px); } }
+
+  .inputbar { padding: 14px 16px 8px; border-top: 1px solid rgba(126, 206, 244, 0.14); }
+  .inbox { display: flex; gap: 10px; align-items: flex-end; }
+  .inbox textarea {
+    flex: 1; resize: none; max-height: 130px; padding: 12px 15px;
+    border-radius: 11px; border: 1px solid rgba(126, 206, 244, 0.28);
+    background: rgba(6, 14, 24, 0.65); color: #e8f2ff; font-size: 13.5px;
+    font-family: inherit; line-height: 1.6; outline: none; transition: border-color .15s;
+  }
+  .inbox textarea:focus { border-color: rgba(126, 206, 244, 0.6); }
+  .send {
+    flex: none; padding: 12px 24px; border-radius: 11px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #1a56c4, #0f8a5f); color: #fff;
+    font-size: 14px; font-weight: 700; font-family: inherit; transition: all .2s;
+  }
+  .send:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(26,86,196,.4); }
+  .send:disabled { opacity: .5; cursor: wait; }
+  .inputbar .hint { text-align: right; font-size: 11px; color: #6f88a8; padding: 7px 4px 2px; }
+
+  footer { text-align: center; padding: 20px 0 30px; font-size: 12px; color: rgba(143, 168, 199, 0.6); }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } .side { position: static; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="dot"></span>CyberNWT</div>
+  <nav>
+    <a href="home.html">首页</a>
+    <a class="active" href="speedtest.html">功能展示</a>
+    <a href="#" title="建设中">数据看板</a>
+    <a href="#" title="建设中">关于项目</a>
+  </nav>
+  <div class="user">
+    <span class="chip"><i></i><b id="username">…</b></span>
+    <button class="logout" id="logout-btn">退出登录</button>
+  </div>
+</header>
+
+<main>
+  <aside class="card side">
+    <div>
+      <h3>场景快捷入口</h3>
+      <button class="scene" data-q="深信服 AF 防火墙今天整机上架加电后，管理口 ping 不通，STAT 灯常亮绿色，应该按什么顺序排查？">整机上架
+        <small>上架加电 / 初始化 / 管理不通</small></button>
+      <button class="scene" data-q="明天凌晨要对核心交换做防火墙割接替换，请帮我梳理一份割接步骤和回退方案要点。">割接切换
+        <small>步骤梳理 / 回退方案 / 风险点</small></button>
+      <button class="scene" data-q="分支与总部之间 IPSec VPN 隧道协商不起来，第一阶段卡在 no proposal chosen，如何定位？">VPN 隧道
+        <small>IKE/IPSec / 协商失败 / NAT-T</small></button>
+      <button class="scene" data-q="办公区用户反馈上网突然变慢且间歇性丢包，出口是深信服 AC，请给我分段定位思路。">上网变慢 / 丢包
+        <small>链路质量 / 会话数 / 流控策略</small></button>
+      <button class="scene" data-q="AC 无线场景下部分 AP 频繁掉线重连，CAPWAP 隧道反复建立，可能原因有哪些？">无线 AC/AP
+        <small>掉线重连 / CAPWAP / 漫游</small></button>
+      <button class="scene" data-q="如何采集深信服设备的诊断日志和 show 信息给原厂分析？需要哪些关键命令输出？">日志与信息采集
+        <small>诊断日志 / show 命令 / 取证</small></button>
+      <button class="scene" data-q="客户现场要求做安全策略整改，防火墙策略从 800 条精简，请给出策略梳理与优化的方法。">安全策略优化
+        <small>策略精简 / 权限收敛 / 合规</small></button>
+    </div>
+    <div class="tip"><b>当前：演示模式</b><br />由本地经验规则生成回答。服务端配置 <b>FASTGPT_BASE / FASTGPT_KEY</b> 环境变量后，将自动切换为你的 FastGPT 知识库大模型。</div>
+    <button class="ghost" id="clear-btn">清空会话</button>
+  </aside>
+
+  <section class="card chat">
+    <div class="chat-head">
+      <div class="avatar">🛠️</div>
+      <div><b>灵犀诊断助手</b><small>深信服设备实施故障专家 · 上架 / 割接 / 配置 / 链路</small></div>
+      <span class="src-chip" id="src-chip">演示模式 · 未接入 FastGPT</span>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="inputbar">
+      <div class="inbox">
+        <textarea id="inp" rows="1" placeholder="描述故障现象、拓扑与环境，或直接粘贴日志 / show 输出…（Ctrl + Enter 发送）"></textarea>
+        <button class="send" id="send-btn">发 送</button>
+      </div>
+      <div class="hint">提示：现象写得越具体（型号、时间点、报错、最近变更），定位越快</div>
+    </div>
+  </section>
+</main>
+
+<footer>CyberNWT · 演示环境</footer>
+<script src="whiteboard.js" defer></script>
+<script>
+(function () {
+  'use strict';
+
+  fetch('/api/me').then(function (r) {
+    if (r.status === 401) { location.href = 'login.html'; return null; }
+    return r.json();
+  }).then(function (data) {
+    if (data && data.ok) document.getElementById('username').textContent = data.username;
+  }).catch(function () { location.href = 'login.html'; });
+  document.getElementById('logout-btn').addEventListener('click', function () {
+    fetch('/api/logout', { method: 'POST' }).then(function () { location.href = 'login.html'; });
+  });
+
+  var $ = function (s) { return document.querySelector(s); };
+  var msgs = $('#msgs');
+  var history = [];   // 发送给 AI 的上下文
+  var busy = false;
+
+  /* ---- 极简 Markdown 渲染（安全转义后） ---- */
+  function esc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function md(src) {
+    var lines = esc(src).split('\n');
+    var out = [], inUl = false;
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i];
+      var bolded = ln.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+      if (/^\s*[-*]\s+/.test(ln)) {
+        if (!inUl) { out.push('<ul style="margin:4px 0 4px 18px">'); inUl = true; }
+        out.push('<li>' + bolded.replace(/^\s*[-*]\s+/, '') + '</li>');
+        continue;
+      }
+      if (inUl) { out.push('</ul>'); inUl = false; }
+      if (!ln.trim()) { out.push('<div style="height:6px"></div>'); continue; }
+      out.push('<div>' + bolded + '</div>');
+    }
+    if (inUl) out.push('</ul>');
+    return out.join('');
+  }
+
+  function bubble(role, text) {
+    var d = document.createElement('div');
+    d.className = 'msg ' + (role === 'user' ? 'me' : 'ai');
+    var who = role === 'user'
+      ? '<div class="mini">👤</div>'
+      : '<div class="mini">🛠️</div>';
+    var b = document.createElement('div');
+    b.className = 'bub';
+    b.innerHTML = text ? md(text) : '<span class="typing"><i></i><i></i><i></i></span>';
+    d.innerHTML = who;
+    d.appendChild(b);
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+    return b;
+  }
+
+  /* 打字机：先按纯文本流出，结束再整体渲染为富文本 */
+  function typewrite(bub, full, done) {
+    var i = 0;
+    var timer = setInterval(function () {
+      i = Math.min(full.length, i + 3);
+      bub.textContent = full.slice(0, i);
+      msgs.scrollTop = msgs.scrollHeight;
+      if (i >= full.length) {
+        clearInterval(timer);
+        bub.innerHTML = md(full);
+        msgs.scrollTop = msgs.scrollHeight;
+        done && done();
+      }
+    }, 12);
+  }
+
+  function welcome() {
+    history = [];
+    msgs.innerHTML = '';
+    bubble('ai', '你好，我是**灵犀诊断助手**，专注深信服设备实施过程中的故障定位：整机上架、割接切换、VPN 组网、链路质量、无线 roaming 等场景都可以问我。\n\n把**故障现象 + 设备型号 + 最近变更**告诉我，或直接粘贴日志，我会给出结构化的排查路径。也可以点左侧场景快捷入口快速提问。');
+  }
+
+  function send(text) {
+    if (busy || !text.trim()) return;
+    busy = true;
+    $('#send-btn').disabled = true;
+    bubble('user', text);
+    history.push({ role: 'user', content: text });
+    var bub = bubble('ai', '');
+
+    fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scene: 'diagnose', messages: history.slice(-10) })
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.message || '服务异常');
+      if (data.source === 'fastgpt') {
+        var chip = $('#src-chip');
+        chip.textContent = 'FastGPT 已连接';
+        chip.classList.add('fastgpt');
+      }
+      typewrite(bub, data.reply, function () {
+        history.push({ role: 'assistant', content: data.reply });
+        busy = false;
+        $('#send-btn').disabled = false;
+      });
+    }).catch(function (e) {
+      bub.innerHTML = md('**出错了：**' + (e.message || e) + '\n请确认服务已启动并处于登录状态。');
+      busy = false;
+      $('#send-btn').disabled = false;
+    });
+  }
+
+  var inp = $('#inp');
+  inp.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(inp.value); }
+  });
+  inp.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.min(130, this.scrollHeight) + 'px';
+  });
+  $('#send-btn').addEventListener('click', function () { send(inp.value); inp.value = ''; inp.style.height = 'auto'; });
+  document.querySelectorAll('.scene').forEach(function (b) {
+    b.addEventListener('click', function () { send(b.dataset.q); });
+  });
+  $('#clear-btn').addEventListener('click', welcome);
+
+  welcome();
+})();
+</script>
+</body>
+</html>

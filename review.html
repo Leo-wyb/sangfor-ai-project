@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230B318F"/><circle cx="50" cy="50" r="40" fill="none" stroke="%237ECEF4" stroke-width="6"/></svg>' />
+<title>案例复盘 · CyberNWT</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; color: #e8f2ff;
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(900px 500px at 50% 20%, rgba(40,95,190,0.16), transparent 70%),
+      radial-gradient(700px 420px at 85% 85%, rgba(22,110,88,0.10), transparent 70%),
+      linear-gradient(160deg, #0a1521 0%, #1b263b 100%);
+    background-attachment: fixed;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(130,170,230,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(130,170,230,0.05) 1px, transparent 1px);
+    background-size: 46px 46px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 22px;
+    padding: 0 36px; height: 62px;
+    background: rgba(10, 21, 33, 0.78);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(126, 206, 244, 0.16);
+  }
+  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+  .logo .dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #6FBA2C, #00663B);
+    box-shadow: 0 0 10px rgba(111, 186, 44, 0.8);
+  }
+  nav { display: flex; gap: 6px; flex: 1; }
+  nav a {
+    padding: 8px 16px; border-radius: 8px; text-decoration: none;
+    color: #8fa8c7; font-size: 14px; transition: all 0.2s;
+  }
+  nav a:hover { color: #fff; background: rgba(126, 206, 244, 0.10); }
+  nav a.active { color: #fff; background: rgba(126, 206, 244, 0.16); font-weight: 600; }
+  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8fa8c7; }
+  .user .chip {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(126, 206, 244, 0.12);
+    border: 1px solid rgba(126, 206, 244, 0.25); color: #e8f2ff;
+  }
+  .user .chip i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #7ee2a8; box-shadow: 0 0 6px #7ee2a8;
+  }
+  .logout {
+    padding: 7px 16px; border-radius: 8px; cursor: pointer;
+    border: 1px solid rgba(255, 145, 145, 0.35);
+    background: transparent; color: #ff9191; font-size: 13px; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .logout:hover { background: rgba(255, 145, 145, 0.12); }
+
+  main { position: relative; max-width: 1220px; margin: 0 auto; padding: 36px 28px 50px;
+    display: grid; grid-template-columns: 400px 1fr; gap: 18px; align-items: start; }
+  .card {
+    border-radius: 14px;
+    background: rgba(11, 22, 38, 0.6);
+    border: 1px solid rgba(126, 206, 244, 0.16);
+    padding: 22px 24px;
+  }
+  .card h2 { font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .chip { font-size: 10.5px; font-weight: 400; color: #7ECEF4; border: 1px solid rgba(126, 206, 244, 0.4);
+    padding: 2px 9px; border-radius: 999px; letter-spacing: 1px; }
+  .desc { font-size: 12.5px; color: #8fa8c7; line-height: 1.8; margin: 10px 0 16px; }
+  label.fld { display: block; font-size: 12.5px; color: #8fa8c7; margin: 14px 0 7px; letter-spacing: 1px; }
+  input.fld, textarea.fld {
+    width: 100%; padding: 11px 14px; border-radius: 10px;
+    border: 1px solid rgba(126, 206, 244, 0.25); background: rgba(6, 14, 24, 0.6);
+    color: #e8f2ff; font-size: 13.5px; font-family: inherit; line-height: 1.7; outline: none;
+    transition: border-color .15s;
+  }
+  input.fld:focus, textarea.fld:focus { border-color: rgba(126, 206, 244, 0.6); }
+  textarea.fld { resize: vertical; min-height: 170px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .stag {
+    padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 12px;
+    border: 1px solid rgba(126, 206, 244, 0.25); background: transparent; color: #8fa8c7; font-family: inherit;
+    transition: all .15s;
+  }
+  .stag.on { color: #fff; background: rgba(126, 206, 244, 0.16); border-color: rgba(126, 206, 244, 0.6); }
+  .gen {
+    width: 100%; margin-top: 20px; padding: 13px 0; border-radius: 11px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #1a56c4, #0f8a5f); color: #fff;
+    font-size: 15px; font-weight: 700; letter-spacing: 2px; font-family: inherit; transition: all .2s;
+  }
+  .gen:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(26,86,196,.45); }
+  .gen:disabled { opacity: .55; cursor: wait; }
+
+  .report { min-height: 420px; display: flex; flex-direction: column; }
+  .rep-head { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(126, 206, 244, 0.14);
+    padding-bottom: 14px; margin-bottom: 6px; }
+  .rep-head .sp { flex: 1; }
+  .act { padding: 7px 16px; border-radius: 9px; cursor: pointer; font-size: 12.5px; font-family: inherit;
+    border: 1px solid rgba(126, 206, 244, 0.3); background: transparent; color: #7ECEF4; transition: all .15s; }
+  .act:hover { background: rgba(126, 206, 244, 0.1); }
+  .rep-body { overflow-y: auto; max-height: calc(100vh - 260px); padding: 14px 6px 10px; }
+  .rep-body::-webkit-scrollbar { width: 8px; }
+  .rep-body::-webkit-scrollbar-thumb { background: rgba(126, 206, 244, 0.2); border-radius: 4px; }
+  .rep-body h1 { font-size: 20px; margin: 4px 0 14px; color: #fff; }
+  .rep-body h2 { font-size: 15.5px; margin: 22px 0 10px; color: #7ECEF4; padding-left: 10px;
+    border-left: 3px solid #6FBA2C; line-height: 1.4; }
+  .rep-body p { font-size: 13.5px; line-height: 2; color: #cfe3f8; margin: 6px 0; }
+  .rep-body ul { margin: 8px 0 8px 22px; }
+  .rep-body li { font-size: 13.5px; line-height: 2; color: #cfe3f8; }
+  .rep-body blockquote { margin: 12px 0; padding: 10px 16px; border-radius: 8px;
+    background: rgba(111, 186, 44, 0.08); border: 1px dashed rgba(111, 186, 44, 0.4);
+    color: #a9c98f; font-size: 12.5px; line-height: 1.9; }
+  .rep-body b { color: #fff; }
+  .empty { color: #6f88a8; font-size: 13.5px; text-align: center; padding: 120px 20px; line-height: 2.2; }
+  .src-chip { font-size: 11px; padding: 4px 12px; border-radius: 999px;
+    color: #ffc85a; border: 1px solid rgba(255, 200, 90, 0.4); }
+  .src-chip.fastgpt { color: #7ee2a8; border-color: rgba(126, 226, 168, 0.5); }
+
+  footer { text-align: center; padding: 20px 0 30px; font-size: 12px; color: rgba(143, 168, 199, 0.6); }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="dot"></span>CyberNWT</div>
+  <nav>
+    <a href="home.html">首页</a>
+    <a class="active" href="speedtest.html">功能展示</a>
+    <a href="#" title="建设中">数据看板</a>
+    <a href="#" title="建设中">关于项目</a>
+  </nav>
+  <div class="user">
+    <span class="chip"><i></i><b id="username">…</b></span>
+    <button class="logout" id="logout-btn">退出登录</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>输入复盘材料 <span class="chip">STEP 1</span></h2>
+    <p class="desc">把项目整个过程“讲给灵犀听”：背景、实施过程、遇到的问题和处置方式，越具体，报告越有洞察。AI 将自动沉淀为结构化复盘报告，提炼可复用的方法论。</p>
+
+    <label class="fld">项目名称</label>
+    <input class="fld" id="pname" placeholder="如：XX 客服中心 AF 防火墙割接上线" />
+
+    <label class="fld">所属阶段（可多选）</label>
+    <div class="chips" id="stages">
+      <button class="stag" type="button">整机上架</button>
+      <button class="stag" type="button">割接切换</button>
+      <button class="stag" type="button">故障处置</button>
+      <button class="stag" type="button">扩容优化</button>
+      <button class="stag" type="button">测试验收</button>
+      <button class="stag" type="button">培训交付</button>
+    </div>
+
+    <label class="fld">过程描述</label>
+    <textarea class="fld" id="story" placeholder="示例：&#10;1. 周二晚 22:00 开始割接，先旁路接入 AF 观察了一天流量；&#10;2. 凌晨 1 点切串接后内网访问正常，但发现××业务会话异常中断；&#10;3. 排查发现是 ASBF 对长连接的会话超时配置与旧设备不一致…"></textarea>
+
+    <button class="gen" id="gen-btn">✦ 生成复盘报告</button>
+  </section>
+
+  <section class="card report">
+    <div class="rep-head">
+      <h2 style="border:none;padding:0">复盘报告 <span class="chip">REPORT</span></h2>
+      <span class="src-chip" id="src-chip" style="display:none"></span>
+      <span class="sp"></span>
+      <button class="act" id="copy-btn">复制 Markdown</button>
+      <button class="act" id="dl-btn">下载 .md</button>
+    </div>
+    <div class="rep-body" id="rep-body">
+      <div class="empty">左侧输入项目材料后点击「生成复盘报告」<br />AI 将从过程中提炼：时间线 · 问题根因 · 可复用方法论 · 改进项</div>
+    </div>
+  </section>
+</main>
+
+<footer>CyberNWT · 演示环境</footer>
+<script src="whiteboard.js" defer></script>
+<script>
+(function () {
+  'use strict';
+
+  fetch('/api/me').then(function (r) {
+    if (r.status === 401) { location.href = 'login.html'; return null; }
+    return r.json();
+  }).then(function (data) {
+    if (data && data.ok) document.getElementById('username').textContent = data.username;
+  }).catch(function () { location.href = 'login.html'; });
+  document.getElementById('logout-btn').addEventListener('click', function () {
+    fetch('/api/logout', { method: 'POST' }).then(function () { location.href = 'login.html'; });
+  });
+
+  var $ = function (s) { return document.querySelector(s); };
+  var lastRaw = '';
+
+  function esc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function md(src) {
+    var lines = esc(src).split('\n');
+    var out = [], inUl = false;
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i];
+      var fmt = ln.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+      if (/^##\s+/.test(ln)) {
+        if (inUl) { out.push('</ul>'); inUl = false; }
+        out.push('<h2>' + fmt.replace(/^##\s+/, '') + '</h2>'); continue;
+      }
+      if (/^#\s+/.test(ln)) {
+        if (inUl) { out.push('</ul>'); inUl = false; }
+        out.push('<h1>' + fmt.replace(/^#\s+/, '') + '</h1>'); continue;
+      }
+      if (/^>\s?/.test(ln)) {
+        out.push('<blockquote>' + fmt.replace(/^>\s?/, '') + '</blockquote>'); continue;
+      }
+      if (/^\s*[-*]\s+/.test(ln)) {
+        if (!inUl) { out.push('<ul>'); inUl = true; }
+        out.push('<li>' + fmt.replace(/^\s*[-*]\s+/, '') + '</li>'); continue;
+      }
+      if (inUl) { out.push('</ul>'); inUl = false; }
+      if (!ln.trim()) continue;
+      out.push('<p>' + fmt + '</p>');
+    }
+    if (inUl) out.push('</ul>');
+    return out.join('');
+  }
+
+  /* 打字机流式输出 Markdown 源文，结束后整体渲染 */
+  function typewrite(raw, done) {
+    var body = $('#rep-body');
+    var i = 0;
+    var timer = setInterval(function () {
+      i = Math.min(raw.length, i + 4);
+      body.innerHTML = '<pre style="white-space:pre-wrap;font:12.5px/1.9 Consolas,monospace;color:#9db8d4">' +
+        esc(raw.slice(0, i)) + '</pre>';
+      body.scrollTop = body.scrollHeight;
+      if (i >= raw.length) {
+        clearInterval(timer);
+        body.innerHTML = md(raw);
+        done && done();
+      }
+    }, 12);
+  }
+
+  document.querySelectorAll('.stag').forEach(function (b) {
+    b.addEventListener('click', function () { b.classList.toggle('on'); });
+  });
+
+  function generate() {
+    var pname = $('#pname').value.trim();
+    var story = $('#story').value.trim();
+    if (!story) { alert('请先填写过程描述 —— 这是 AI 提炼报告的核心材料。'); return; }
+    var stages = [];
+    document.querySelectorAll('.stag.on').forEach(function (b) { stages.push(b.textContent); });
+
+    var btn = $('#gen-btn');
+    btn.disabled = true; btn.textContent = '◌ 灵犀正在复盘…';
+    var prompt = ['【项目名称】' + (pname || '未命名项目'),
+      stages.length ? '【所属阶段】' + stages.join('、') : '',
+      '【项目过程】', story].filter(Boolean).join('\n');
+
+    fetch('/api/ai/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scene: 'review', messages: [{ role: 'user', content: prompt }] })
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.message || '服务异常');
+      lastRaw = data.reply;
+      var chip = $('#src-chip');
+      chip.style.display = '';
+      if (data.source === 'fastgpt') {
+        chip.textContent = 'FastGPT 生成';
+        chip.classList.add('fastgpt');
+      } else {
+        chip.textContent = '演示模式 · 未接入 FastGPT';
+        chip.classList.remove('fastgpt');
+      }
+      typewrite(data.reply, function () {
+        try { localStorage.setItem('cybernwt.lastreport', JSON.stringify({ raw: data.reply, name: pname })); } catch (e) {}
+        btn.disabled = false; btn.textContent = '✦ 生成复盘报告';
+      });
+    }).catch(function (e) {
+      alert('生成失败：' + (e.message || e));
+      btn.disabled = false; btn.textContent = '✦ 生成复盘报告';
+    });
+  }
+
+  $('#gen-btn').addEventListener('click', generate);
+  $('#copy-btn').addEventListener('click', function () {
+    if (!lastRaw) return;
+    (navigator.clipboard ? navigator.clipboard.writeText(lastRaw) : Promise.reject()).then(
+      function () { this.textContent = '✓ 已复制'; var b = this; setTimeout(function () { b.textContent = '复制 Markdown'; }, 1500); }.bind(this),
+      function () { alert('复制失败，请手动选择文本'); });
+  });
+  $('#dl-btn').addEventListener('click', function () {
+    if (!lastRaw) return;
+    var a = document.createElement('a');
+    a.download = (($('#pname').value.trim() || '复盘报告') + '.md');
+    a.href = URL.createObjectURL(new Blob([lastRaw], { type: 'text/markdown' }));
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  /* 恢复上次报告 */
+  try {
+    var saved = JSON.parse(localStorage.getItem('cybernwt.lastreport') || 'null');
+    if (saved && saved.raw) {
+      lastRaw = saved.raw;
+      if (saved.name) $('#pname').value = saved.name;
+      $('#rep-body').innerHTML = md(saved.raw);
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

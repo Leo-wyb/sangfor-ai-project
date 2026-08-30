@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230B318F"/><circle cx="50" cy="50" r="40" fill="none" stroke="%237ECEF4" stroke-width="6"/></svg>' />
+<title>首页 · CyberNWT</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; color: #e8f2ff;
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(900px 500px at 50% 20%, rgba(40,95,190,0.16), transparent 70%),
+      radial-gradient(700px 420px at 85% 85%, rgba(22,110,88,0.10), transparent 70%),
+      linear-gradient(160deg, #0a1521 0%, #1b263b 100%);
+    background-attachment: fixed;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(130,170,230,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(130,170,230,0.05) 1px, transparent 1px);
+    background-size: 46px 46px;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 22px;
+    padding: 0 36px; height: 62px;
+    background: rgba(10, 21, 33, 0.78);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(126, 206, 244, 0.16);
+  }
+  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+  .logo .dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #6FBA2C, #00663B);
+    box-shadow: 0 0 10px rgba(111, 186, 44, 0.8);
+  }
+  nav { display: flex; gap: 6px; flex: 1; }
+  nav a {
+    padding: 8px 16px; border-radius: 8px; text-decoration: none;
+    color: #8fa8c7; font-size: 14px; transition: all 0.2s;
+  }
+  nav a:hover { color: #fff; background: rgba(126, 206, 244, 0.10); }
+  nav a.active { color: #fff; background: rgba(126, 206, 244, 0.16); font-weight: 600; }
+  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8fa8c7; }
+  .user .chip {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(126, 206, 244, 0.12);
+    border: 1px solid rgba(126, 206, 244, 0.25); color: #e8f2ff;
+  }
+  .user .chip i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #7ee2a8; box-shadow: 0 0 6px #7ee2a8;
+  }
+  .logout {
+    padding: 7px 16px; border-radius: 8px; cursor: pointer;
+    border: 1px solid rgba(255, 145, 145, 0.35);
+    background: transparent; color: #ff9191; font-size: 13px; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .logout:hover { background: rgba(255, 145, 145, 0.12); }
+
+  main { position: relative; max-width: 1120px; margin: 0 auto; padding: 56px 28px 60px; }
+  .hero h2 { font-size: 30px; font-weight: 700; }
+  .hero h2 span {
+    background: linear-gradient(90deg, #7ECEF4, #6FBA2C);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { margin-top: 10px; color: #8fa8c7; font-size: 14.5px; line-height: 1.8; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 40px; }
+  .feat {
+    position: relative; display: flex; flex-direction: column;
+    padding: 24px 24px 20px; border-radius: 14px;
+    background: rgba(11, 22, 38, 0.6);
+    border: 1px solid rgba(126, 206, 244, 0.16);
+    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+  }
+  .feat:hover {
+    transform: translateY(-4px);
+    border-color: rgba(126, 206, 244, 0.45);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  }
+  .ficon {
+    width: 46px; height: 46px; border-radius: 12px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(26, 86, 196, 0.35), rgba(15, 138, 95, 0.3));
+    border: 1px solid rgba(126, 206, 244, 0.3);
+  }
+  .ficon svg { width: 24px; height: 24px; fill: none; stroke: #7ECEF4; stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .feat h3 { font-size: 16.5px; display: flex; align-items: center; gap: 9px; }
+  .ftag { font-size: 10px; font-weight: 400; color: #7ECEF4; letter-spacing: 1.5px;
+    border: 1px solid rgba(126, 206, 244, 0.4); padding: 2px 8px; border-radius: 999px; }
+  .ftag.green { color: #a9d97e; border-color: rgba(111, 186, 44, 0.5); }
+  .feat p { font-size: 13px; color: #8fa8c7; line-height: 1.85; margin: 10px 0 14px; flex: 1; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .tags span { font-size: 11px; color: #9db8d4; background: rgba(126, 206, 244, 0.08);
+    border: 1px solid rgba(126, 206, 244, 0.14); padding: 3px 10px; border-radius: 999px; }
+  .fbtn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 22px; border-radius: 10px; text-decoration: none; cursor: pointer;
+    background: linear-gradient(135deg, #1a56c4, #0f8a5f); color: #fff;
+    font-size: 13.5px; font-weight: 700; font-family: inherit; border: none;
+    letter-spacing: 1px; transition: all 0.2s; align-self: flex-start;
+  }
+  .fbtn:hover { box-shadow: 0 8px 24px rgba(26, 86, 196, 0.5); transform: translateY(-1px); }
+  .corner {
+    position: absolute; top: 18px; right: 20px; font-size: 11px; letter-spacing: 2px;
+    color: rgba(126, 206, 244, 0.35); font-weight: 600;
+  }
+
+  footer { text-align: center; padding: 26px 0 34px; font-size: 12px; color: rgba(143, 168, 199, 0.6); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="dot"></span>CyberNWT</div>
+  <nav>
+    <a href="home.html" class="active">首页</a>
+    <a href="speedtest.html">功能展示</a>
+    <a href="#" title="建设中">数据看板</a>
+    <a href="#" title="建设中">关于项目</a>
+  </nav>
+  <div class="user">
+    <span class="chip"><i></i><b id="username">…</b></span>
+    <button class="logout" id="logout-btn">退出登录</button>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <h2>欢迎回来，<span id="hero-name">…</span></h2>
+    <p>CyberNWT 实施工具箱 —— 五大核心能力覆盖交付全流程：网络测速透视、内网拓扑感知、悬浮随心记录、AI 故障诊断与案例复盘。<br />右下角「随心记录」悬浮球在任意页面均可一键唤起。</p>
+  </div>
+
+  <div class="grid">
+    <div class="feat">
+      <span class="corner">01</span>
+      <div class="ficon"><svg viewBox="0 0 24 24"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M13.4 10.6L19 5"/><path d="M3.3 17a10 10 0 1 1 17.4 0"/><path d="M7 20.3a7 7 0 1 1 10 0"/></svg></div>
+      <h3>灵犀测速 <span class="ftag">SPEEDLENS</span></h3>
+      <p>颠覆传统测速工具：无需输入地址，一键完成握手、延迟、突发上下行测量，秒级出结果。不止给你数字——全链路透视每一跳，AI 直接告诉你“网速怎么回事”。</p>
+      <div class="tags"><span>全链路透视</span><span>智能诊断</span><span>秒级测量</span><span>JSON / Prometheus</span></div>
+      <a class="fbtn" href="speedtest.html">进入测速 →</a>
+    </div>
+
+    <div class="feat">
+      <span class="corner">02</span>
+      <div class="ficon"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+      <h3>随心记录 <span class="ftag green">悬浮白板</span></h3>
+      <p>在任意界面点击右下角悬浮球，白板即刻浮现：随手画、随手打字，记录实施过程中的心得与进展。可拖动、可缩放，内容自动保存本机，支持导出 PNG。</p>
+      <div class="tags"><span>全局悬浮</span><span>自由绘制</span><span>点击即写</span><span>自动保存</span></div>
+      <button class="fbtn" id="open-board">立即唤起 ✎</button>
+    </div>
+
+    <div class="feat">
+      <span class="corner">03</span>
+      <div class="ficon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+      <h3>故障诊断助手 <span class="ftag">AI ASSISTANT</span></h3>
+      <p>深信服设备实施故障 AI 专家：整机上架、割接切换、VPN 组网、链路质量、无线漫游……即问即答，给出结构化排查路径，支持直接粘贴日志分析。</p>
+      <div class="tags"><span>场景快捷入口</span><span>上下文对话</span><span>结构化排查</span></div>
+      <a class="fbtn" href="diagnose.html">开始诊断 →</a>
+    </div>
+
+    <div class="feat">
+      <span class="corner">04</span>
+      <div class="ficon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
+      <h3>案例复盘 <span class="ftag">AI REPORT</span></h3>
+      <p>把项目过程讲给灵犀听，AI 自动生成结构化复盘报告：过程时间线、关键问题与根因、可复制的方法论提炼、风险与改进项，帮助团队记录与学习。</p>
+      <div class="tags"><span>一键生成</span><span>方法论提炼</span><span>Markdown 导出</span></div>
+      <a class="fbtn" href="review.html">去复盘 →</a>
+    </div>
+
+    <div class="feat">
+      <span class="corner">05</span>
+      <div class="ficon"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/><path d="M12 7.2V9.8M7.2 12h2.6M14.2 12h2.6M12 14.2v2.6M6.6 10.4L9.4 7.8M14.6 7.8l2.8 2.6"/></svg></div>
+      <h3>内网感知 <span class="ftag green">NETSENSE</span></h3>
+      <p>笔记本接入客户内网（Wi-Fi / 有线均可），自动感知网络设备、网段与无线环境，一键生成可视化拓扑图，并给出深信服设备部署模式建议与上架检查清单。</p>
+      <div class="tags"><span>拓扑自动绘制</span><span>网段 / VLAN 识别</span><span>部署建议</span><span>Mermaid / PNG 导出</span></div>
+      <a class="fbtn" href="topology.html">开始感知 →</a>
+    </div>
+  </div>
+</main>
+
+<footer>CyberNWT · 演示环境</footer>
+<script src="whiteboard.js" defer></script>
+<script>
+(function () {
+  'use strict';
+
+  // 会话校验：未登录跳回登录页
+  fetch('/api/me').then(function (r) {
+    if (r.status === 401) { location.href = 'login.html'; return null; }
+    return r.json();
+  }).then(function (data) {
+    if (data && data.ok) {
+      document.getElementById('username').textContent = data.username;
+      document.getElementById('hero-name').textContent = data.username;
+    }
+  }).catch(function () { location.href = 'login.html'; });
+
+  // 退出登录
+  document.getElementById('logout-btn').addEventListener('click', function () {
+    fetch('/api/logout', { method: 'POST' }).then(function () { location.href = 'login.html'; });
+  });
+
+  // 唤起随心记录白板
+  document.getElementById('open-board').addEventListener('click', function () {
+    if (window.CyberBoard) CyberBoard.open();
+  });
+})();
+</script>
+</body>
+</html>
