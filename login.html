@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230B318F"/><circle cx="50" cy="50" r="40" fill="none" stroke="%237ECEF4" stroke-width="6"/></svg>' />
+<link rel="icon" type="image/png" href="logo.png" />
 <title>登录 · CyberNWT</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -517,6 +517,7 @@
 
   const dust = [];
   let particles = [];
+  let enterT0 = 0; // 入场聚合动画的时间基准（buildParticles(scatter=true) 时刷新）
 
   const mouse = { x: -9999, y: -9999, active: false };
 
@@ -524,14 +525,14 @@
   const MAX_PARTICLES = 9000;
 
   function makeSprite(rgb) {
-    const s = 48;
+    const s = 32;
     const c = document.createElement('canvas');
     c.width = c.height = s;
     const g = c.getContext('2d');
     const grad = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
     grad.addColorStop(0.00, 'rgba(' + rgb + ',1)');
-    grad.addColorStop(0.20, 'rgba(' + rgb + ',0.95)');
-    grad.addColorStop(0.50, 'rgba(' + rgb + ',0.28)');
+    grad.addColorStop(0.30, 'rgba(' + rgb + ',0.9)');
+    grad.addColorStop(0.62, 'rgba(' + rgb + ',0.22)');
     grad.addColorStop(1.00, 'rgba(' + rgb + ',0)');
     g.fillStyle = grad;
     g.fillRect(0, 0, s, s);
@@ -563,23 +564,34 @@
   }
 
   function makeParticle(hx, hy, gap, scatter) {
-    const jx = hx + (Math.random() - 0.5) * gap * 0.7;
-    const jy = hy + (Math.random() - 0.5) * gap * 0.7;
-    let px = jx, py = jy;
-    if (scatter) {
-      const ang = Math.random() * Math.PI * 2;
-      const rad = Math.max(W, H) * (0.25 + Math.random() * 0.55);
-      px = W / 2 + Math.cos(ang) * rad;
-      py = H / 2 + Math.sin(ang) * rad * 0.7;
-    }
-    const r = Math.random();
-    return {
-      hx: jx, hy: jy, x: px, y: py, vx: 0, vy: 0,
-      spr: r < 0.5 ? 0 : (r < 0.85 ? 1 : 2),
-      size: 2.6 + Math.random() * 2.8,
+    const jx = hx + (Math.random() - 0.5) * gap * 0.5;
+    const jy = hy + (Math.random() - 0.5) * gap * 0.5;
+    const p = {
+      hx: jx, hy: jy, x: jx, y: jy, vx: 0, vy: 0,
+      spr: Math.random() < 0.5 ? 0 : (Math.random() < 0.7 ? 1 : 2),
+      size: 1.5 + Math.random() * 1.9,
       base: 0.65 + Math.random() * 0.35,
-      tw: Math.random() * Math.PI * 2, ts: 0.6 + Math.random() * 1.6
+      tw: Math.random() * Math.PI * 2, ts: 0.6 + Math.random() * 1.6,
+      fly: false
     };
+    if (scatter) {
+      // 入场：弥散「星尘云」覆盖视口中央大片区域，再整体收拢聚合（对齐品牌视频）
+      const ang = Math.random() * Math.PI * 2;
+      const rad = Math.sqrt(Math.random()); // 盘内均匀分布
+      const sx = W * 0.46 + Math.cos(ang) * rad * W * 0.52;
+      const sy = H * 0.46 + Math.sin(ang) * rad * H * 0.46;
+      const dx = jx - sx, dy = jy - sy;
+      const dl = Math.hypot(dx, dy) || 1;
+      p.fly = true;
+      p.sx = sx; p.sy = sy;
+      p.x = sx; p.y = sy;
+      p.delay = Math.min(dl * 0.3, 400) + Math.random() * 120; // 远处先出发、协调到达
+      p.dur = 900 + Math.random() * 350;
+      p.pdx = -dy / dl; p.pdy = dx / dl;   // 飞行路径的垂直方向（轻微摆动用）
+      p.swA = (Math.random() - 0.5) * 26;
+      p.swF = 0.8 + Math.random() * 1.4;
+    }
+    return p;
   }
 
   // Logo 落点：宽屏在登录卡左侧可用区域内「水平 + 垂直」双居中，且完整显示（不超出屏幕、不被卡片遮挡）。
@@ -594,7 +606,7 @@
       const maxH = H * 0.7;
       if (lh > maxH) { lh = maxH; lw = lh * iw / ih; }
       lw = Math.round(lw); lh = Math.round(lh);
-      ox = Math.round((regionW - lw) / 2);   // 水平：区域内居中
+      ox = Math.round((regionW - lw) / 2 + regionW * 0.05);   // 水平：区域内居中后整体略右移
       oy = Math.round((H - lh) / 2);         // 垂直：窗口居中（去掉旧版上移偏移）
     } else {
       lw = W * 0.78;
@@ -625,7 +637,8 @@
       return;
     }
 
-    let gap = Math.max(3, Math.round(r.lw / 240));
+    let gap = Math.max(2, Math.round(r.lw / 300));
+    if (scatter) enterT0 = performance.now();
     for (let tries = 0; tries < 6; tries++) {
       particles = [];
       for (let y = 0; y < r.lh; y += gap) {
@@ -640,11 +653,35 @@
     }
   }
 
+  function easeInOutCubic(k) {
+    return k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+  }
+
   function step() {
+    const now = performance.now();
     const mActive = mouse.active, mx = mouse.x, my = mouse.y;
     const r2 = MOUSE_R * MOUSE_R;
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
+      if (p.fly) {
+        // 入场聚合阶段：从星尘云起点缓动到回家点，期间不受弹簧/鼠标力
+        let k = (now - enterT0 - p.delay) / p.dur;
+        if (k <= 0) {
+          p.x = p.sx; p.y = p.sy;
+          continue;
+        }
+        if (k >= 1) {
+          p.x = p.hx; p.y = p.hy;
+          p.vx = 0; p.vy = 0;
+          p.fly = false;
+          continue;
+        }
+        const e = easeInOutCubic(k);
+        const sw = Math.sin(e * Math.PI * p.swF) * p.swA * (1 - e);
+        p.x = p.sx + (p.hx - p.sx) * e + p.pdx * sw;
+        p.y = p.sy + (p.hy - p.sy) * e + p.pdy * sw;
+        continue;
+      }
       p.vx += (p.hx - p.x) * SPRING;
       p.vy += (p.hy - p.y) * SPRING;
       if (mActive) {
@@ -673,19 +710,22 @@
     for (let i = 0; i < dust.length; i++) {
       const d = dust[i];
       const tw = 0.5 + 0.5 * Math.sin(t * 0.001 * d.ts + d.tw);
-      ctx.globalAlpha = d.a * (0.35 + 0.65 * tw);
+      ctx.globalAlpha = Math.min(1, d.a * (0.5 + 0.85 * tw));
       ctx.fillStyle = d.c;
       ctx.fillRect(d.x, d.y, d.s, d.s);
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'lighter';
-    const breath = 0.75 + 0.25 * Math.sin(t * 0.0011);
+    const breath = 0.9 + 0.28 * Math.sin(t * 0.0011);            // 整体呼吸（亮度）：幅度加大、更亮
+    const breathS = 1 + 0.1 * Math.sin(t * 0.0011 + 0.6);       // 整体呼吸（尺寸微起伏）
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
-      const tw = 0.6 + 0.4 * Math.sin(t * 0.0018 * p.ts + p.tw);
-      const s = p.size * (0.8 + 0.35 * tw);
+      const tw = 0.78 + 0.38 * Math.sin(t * 0.003 * p.ts + p.tw); // 逐粒子闪亮（异频异相，下限抬高更亮）
+      const jx = Math.sin(t * 0.0033 * p.ts + p.tw * 3.1) * 1.1; // 围绕落点的微跳动
+      const jy = Math.cos(t * 0.0027 * p.ts + p.tw * 2.3) * 1.1;
+      const s = p.size * (0.85 + 0.3 * tw) * breathS;
       ctx.globalAlpha = Math.min(1, p.base * tw * breath);
-      ctx.drawImage(SPRITES[p.spr], p.x - s / 2, p.y - s / 2, s, s);
+      ctx.drawImage(SPRITES[p.spr], p.x + jx - s / 2, p.y + jy - s / 2, s, s);
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';

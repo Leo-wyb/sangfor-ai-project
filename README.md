@@ -41,13 +41,24 @@ python server.py 9000       # 自定义端口
 
 ## 接入 FastGPT（可选）
 
-AI 功能默认以「演示模式」运行（本地规则模板生成回答）。设置环境变量后自动切换为 FastGPT 真实大模型：
+AI 功能默认以「演示模式」运行（本地规则模板生成回答）。接入 FastGPT 后自动切换为真实大模型，两种方式（环境变量优先）：
+
+方式一：根目录创建 `fastgpt.config` 文件（已加入 .gitignore，密钥不会入库）：
+
+```
+FASTGPT_BASE=https://cloud.fastgpt.cn/api/v1   # OpenAI 兼容地址
+FASTGPT_KEY=fastgpt-xxx                        # FastGPT「API 密钥」处创建
+```
+
+方式二：设置环境变量：
 
 ```
 set FASTGPT_BASE=https://your-fastgpt.example.com/api/v1   # OpenAI 兼容地址
 set FASTGPT_KEY=fastgpt-xxx
 python server.py
 ```
+
+配置后重启 `python server.py`，启动日志出现 `[config] FastGPT 已接入` 即生效；复盘/诊断页的来源标记会显示「FastGPT 生成」。
 
 ## 安全说明（演示级）
 

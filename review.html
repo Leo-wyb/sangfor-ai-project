@@ -1,96 +1,183 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230B318F"/><circle cx="50" cy="50" r="40" fill="none" stroke="%237ECEF4" stroke-width="6"/></svg>' />
+<link rel="icon" type="image/png" href="logo.png" />
 <title>案例复盘 · CyberNWT</title>
+<meta name="theme-color" content="#0A0A0A" />
+<script>
+// 首屏前确定主题，避免闪烁：localStorage 优先，否则跟随系统
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('cyber-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark') {
+    t = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* ---------- 主题变量（深色为默认，浅色覆盖） ---------- */
+  :root {
+    color-scheme: dark;
+    --bg: #0A0A0A;
+    --grid-line: rgba(255, 255, 255, 0.06);
+    --header-bg: rgba(10, 10, 10, 0.84);
+    --border: rgba(255, 255, 255, 0.14);
+    --panel: #111111;
+    --panel-border: rgba(255, 255, 255, 0.14);
+    --panel-hover: #171717;
+    --text: #EDEDED;
+    --text-2: #9CA3AF;
+    --accent: #FFFFFF;
+    --accent-contrast: #0A0A0A;
+    --accent-bg: rgba(255, 255, 255, 0.06);
+    --accent-border: rgba(255, 255, 255, 0.38);
+    --accent-strong: rgba(255, 255, 255, 0.8);
+    --chip-border: rgba(255, 255, 255, 0.20);
+    --prog-track: rgba(255, 255, 255, 0.18);
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --blue: #7cbdf5; --green: #7ed37e; --warn: #f6c453; --orange: #ffa94d; --red: #ff8080;  }
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #FAFAFA;
+    --grid-line: rgba(0, 0, 0, 0.07);
+    --header-bg: rgba(250, 250, 250, 0.86);
+    --border: rgba(0, 0, 0, 0.14);
+    --panel: #FFFFFF;
+    --panel-border: rgba(0, 0, 0, 0.14);
+    --panel-hover: #F1F1F3;
+    --text: #111111;
+    --text-2: #52525B;
+    --accent: #0A0A0A;
+    --accent-contrast: #FAFAFA;
+    --accent-bg: rgba(0, 0, 0, 0.05);
+    --accent-border: rgba(0, 0, 0, 0.35);
+    --accent-strong: rgba(0, 0, 0, 0.7);
+    --chip-border: rgba(0, 0, 0, 0.18);
+    --prog-track: rgba(0, 0, 0, 0.16);
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --blue: #0369a1; --green: #15803d; --warn: #b45309; --orange: #c2410c; --red: #dc2626;  }
+
   body {
-    min-height: 100vh; color: #e8f2ff;
+    min-height: 100vh; color: var(--text);
     font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-    background:
-      radial-gradient(900px 500px at 50% 20%, rgba(40,95,190,0.16), transparent 70%),
-      radial-gradient(700px 420px at 85% 85%, rgba(22,110,88,0.10), transparent 70%),
-      linear-gradient(160deg, #0a1521 0%, #1b263b 100%);
+    background: var(--bg);
     background-attachment: fixed;
+    transition: background-color 0.3s, color 0.3s;
   }
   body::before {
     content: ""; position: fixed; inset: 0; pointer-events: none;
     background-image:
-      linear-gradient(rgba(130,170,230,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(130,170,230,0.05) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 46px 46px;
   }
+
+  /* ---------- 顶栏（与 home.html 一致） ---------- */
   header {
     position: sticky; top: 0; z-index: 10;
-    display: flex; align-items: center; gap: 22px;
+    display: flex; align-items: center; gap: 18px;
     padding: 0 36px; height: 62px;
-    background: rgba(10, 21, 33, 0.78);
+    background: var(--header-bg);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(126, 206, 244, 0.16);
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.3s, border-color 0.3s;
   }
-  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; font-family: var(--font-mono); }
   .logo .dot {
-    width: 11px; height: 11px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #6FBA2C, #00663B);
-    box-shadow: 0 0 10px rgba(111, 186, 44, 0.8);
+    display: block; width: auto; height: 14px; flex: none;
+    border: none; user-select: none; -webkit-user-drag: none;
   }
   nav { display: flex; gap: 6px; flex: 1; }
   nav a {
-    padding: 8px 16px; border-radius: 8px; text-decoration: none;
-    color: #8fa8c7; font-size: 14px; transition: all 0.2s;
+    display: inline-flex; align-items: center;
+    height: 32px; padding: 0 16px; border-radius: 6px; text-decoration: none;
+    color: var(--text-2); font-size: 14px; transition: color 0.2s, background-color 0.2s;
   }
-  nav a:hover { color: #fff; background: rgba(126, 206, 244, 0.10); }
-  nav a.active { color: #fff; background: rgba(126, 206, 244, 0.16); font-weight: 600; }
-  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8fa8c7; }
+  nav a:hover { color: var(--text); background: var(--accent-bg); }
+  nav a.active { color: var(--text); background: var(--accent-bg); font-weight: 600; }
+  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-2); }
   .user .chip {
-    display: flex; align-items: center; gap: 7px;
-    padding: 6px 14px; border-radius: 999px;
-    background: rgba(126, 206, 244, 0.12);
-    border: 1px solid rgba(126, 206, 244, 0.25); color: #e8f2ff;
+    display: flex; align-items: center; gap: 8px;
+    height: 32px; padding: 0 12px; border-radius: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border); color: var(--text);
   }
   .user .chip i {
     width: 7px; height: 7px; border-radius: 50%;
-    background: #7ee2a8; box-shadow: 0 0 6px #7ee2a8;
+    background: var(--accent);
   }
+  .user .chip b { font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.5px; font-size: 13px; line-height: 1; }
   .logout {
-    padding: 7px 16px; border-radius: 8px; cursor: pointer;
-    border: 1px solid rgba(255, 145, 145, 0.35);
-    background: transparent; color: #ff9191; font-size: 13px; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 32px; padding: 0 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--text-2); font-size: 13px; line-height: 1;
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
     font-family: inherit;
   }
-  .logout:hover { background: rgba(255, 145, 145, 0.12); }
+  .logout:hover { color: var(--text); background: var(--accent-bg); border-color: var(--accent-border); }
+  .logout svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-  main { position: relative; max-width: 1220px; margin: 0 auto; padding: 36px 28px 50px;
-    display: grid; grid-template-columns: 400px 1fr; gap: 18px; align-items: start; }
+  /* 主题切换：分段式开关（太阳 / 月亮，随主题反转填充） */
+  .tswitch {
+    display: inline-flex; align-items: center; gap: 2px;
+    height: 32px; padding: 2px;
+    border-radius: 6px; cursor: pointer; font-family: inherit;
+    border: 1px solid var(--border); background: var(--panel);
+    transition: border-color 0.3s, background-color 0.3s;
+  }
+  .tswitch:hover { border-color: var(--accent-border); }
+  .tswitch .seg {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+  .tswitch .seg:hover { background: var(--accent-bg); }
+  .tswitch svg {
+    width: 13px; height: 13px; fill: none;
+    stroke: var(--text-2); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    transition: stroke 0.3s;
+  }
+  [data-theme="light"] .tswitch .seg-sun { background: var(--accent); }
+  [data-theme="light"] .tswitch .seg-sun svg { stroke: var(--accent-contrast); }
+  [data-theme="dark"] .tswitch .seg-moon { background: var(--accent); }
+  [data-theme="dark"] .tswitch .seg-moon svg { stroke: var(--accent-contrast); }
+
+  main { position: relative; max-width: 1220px; margin: 0 auto; padding: 36px 28px 36px;
+    display: grid; grid-template-columns: 400px 1fr; gap: 18px; align-items: stretch; }
   .card {
     border-radius: 14px;
-    background: rgba(11, 22, 38, 0.6);
-    border: 1px solid rgba(126, 206, 244, 0.16);
+    background: color-mix(in srgb, var(--panel) 92%, transparent);
+    border: 1px solid color-mix(in srgb, var(--blue) 16%, transparent);
     padding: 22px 24px;
   }
   .card h2 { font-size: 17px; display: flex; align-items: center; gap: 8px; }
-  .card h2 .chip { font-size: 10.5px; font-weight: 400; color: #7ECEF4; border: 1px solid rgba(126, 206, 244, 0.4);
+  .card h2 .chip { font-size: 10.5px; font-weight: 400; color: var(--blue); border: 1px solid color-mix(in srgb, var(--blue) 40%, transparent);
     padding: 2px 9px; border-radius: 999px; letter-spacing: 1px; }
-  .desc { font-size: 12.5px; color: #8fa8c7; line-height: 1.8; margin: 10px 0 16px; }
-  label.fld { display: block; font-size: 12.5px; color: #8fa8c7; margin: 14px 0 7px; letter-spacing: 1px; }
+  .desc { font-size: 12.5px; color: var(--text-2); line-height: 1.8; margin: 10px 0 16px; }
+  label.fld { display: block; font-size: 12.5px; color: var(--text-2); margin: 14px 0 7px; letter-spacing: 1px; }
   input.fld, textarea.fld {
     width: 100%; padding: 11px 14px; border-radius: 10px;
-    border: 1px solid rgba(126, 206, 244, 0.25); background: rgba(6, 14, 24, 0.6);
-    color: #e8f2ff; font-size: 13.5px; font-family: inherit; line-height: 1.7; outline: none;
+    border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent); background: color-mix(in srgb, var(--panel) 60%, transparent);
+    color: var(--text); font-size: 13.5px; font-family: inherit; line-height: 1.7; outline: none;
     transition: border-color .15s;
   }
-  input.fld:focus, textarea.fld:focus { border-color: rgba(126, 206, 244, 0.6); }
+  input.fld:focus, textarea.fld:focus { border-color: color-mix(in srgb, var(--blue) 60%, transparent); }
   textarea.fld { resize: vertical; min-height: 170px; }
+  .card.form { display: flex; flex-direction: column; }
+  .card.form textarea.fld { flex: 1; }
   .chips { display: flex; flex-wrap: wrap; gap: 7px; }
   .stag {
     padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 12px;
-    border: 1px solid rgba(126, 206, 244, 0.25); background: transparent; color: #8fa8c7; font-family: inherit;
+    border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent); background: transparent; color: var(--text-2); font-family: inherit;
     transition: all .15s;
   }
-  .stag.on { color: #fff; background: rgba(126, 206, 244, 0.16); border-color: rgba(126, 206, 244, 0.6); }
+  .stag.on { color: var(--text); background: color-mix(in srgb, var(--blue) 16%, transparent); border-color: color-mix(in srgb, var(--blue) 60%, transparent); }
   .gen {
     width: 100%; margin-top: 20px; padding: 13px 0; border-radius: 11px; border: none; cursor: pointer;
     background: linear-gradient(135deg, #1a56c4, #0f8a5f); color: #fff;
@@ -99,52 +186,91 @@
   .gen:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(26,86,196,.45); }
   .gen:disabled { opacity: .55; cursor: wait; }
 
-  .report { min-height: 420px; display: flex; flex-direction: column; }
-  .rep-head { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(126, 206, 244, 0.14);
+  .report { min-height: 420px; display: flex; flex-direction: column;
+    height: calc(100vh - 110px); max-height: calc(100vh - 110px); }
+  .rep-head { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid color-mix(in srgb, var(--blue) 14%, transparent);
     padding-bottom: 14px; margin-bottom: 6px; }
   .rep-head .sp { flex: 1; }
   .act { padding: 7px 16px; border-radius: 9px; cursor: pointer; font-size: 12.5px; font-family: inherit;
-    border: 1px solid rgba(126, 206, 244, 0.3); background: transparent; color: #7ECEF4; transition: all .15s; }
-  .act:hover { background: rgba(126, 206, 244, 0.1); }
-  .rep-body { overflow-y: auto; max-height: calc(100vh - 260px); padding: 14px 6px 10px; }
+    border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent); background: transparent; color: var(--blue); transition: all .15s; }
+  .act:hover { background: color-mix(in srgb, var(--blue) 10%, transparent); }
+  .rep-body { flex: 1; overflow-y: auto; padding: 14px 6px 10px; }
   .rep-body::-webkit-scrollbar { width: 8px; }
-  .rep-body::-webkit-scrollbar-thumb { background: rgba(126, 206, 244, 0.2); border-radius: 4px; }
-  .rep-body h1 { font-size: 20px; margin: 4px 0 14px; color: #fff; }
-  .rep-body h2 { font-size: 15.5px; margin: 22px 0 10px; color: #7ECEF4; padding-left: 10px;
+  .rep-body::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--blue) 20%, transparent); border-radius: 4px; }
+  .rep-body h1 { font-size: 20px; margin: 4px 0 14px; color: var(--text); }
+  .rep-body h2 { font-size: 15.5px; margin: 22px 0 10px; color: var(--blue); padding-left: 10px;
     border-left: 3px solid #6FBA2C; line-height: 1.4; }
-  .rep-body p { font-size: 13.5px; line-height: 2; color: #cfe3f8; margin: 6px 0; }
+  .rep-body p { font-size: 13.5px; line-height: 2; color: var(--text); margin: 6px 0; }
   .rep-body ul { margin: 8px 0 8px 22px; }
-  .rep-body li { font-size: 13.5px; line-height: 2; color: #cfe3f8; }
+  .rep-body li { font-size: 13.5px; line-height: 2; color: var(--text); }
   .rep-body blockquote { margin: 12px 0; padding: 10px 16px; border-radius: 8px;
-    background: rgba(111, 186, 44, 0.08); border: 1px dashed rgba(111, 186, 44, 0.4);
-    color: #a9c98f; font-size: 12.5px; line-height: 1.9; }
-  .rep-body b { color: #fff; }
-  .empty { color: #6f88a8; font-size: 13.5px; text-align: center; padding: 120px 20px; line-height: 2.2; }
-  .src-chip { font-size: 11px; padding: 4px 12px; border-radius: 999px;
-    color: #ffc85a; border: 1px solid rgba(255, 200, 90, 0.4); }
-  .src-chip.fastgpt { color: #7ee2a8; border-color: rgba(126, 226, 168, 0.5); }
+    background: color-mix(in srgb, var(--green) 8%, transparent); border: 1px dashed color-mix(in srgb, var(--green) 40%, transparent);
+    color: var(--green); font-size: 12.5px; line-height: 1.9; }
+  .rep-body b { color: var(--text); }
+  .rep-body table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  .rep-body th, .rep-body td { border: 1px solid var(--border); padding: 7px 10px;
+    font-size: 13px; line-height: 1.8; text-align: left; vertical-align: top; }
+  .rep-body th { background: color-mix(in srgb, var(--blue) 12%, transparent); color: var(--text); font-weight: 600; }
+  .rep-body td { color: var(--text); }
+  .empty { color: var(--text-2); font-size: 13.5px; text-align: center; padding: 120px 20px; line-height: 2.2; }
 
-  footer { text-align: center; padding: 20px 0 30px; font-size: 12px; color: rgba(143, 168, 199, 0.6); }
+  /* ---- 退出编辑确认对话框 ---- */
+  .modal-mask { position: fixed; inset: 0; z-index: 99; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(8, 20, 40, .45); backdrop-filter: blur(2px); }
+  .modal-mask.show { display: flex; }
+  .modal { width: 400px; max-width: calc(100vw - 48px); border-radius: 14px; padding: 24px 26px 20px;
+    background: var(--panel); border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent);
+    box-shadow: 0 24px 60px rgba(4, 14, 32, .35); }
+  .modal h3 { margin: 0 0 8px; font-size: 16px; color: var(--text); }
+  .modal p { margin: 0 0 18px; font-size: 13px; line-height: 1.9; color: var(--text-2); }
+  .modal-btns { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .mbtn { padding: 9px 20px; border-radius: 9px; cursor: pointer; font-size: 13px; font-family: inherit;
+    border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent); background: transparent;
+    color: var(--text); transition: all .15s; }
+  .mbtn:hover { background: color-mix(in srgb, var(--blue) 10%, transparent); }
+  .mbtn.primary { border: none; background: linear-gradient(135deg, #1a56c4, #0f8a5f); color: #fff; font-weight: 600; }
+  .mbtn.plain { border-color: color-mix(in srgb, var(--red) 35%, transparent); color: var(--red); }
+  .mbtn.plain:hover { background: color-mix(in srgb, var(--red) 10%, transparent); }
+
+  footer { text-align: center; padding: 20px 0 30px; font-size: 12px; color: color-mix(in srgb, var(--text-2) 60%, transparent); }
   @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+  /* 打印 / 导出 PDF：仅输出报告卡片，白底黑字 */
+  @media print {
+    body { background: #fff !important; }
+    body::before, header, footer, .card:not(.report), .rep-head .act { display: none !important; }
+    main { display: block !important; padding: 0 !important; max-width: none !important; }
+    .card.report { border: none !important; box-shadow: none !important; background: #fff !important; }
+    .rep-head { border: none !important; }
+    .rep-head h2 { color: #111 !important; }
+    .rep-body { max-height: none !important; overflow: visible !important; }
+    .rep-body * { color: #111 !important; }
+    .rep-body h2 { color: #1b5e20 !important; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <div class="logo"><span class="dot"></span>CyberNWT</div>
+  <div class="logo"><img class="dot" src="logo.png" alt="CyberNWT Logo">CyberNWT</div>
   <nav>
     <a href="home.html">首页</a>
-    <a class="active" href="speedtest.html">功能展示</a>
-    <a href="#" title="建设中">数据看板</a>
-    <a href="#" title="建设中">关于项目</a>
+    <a href="download/CyberNWT-mini.zip" download="CyberNWT-mini.zip">下载功能</a>
+    <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
+    <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
   </nav>
+  <button class="tswitch" id="theme-toggle" aria-label="切换深浅色模式" title="切换深浅色模式" aria-pressed="false">
+    <span class="seg seg-sun"><svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></span>
+    <span class="seg seg-moon"><svg class="ic-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg></span>
+  </button>
   <div class="user">
     <span class="chip"><i></i><b id="username">…</b></span>
-    <button class="logout" id="logout-btn">退出登录</button>
+    <button class="logout" id="logout-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>退出登录</button>
   </div>
 </header>
 
 <main>
-  <section class="card">
+  <section class="card form">
     <h2>输入复盘材料 <span class="chip">STEP 1</span></h2>
     <p class="desc">把项目整个过程“讲给灵犀听”：背景、实施过程、遇到的问题和处置方式，越具体，报告越有洞察。AI 将自动沉淀为结构化复盘报告，提炼可复用的方法论。</p>
 
@@ -153,6 +279,8 @@
 
     <label class="fld">所属阶段（可多选）</label>
     <div class="chips" id="stages">
+      <button class="stag" type="button">规划设计</button>
+      <button class="stag" type="button">工程实施</button>
       <button class="stag" type="button">整机上架</button>
       <button class="stag" type="button">割接切换</button>
       <button class="stag" type="button">故障处置</button>
@@ -170,10 +298,11 @@
   <section class="card report">
     <div class="rep-head">
       <h2 style="border:none;padding:0">复盘报告 <span class="chip">REPORT</span></h2>
-      <span class="src-chip" id="src-chip" style="display:none"></span>
       <span class="sp"></span>
-      <button class="act" id="copy-btn">复制 Markdown</button>
-      <button class="act" id="dl-btn">下载 .md</button>
+      <button class="act" id="copy-btn">编辑</button>
+      <button class="act" id="dl-btn" style="display:none">退出编辑</button>
+      <button class="act" id="word-btn">下载 Word</button>
+      <button class="act" id="pdf-btn">导出 PDF</button>
     </div>
     <div class="rep-body" id="rep-body">
       <div class="empty">左侧输入项目材料后点击「生成复盘报告」<br />AI 将从过程中提炼：时间线 · 问题根因 · 可复用方法论 · 改进项</div>
@@ -181,11 +310,51 @@
   </section>
 </main>
 
-<footer>CyberNWT · 演示环境</footer>
+<div class="modal-mask" id="exit-mask">
+  <div class="modal">
+    <h3>退出编辑</h3>
+    <p id="exit-msg">是否保存对报告的修改？</p>
+    <div class="modal-btns">
+      <button class="mbtn plain" id="exit-cancel" type="button">取消</button>
+      <span style="flex:1"></span>
+      <button class="mbtn plain" id="exit-discard" type="button">不保存</button>
+      <button class="mbtn primary" id="exit-save" type="button">确定并保存</button>
+    </div>
+  </div>
+</div>
+
 <script src="whiteboard.js" defer></script>
 <script>
 (function () {
   'use strict';
+
+  'use strict';
+
+  // ---------- 深浅色模式切换 ----------
+  var rootEl = document.documentElement;
+  var themeBtn = document.getElementById('theme-toggle');
+  var THEME_COLORS = { dark: '#0A0A0A', light: '#FAFAFA' };
+  function setTheme(t) {
+    rootEl.setAttribute('data-theme', t);
+    themeBtn.setAttribute('aria-pressed', t === 'light' ? 'true' : 'false');
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', THEME_COLORS[t]);
+  }
+  setTheme(rootEl.getAttribute('data-theme'));
+  themeBtn.addEventListener('click', function () {
+    var next = rootEl.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try { localStorage.setItem('cyber-theme', next); } catch (e) {}
+  });
+  // 用户未手动选择过主题时，跟随系统变化
+  var schemeMq = matchMedia('(prefers-color-scheme: light)');
+  (schemeMq.addEventListener ? schemeMq.addEventListener.bind(schemeMq, 'change')
+                             : schemeMq.addListener.bind(schemeMq))(function (e) {
+    var saved = null;
+    try { saved = localStorage.getItem('cyber-theme'); } catch (err) {}
+    if (saved !== 'light' && saved !== 'dark') {
+      setTheme(e.matches ? 'light' : 'dark');
+    }
+  });
 
   fetch('/api/me').then(function (r) {
     if (r.status === 401) { location.href = 'login.html'; return null; }
@@ -205,16 +374,43 @@
   }
   function md(src) {
     var lines = esc(src).split('\n');
-    var out = [], inUl = false;
+    var out = [], inUl = false, inTable = false, tRows = [];
+    function closeUl() { if (inUl) { out.push('</ul>'); inUl = false; } }
+    function closeTable() {
+      if (!inTable) return;
+      inTable = false;
+      if (!tRows.length) return;
+      var t = ['<table>'];
+      tRows.forEach(function (cells, ri) {
+        t.push('<tr>');
+        cells.forEach(function (c) { t.push(ri === 0 ? '<th>' + c + '</th>' : '<td>' + c + '</td>'); });
+        t.push('</tr>');
+      });
+      t.push('</table>');
+      out.push(t.join(''));
+      tRows = [];
+    }
     for (var i = 0; i < lines.length; i++) {
       var ln = lines[i];
       var fmt = ln.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+      /* Markdown 表格行：| a | b |（分隔行 | --- | --- | 跳过） */
+      if (/^\s*\|.*\|\s*$/.test(ln)) {
+        if (/^\s*\|[\s:\-|]+\|\s*$/.test(ln)) continue;
+        closeUl();
+        var cells = ln.trim().replace(/^\|/, '').replace(/\|\s*$/, '').split('|').map(function (c) {
+          return c.trim().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+        });
+        if (!inTable) { inTable = true; tRows = []; }
+        tRows.push(cells);
+        continue;
+      }
+      closeTable();
       if (/^##\s+/.test(ln)) {
-        if (inUl) { out.push('</ul>'); inUl = false; }
+        closeUl();
         out.push('<h2>' + fmt.replace(/^##\s+/, '') + '</h2>'); continue;
       }
       if (/^#\s+/.test(ln)) {
-        if (inUl) { out.push('</ul>'); inUl = false; }
+        closeUl();
         out.push('<h1>' + fmt.replace(/^#\s+/, '') + '</h1>'); continue;
       }
       if (/^>\s?/.test(ln)) {
@@ -224,10 +420,11 @@
         if (!inUl) { out.push('<ul>'); inUl = true; }
         out.push('<li>' + fmt.replace(/^\s*[-*]\s+/, '') + '</li>'); continue;
       }
-      if (inUl) { out.push('</ul>'); inUl = false; }
+      closeUl();
       if (!ln.trim()) continue;
       out.push('<p>' + fmt + '</p>');
     }
+    closeTable();
     if (inUl) out.push('</ul>');
     return out.join('');
   }
@@ -254,6 +451,7 @@
   });
 
   function generate() {
+    if (editing) { editing = false; setEditBtns(); }   // 重新生成时退出编辑态
     var pname = $('#pname').value.trim();
     var story = $('#story').value.trim();
     if (!story) { alert('请先填写过程描述 —— 这是 AI 提炼报告的核心材料。'); return; }
@@ -273,17 +471,8 @@
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (!data.ok) throw new Error(data.message || '服务异常');
       lastRaw = data.reply;
-      var chip = $('#src-chip');
-      chip.style.display = '';
-      if (data.source === 'fastgpt') {
-        chip.textContent = 'FastGPT 生成';
-        chip.classList.add('fastgpt');
-      } else {
-        chip.textContent = '演示模式 · 未接入 FastGPT';
-        chip.classList.remove('fastgpt');
-      }
       typewrite(data.reply, function () {
-        try { localStorage.setItem('cybernwt.lastreport', JSON.stringify({ raw: data.reply, name: pname })); } catch (e) {}
+        try { localStorage.setItem('cybernwt.lastreport.v2', JSON.stringify({ raw: data.reply, name: pname })); } catch (e) {}
         btn.disabled = false; btn.textContent = '✦ 生成复盘报告';
       });
     }).catch(function (e) {
@@ -293,27 +482,111 @@
   }
 
   $('#gen-btn').addEventListener('click', generate);
-  $('#copy-btn').addEventListener('click', function () {
-    if (!lastRaw) return;
-    (navigator.clipboard ? navigator.clipboard.writeText(lastRaw) : Promise.reject()).then(
-      function () { this.textContent = '✓ 已复制'; var b = this; setTimeout(function () { b.textContent = '复制 Markdown'; }, 1500); }.bind(this),
-      function () { alert('复制失败，请手动选择文本'); });
+
+  /* ---- 报告编辑：点「编辑」进入，点「退出编辑」三选（保存 / 不保存 / 取消） ---- */
+  var editing = false;
+  var editBtn = $('#copy-btn');
+  var exitBtn = $('#dl-btn');
+  var repBody = $('#rep-body');
+
+  function setEditBtns() {
+    editBtn.style.display = editing ? 'none' : '';
+    exitBtn.style.display = editing ? '' : 'none';
+  }
+
+  function enterEdit() {
+    if (!lastRaw || editing) return;
+    editing = true;
+    var ta = document.createElement('textarea');
+    ta.id = 'md-editor';
+    ta.value = lastRaw;
+    ta.style.cssText = 'width:100%;min-height:' + Math.max(300, repBody.clientHeight - 20) + 'px;' +
+      'box-sizing:border-box;padding:14px 16px;border:1px solid color-mix(in srgb,var(--blue) 35%,transparent);' +
+      'border-radius:10px;background:color-mix(in srgb,var(--panel) 80%,transparent);color:var(--text);' +
+      'font:12.5px/1.9 Consolas,monospace;outline:none;resize:vertical;';
+    repBody.innerHTML = '';
+    repBody.appendChild(ta);
+    ta.focus();
+    setEditBtns();
+  }
+
+  function saveEdit() {
+    var ta = $('#md-editor');
+    if (!ta) return;
+    lastRaw = ta.value;
+    repBody.innerHTML = md(lastRaw);
+    try { localStorage.setItem('cybernwt.lastreport.v2',
+      JSON.stringify({ raw: lastRaw, name: $('#pname').value.trim() })); } catch (e) {}
+  }
+
+  function exitEdit(saved) {
+    var ta = $('#md-editor');
+    if (!ta) { editing = false; setEditBtns(); return; }
+    if (saved) {
+      saveEdit();
+    } else {
+      repBody.innerHTML = md(lastRaw);  // 放弃修改，回到进入编辑前的内容
+    }
+    editing = false;
+    setEditBtns();
+  }
+
+  editBtn.addEventListener('click', enterEdit);
+  exitBtn.addEventListener('click', function () {
+    if (!editing) return;
+    var changed = $('#md-editor') && $('#md-editor').value !== lastRaw;
+    $('#exit-msg').textContent = changed
+      ? '报告内容已修改。保存后修改生效；不保存将放弃全部修改；取消则继续编辑。'
+      : '内容尚未修改。确定要退出编辑吗？（取消则继续编辑）';
+    $('#exit-discard').style.display = changed ? '' : 'none';
+    $('#exit-mask').classList.add('show');
   });
-  $('#dl-btn').addEventListener('click', function () {
+  $('#exit-cancel').addEventListener('click', function () { $('#exit-mask').classList.remove('show'); });
+  $('#exit-mask').addEventListener('click', function (e) {
+    if (e.target === this) $('#exit-mask').classList.remove('show');  // 点遮罩 = 误点，继续编辑
+  });
+  $('#exit-save').addEventListener('click', function () {
+    $('#exit-mask').classList.remove('show');
+    exitEdit(true);
+  });
+  $('#exit-discard').addEventListener('click', function () {
+    $('#exit-mask').classList.remove('show');
+    exitEdit(false);
+  });
+  // 导出 Word：以 Word 兼容 HTML 打包 .doc（无需联网组件，Word/WPS 均可打开）
+  $('#word-btn').addEventListener('click', function () {
     if (!lastRaw) return;
+    if (editing) { alert('请先退出编辑（保存或放弃修改）后再导出。'); return; }
+    var title = ($('#pname').value.trim() || '复盘报告');
+    var body = $('#rep-body').innerHTML;
+    var doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">' +
+      '<head><meta charset="utf-8"><title>' + title + '</title>' +
+      '<style>body{font-family:"Microsoft YaHei",sans-serif;font-size:12pt;color:#111;line-height:1.7;}' +
+      'h1{font-size:20pt;margin:6pt 0;}h2{font-size:15pt;margin:14pt 0 6pt;border-left:4px solid #1b5e20;padding-left:8px;}' +
+      'table{border-collapse:collapse;width:100%;margin:8pt 0;}td,th{border:1px solid #888;padding:5pt 8pt;font-size:10.5pt;vertical-align:top;}' +
+      'th{background:#f0f0f0;}blockquote{color:#555;margin:8pt 0;padding:6pt 12pt;border-left:3px solid #bbb;}' +
+      'ul,ol{margin:6pt 0 6pt 20pt;}li{line-height:1.8;}</style></head>' +
+      '<body><h1>' + title + '</h1>' + body + '</body></html>';
+    var blob = new Blob(['\ufeff', doc], { type: 'application/msword' });
     var a = document.createElement('a');
-    a.download = (($('#pname').value.trim() || '复盘报告') + '.md');
-    a.href = URL.createObjectURL(new Blob([lastRaw], { type: 'text/markdown' }));
+    a.download = title + '.doc';
+    a.href = URL.createObjectURL(blob);
     a.click();
     URL.revokeObjectURL(a.href);
   });
+  // 导出 PDF：调用浏览器打印（另存为 PDF），打印时只输出报告
+  $('#pdf-btn').addEventListener('click', function () {
+    if (!lastRaw) { return; }
+    if (editing) { alert('请先退出编辑（保存或放弃修改）后再导出。'); return; }
+    window.print();
+  });
 
-  /* 恢复上次报告 */
+  /* 恢复上次报告（仅右侧预览，不回填项目名称，每次进入都从空白开始）；
+     缓存键带 v2：旧版演示模板曾生成只有半截的报告，升级后不再恢复那份残缺缓存 */
   try {
-    var saved = JSON.parse(localStorage.getItem('cybernwt.lastreport') || 'null');
+    var saved = JSON.parse(localStorage.getItem('cybernwt.lastreport.v2') || 'null');
     if (saved && saved.raw) {
       lastRaw = saved.raw;
-      if (saved.name) $('#pname').value = saved.name;
       $('#rep-body').innerHTML = md(saved.raw);
     }
   } catch (e) {}

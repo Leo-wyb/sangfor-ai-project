@@ -1,226 +1,271 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%230B318F"/><circle cx="50" cy="50" r="40" fill="none" stroke="%237ECEF4" stroke-width="6"/></svg>' />
+<link rel="icon" type="image/png" href="logo.png" />
 <title>灵犀测速 · CyberNWT</title>
+<meta name="theme-color" content="#0A0A0A" />
+<script>
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('cyber-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark') {
+    t = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    color-scheme: dark;
+    --bg: #0A0A0A;
+    --grid-line: rgba(255, 255, 255, 0.06);
+    --header-bg: rgba(10, 10, 10, 0.84);
+    --border: rgba(255, 255, 255, 0.14);
+    --panel: #111111;
+    --panel-border: rgba(255, 255, 255, 0.14);
+    --text: #EDEDED;
+    --text-2: #9CA3AF;
+    --accent: #FFFFFF;
+    --accent-bg: rgba(255, 255, 255, 0.06);
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --blue: #7cbdf5; --green: #7ed37e; --warn: #f6c453; --orange: #ffa94d; --red: #ff8080;
+    --prog-track: rgba(255, 255, 255, 0.16);
+  }
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #FAFAFA;
+    --grid-line: rgba(0, 0, 0, 0.07);
+    --header-bg: rgba(250, 250, 250, 0.86);
+    --border: rgba(0, 0, 0, 0.14);
+    --panel: #FFFFFF;
+    --panel-border: rgba(0, 0, 0, 0.14);
+    --text: #111111;
+    --text-2: #52525B;
+    --accent: #0A0A0A;
+    --accent-bg: rgba(0, 0, 0, 0.05);
+    --blue: #0369a1; --green: #15803d; --warn: #b45309; --orange: #c2410c; --red: #dc2626;
+    --prog-track: rgba(0, 0, 0, 0.14);
+  }
   body {
-    min-height: 100vh; color: #e8f2ff;
+    min-height: 100vh; color: var(--text);
     font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-    background:
-      radial-gradient(900px 500px at 50% 20%, rgba(40,95,190,0.16), transparent 70%),
-      radial-gradient(700px 420px at 85% 85%, rgba(22,110,88,0.10), transparent 70%),
-      linear-gradient(160deg, #0a1521 0%, #1b263b 100%);
-    background-attachment: fixed;
+    background: var(--bg); background-attachment: fixed;
+    transition: background-color 0.3s, color 0.3s;
   }
   body::before {
     content: ""; position: fixed; inset: 0; pointer-events: none;
     background-image:
-      linear-gradient(rgba(130,170,230,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(130,170,230,0.05) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 46px 46px;
   }
   header {
     position: sticky; top: 0; z-index: 10;
-    display: flex; align-items: center; gap: 22px;
+    display: flex; align-items: center; gap: 18px;
     padding: 0 36px; height: 62px;
-    background: rgba(10, 21, 33, 0.78);
+    background: var(--header-bg);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(126, 206, 244, 0.16);
+    border-bottom: 1px solid var(--border);
   }
-  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; }
-  .logo .dot {
-    width: 11px; height: 11px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #6FBA2C, #00663B);
-    box-shadow: 0 0 10px rgba(111, 186, 44, 0.8);
-  }
+  .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; letter-spacing: 1px; font-family: var(--font-mono); }
+  .logo .dot { display: block; width: auto; height: 14px; flex: none; border: none; user-select: none; -webkit-user-drag: none; }
   nav { display: flex; gap: 6px; flex: 1; }
   nav a {
-    padding: 8px 16px; border-radius: 8px; text-decoration: none;
-    color: #8fa8c7; font-size: 14px; transition: all 0.2s;
+    display: inline-flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 6px;
+    text-decoration: none; color: var(--text-2); font-size: 14px; transition: color 0.2s, background-color 0.2s;
   }
-  nav a:hover { color: #fff; background: rgba(126, 206, 244, 0.10); }
-  nav a.active { color: #fff; background: rgba(126, 206, 244, 0.16); font-weight: 600; }
-  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8fa8c7; }
-  .user .chip {
-    display: flex; align-items: center; gap: 7px;
-    padding: 6px 14px; border-radius: 999px;
-    background: rgba(126, 206, 244, 0.12);
-    border: 1px solid rgba(126, 206, 244, 0.25); color: #e8f2ff;
-  }
-  .user .chip i {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #7ee2a8; box-shadow: 0 0 6px #7ee2a8;
-  }
+  nav a:hover { color: var(--text); background: var(--accent-bg); }
+  nav a.active { color: var(--text); background: var(--accent-bg); font-weight: 600; }
+  .user { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-2); }
+  .user .chip { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 6px; background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+  .user .chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .user .chip b { font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.5px; font-size: 13px; line-height: 1; }
   .logout {
-    padding: 7px 16px; border-radius: 8px; cursor: pointer;
-    border: 1px solid rgba(255, 145, 145, 0.35);
-    background: transparent; color: #ff9191; font-size: 13px; transition: all 0.2s;
-    font-family: inherit;
+    display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text-2); font-size: 13px; line-height: 1;
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s; font-family: inherit;
   }
-  .logout:hover { background: rgba(255, 145, 145, 0.12); }
-
-  main { position: relative; max-width: 1120px; margin: 0 auto; padding: 44px 28px 60px; }
-  .card {
-    padding: 22px 24px; border-radius: 14px;
-    background: rgba(11, 22, 38, 0.6);
-    border: 1px solid rgba(126, 206, 244, 0.16);
+  .logout svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .logout:hover { color: var(--text); background: var(--accent-bg); border-color: var(--border); }
+  .tswitch {
+    display: inline-flex; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    background: var(--panel); cursor: pointer;
   }
-  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
-  .head h1 { font-size: 28px; }
-  .head h1 .en {
-    font-size: 14px; font-weight: 400; color: #7ECEF4; letter-spacing: 2px; margin-left: 10px;
+  .tswitch .seg { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 100%; color: var(--text-2); transition: background-color 0.25s, color 0.25s; }
+  .tswitch[data-on="light"] .seg-sun { background: var(--accent-bg); color: var(--warn); }
+  .tswitch[data-on="dark"] .seg-moon { background: var(--accent-bg); color: var(--blue); }
+  .tswitch svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ic-sun circle { fill: currentColor; stroke: none; }
+
+  main { max-width: 1080px; margin: 0 auto; padding: 30px 26px 10px; }
+
+  /* ---------- 页头与模式切换 ---------- */
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+  .head h1 { font-size: 24px; letter-spacing: 0.5px; }
+  .head h1 .en { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); letter-spacing: 2px; margin-left: 10px; vertical-align: middle; }
+  .head p { margin-top: 8px; font-size: 13px; color: var(--text-2); line-height: 1.7; }
+  .mode-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--panel); }
+  .mode-tabs button {
+    display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 20px; border: none; cursor: pointer;
+    background: transparent; color: var(--text-2); font-size: 14px; font-family: inherit; transition: all 0.2s;
   }
-  .head p { margin-top: 10px; color: #8fa8c7; font-size: 14px; line-height: 1.8; }
-  .start-btn {
-    flex: none; display: flex; align-items: center; gap: 10px;
-    padding: 14px 34px; border-radius: 999px; border: none; cursor: pointer;
-    background: linear-gradient(135deg, #1a56c4, #0f8a5f);
-    color: #fff; font-size: 16px; font-weight: 700; letter-spacing: 2px; font-family: inherit;
-    box-shadow: 0 10px 30px rgba(26, 86, 196, 0.45); transition: all 0.2s;
+  .mode-tabs button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .mode-tabs button.on { background: var(--accent-bg); color: var(--text); font-weight: 600; }
+
+  /* ---------- 线路 / 节点信息条 ---------- */
+  .strip { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border: 1px solid var(--panel-border); border-radius: 12px; background: var(--panel); margin-bottom: 18px; }
+  .strip .cell { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .strip .cell .k { color: var(--text-2); white-space: nowrap; }
+  .strip .cell .v { font-family: var(--font-mono); font-weight: 600; }
+  .strip .sep { flex: 1; }
+  .strip select {
+    appearance: none; -webkit-appearance: none;
+    height: 32px; padding: 0 28px 0 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+    color: var(--text); font-size: 13px; font-family: inherit; cursor: pointer;
   }
-  .start-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 38px rgba(26, 86, 196, 0.6); }
-  .start-btn:disabled { opacity: 0.55; cursor: wait; }
-
-  .phases { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-  .phase {
-    font-size: 12px; color: #6f88a8; padding: 5px 13px; border-radius: 999px;
-    border: 1px solid rgba(126, 206, 244, 0.18); transition: all 0.25s;
+  .strip select:disabled { opacity: 0.6; cursor: not-allowed; }
+  .strip input.peer-input {
+    height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 13px; font-family: var(--font-mono);
+    width: 320px; max-width: 100%;
   }
-  .phase.active { color: #fff; border-color: rgba(126, 206, 244, 0.7); background: rgba(126, 206, 244, 0.14); box-shadow: 0 0 12px rgba(126, 206, 244, 0.25); }
-  .phase.done { color: #7ee2a8; border-color: rgba(126, 226, 168, 0.4); }
-  .progress { height: 5px; border-radius: 999px; background: rgba(126, 206, 244, 0.12); overflow: hidden; margin-bottom: 20px; }
-  .progress i { display: block; height: 100%; width: 0; border-radius: 999px;
-    background: linear-gradient(90deg, #7ECEF4, #6FBA2C); transition: width 0.2s linear; }
+  .strip input.peer-input:focus { outline: none; border-color: var(--blue); }
 
-  .metrics { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 14px; }
-  .metric { border-radius: 12px; padding: 16px 18px 12px; background: rgba(126, 206, 244, 0.06);
-    border: 1px solid rgba(126, 206, 244, 0.14); }
-  .metric label { font-size: 12px; color: #8fa8c7; letter-spacing: 2px; }
-  .metric .val { margin-top: 6px; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .metric .val small { font-size: 12px; font-weight: 400; color: #8fa8c7; margin-left: 5px; }
-  .metric.main { grid-row: span 1; }
-  .metric.main .val { font-size: 46px; line-height: 1.1;
-    background: linear-gradient(90deg, #7ECEF4, #6FBA2C);
-    -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .wave { width: 100%; height: 64px; display: block; margin-top: 8px; }
-  .live-chip { font-size: 11px; color: #7ee2a8; margin-left: 8px; letter-spacing: 1px; }
-
-  .grid2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; margin-top: 18px; }
-  .card h2 { font-size: 16px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
-  .card h2 .chip { font-size: 10.5px; font-weight: 400; color: #7ECEF4; border: 1px solid rgba(126, 206, 244, 0.4);
-    padding: 2px 9px; border-radius: 999px; letter-spacing: 1px; }
-  .card .sub { font-size: 12px; color: #6f88a8; margin-bottom: 16px; line-height: 1.7; }
-
-  /* 全链路透视 */
-  .chain { display: flex; align-items: stretch; gap: 0; margin-top: 18px; }
-  .chain-node { flex: 1; text-align: center; position: relative; min-width: 0; }
-  .chain-node .bubble {
-    width: 52px; height: 52px; margin: 0 auto; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; font-size: 22px;
-    background: rgba(126, 206, 244, 0.10); border: 1.5px solid rgba(126, 206, 244, 0.35);
-    transition: all 0.3s; position: relative; z-index: 2;
+  /* ---------- 主舞台：圆环仪表 ---------- */
+  .stage {
+    position: relative; border: 1px solid var(--panel-border); border-radius: 14px; background: var(--panel);
+    padding: 34px 20px 26px; display: flex; flex-direction: column; align-items: center;
   }
-  .chain-node.bad .bubble { border-color: #ff8f66; background: rgba(255, 143, 102, 0.12);
-    box-shadow: 0 0 18px rgba(255, 143, 102, 0.45); animation: pulse 1.4s infinite; }
-  @keyframes pulse { 50% { box-shadow: 0 0 30px rgba(255, 143, 102, 0.7); } }
-  .chain-node .nm { font-size: 12px; color: #cfe3f8; margin-top: 8px; }
-  .chain-node .rt { font-size: 11.5px; color: #8fa8c7; margin-top: 3px; font-variant-numeric: tabular-nums; }
-  .chain-node.bad .rt { color: #ff9d7a; }
-  .chain-link { flex: 0.6; display: flex; align-items: center; margin-top: -26px; position: relative; }
-  .chain-link .line { width: 100%; height: 2px;
-    background: linear-gradient(90deg, rgba(126, 206, 244, 0.15), rgba(126, 206, 244, 0.55), rgba(126, 206, 244, 0.15)); }
-  .chain-link .pkt { position: absolute; top: -2.5px; width: 7px; height: 7px; border-radius: 50%;
-    background: #7ECEF4; box-shadow: 0 0 8px #7ECEF4; animation: flow 1.1s linear infinite; }
-  @keyframes flow { from { left: 0; opacity: 0; } 15% { opacity: 1; } to { left: 100%; opacity: 0; } }
-  .tag-hit { display: inline-block; font-size: 10px; margin-top: 5px; padding: 1px 8px; border-radius: 999px; }
-  .tag-hit.hit { color: #7ee2a8; border: 1px solid rgba(126, 226, 168, 0.45); }
-  .tag-hit.miss { color: #ff9d7a; border: 1px solid rgba(255, 157, 122, 0.5); }
-
-  /* 灵犀解读 */
-  .verdict { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
-  .grade {
-    flex: none; width: 58px; height: 58px; border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 30px; font-weight: 800; font-family: Georgia, serif;
+  .gauge-wrap { position: relative; width: 300px; height: 300px; user-select: none; }
+  .gauge { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .g-track { fill: none; stroke: var(--prog-track); stroke-width: 10; }
+  .g-prog { fill: none; stroke: var(--blue); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 880; stroke-dashoffset: 880; transition: stroke-dashoffset 0.18s linear, stroke 0.4s; }
+  .g-prog.ph-ping { stroke: var(--blue); }
+  .g-prog.ph-down { stroke: var(--green); }
+  .g-prog.ph-up { stroke: var(--orange); }
+  .g-prog.ph-done { stroke: var(--green); }
+  .gauge-wrap.idle .g-prog { stroke: var(--prog-track); stroke-dashoffset: 0; }
+  .gauge-wrap.idle .gauge { animation: breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .gauge-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    text-align: center;
   }
-  .grade.S { background: rgba(111, 186, 44, 0.18); color: #8ee05a; box-shadow: inset 0 0 0 1.5px rgba(142, 224, 90, 0.5); }
-  .grade.A { background: rgba(126, 206, 244, 0.15); color: #7ECEF4; box-shadow: inset 0 0 0 1.5px rgba(126, 206, 244, 0.5); }
-  .grade.B { background: rgba(255, 200, 90, 0.14); color: #ffc85a; box-shadow: inset 0 0 0 1.5px rgba(255, 200, 90, 0.45); }
-  .grade.C { background: rgba(255, 143, 102, 0.15); color: #ff8f66; box-shadow: inset 0 0 0 1.5px rgba(255, 143, 102, 0.5); }
-  .verdict .txt { font-size: 14px; line-height: 1.75; color: #e8f2ff; }
-  .verdict .txt small { display: block; color: #8fa8c7; font-size: 12px; margin-top: 3px; }
-  .findings { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
-  .finding { display: flex; gap: 10px; font-size: 13px; line-height: 1.7; padding: 10px 13px;
-    border-radius: 10px; background: rgba(126, 206, 244, 0.05); border: 1px solid rgba(126, 206, 244, 0.12); }
-  .finding i { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; }
-  .finding.ok i { background: #7ee2a8; box-shadow: 0 0 6px #7ee2a8; }
-  .finding.info i { background: #7ECEF4; box-shadow: 0 0 6px #7ECEF4; }
-  .finding.warn i { background: #ff8f66; box-shadow: 0 0 6px #ff8f66; }
-  .finding b { color: #fff; }
-  .finding small { display: block; color: #8fa8c7; }
-  .attr { margin-top: 14px; }
-  .attr label { font-size: 12px; color: #8fa8c7; }
-  .attr-bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; margin-top: 8px; }
-  .attr-bar span { height: 100%; }
-  .attr-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 11.5px; color: #8fa8c7; }
-  .attr-legend em { font-style: normal; display: inline-flex; align-items: center; gap: 5px; }
-  .attr-legend em::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
-
-  /* 自动化运维 */
-  .ops { margin-top: 18px; }
-  .tabs { display: flex; gap: 6px; margin: 12px 0; }
-  .tab-btn { padding: 7px 18px; border-radius: 9px; border: 1px solid rgba(126, 206, 244, 0.2);
-    background: transparent; color: #8fa8c7; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
-  .tab-btn.on { color: #fff; background: rgba(126, 206, 244, 0.14); border-color: rgba(126, 206, 244, 0.55); }
-  .pane { display: none; position: relative; }
-  .pane.on { display: block; }
-  .pane pre {
-    background: rgba(6, 14, 24, 0.75); border: 1px solid rgba(126, 206, 244, 0.16);
-    border-radius: 10px; padding: 15px 17px; font: 12px/1.75 Consolas, "Courier New", monospace;
-    color: #a9cbe8; overflow: auto; max-height: 240px; white-space: pre;
+  .ph-label { font-size: 12.5px; color: var(--text-2); letter-spacing: 1px; min-height: 18px; }
+  .big-val { font-family: var(--font-mono); font-size: 54px; font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .big-val small { font-size: 16px; font-weight: 400; color: var(--text-2); margin-left: 6px; }
+  .big-sub { font-size: 12px; color: var(--text-2); min-height: 16px; }
+  .btn-go {
+    width: 168px; height: 168px; border-radius: 50%; border: 2px solid var(--border); background: var(--accent-bg);
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    color: var(--text); font-family: inherit; transition: transform 0.15s, border-color 0.2s, background-color 0.2s;
   }
-  .copy-btn { position: absolute; top: 10px; right: 10px; padding: 5px 14px; border-radius: 7px;
-    border: 1px solid rgba(126, 206, 244, 0.35); background: rgba(10, 21, 33, 0.9); color: #7ECEF4;
-    font-size: 12px; cursor: pointer; font-family: inherit; }
-  .copy-btn:hover { background: rgba(126, 206, 244, 0.12); }
-  .alert-row { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: #cfe3f8; }
-  .alert-row input { width: 90px; padding: 8px 12px; border-radius: 8px; font-size: 14px;
-    border: 1px solid rgba(126, 206, 244, 0.3); background: rgba(6, 14, 24, 0.6); color: #fff; font-family: inherit; }
-  .alert-state { padding: 5px 14px; border-radius: 999px; font-size: 12.5px; }
-  .alert-state.pass { color: #7ee2a8; border: 1px solid rgba(126, 226, 168, 0.5); }
-  .alert-state.alarm { color: #ff8f66; border: 1px solid rgba(255, 143, 102, 0.55); background: rgba(255, 143, 102, 0.08); }
+  .btn-go:hover { transform: scale(1.03); border-color: var(--green); }
+  .btn-go:active { transform: scale(0.98); }
+  .btn-go .arrows { display: flex; gap: 14px; }
+  .btn-go .arrows svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-go .arrows .dn { color: var(--green); }
+  .btn-go .arrows .up { color: var(--orange); }
+  .btn-go .txt { font-size: 20px; font-weight: 700; letter-spacing: 6px; padding-left: 6px; }
+  .btn-go .sub { font-size: 11px; color: var(--text-2); letter-spacing: 0; padding-left: 0; }
 
-  /* 历史 */
-  .hist { margin-top: 18px; }
+  .stage-actions { margin-top: 18px; display: flex; align-items: center; gap: 12px; min-height: 38px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 20px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--accent-bg); color: var(--text); font-size: 14px; font-family: inherit;
+    transition: border-color 0.2s, background-color 0.2s;
+  }
+  .btn:hover { border-color: var(--green); }
+  .btn.primary { background: var(--text); color: var(--bg); font-weight: 600; border-color: var(--text); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .stage-note { margin-top: 10px; font-size: 12px; color: var(--text-2); text-align: center; line-height: 1.7; max-width: 620px; }
+
+  /* ---------- 指标格 ---------- */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; width: 100%; margin-top: 24px; }
+  .mt { border: 1px solid var(--panel-border); border-radius: 10px; padding: 13px 16px; background: var(--bg); }
+  .mt .lab { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+  .mt .lab svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .mt.c-ping .lab { color: var(--blue); }
+  .mt.c-jit .lab { color: var(--warn); }
+  .mt.c-down .lab { color: var(--green); }
+  .mt.c-up .lab { color: var(--orange); }
+  .mt .val { margin-top: 6px; font-family: var(--font-mono); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mt .val small { font-size: 12px; font-weight: 400; color: var(--text-2); margin-left: 4px; }
+  .mt .sub { margin-top: 3px; font-size: 11px; color: var(--text-2); min-height: 14px; font-family: var(--font-mono); }
+
+  /* ---------- 实时曲线 ---------- */
+  .curve-box { width: 100%; margin-top: 16px; }
+  .curve-box .cb-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .curve-box .cb-head span { font-size: 12px; color: var(--text-2); letter-spacing: 1px; }
+  .curve-box .legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--text-2); }
+  .curve-box .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  .curve-box .legend .l-d i { background: var(--green); }
+  .curve-box .legend .l-u i { background: var(--orange); }
+  #curve { width: 100%; height: 150px; display: block; border: 1px solid var(--panel-border); border-radius: 10px; background: var(--bg); }
+
+  /* ---------- 下方两栏 ---------- */
+  .grid2 { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; margin-top: 18px; align-items: start; }
+  .card { border: 1px solid var(--panel-border); border-radius: 12px; background: var(--panel); padding: 20px; }
+  .card h2 { font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .card h2 .chip { font-size: 10px; font-family: var(--font-mono); letter-spacing: 1.5px; color: var(--text-2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-weight: 400; }
+  .card .sub { margin-top: 8px; font-size: 12.5px; color: var(--text-2); line-height: 1.7; }
+
+  .verdict { display: flex; align-items: center; gap: 16px; padding: 14px 0 4px; }
+  .verdict .grade {
+    flex: none; width: 64px; height: 64px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 800; font-family: var(--font-mono);
+    background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+  }
+  .verdict .grade.mid { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .verdict .grade.bad { background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, transparent); }
+  .verdict .txt b { display: block; font-size: 15px; }
+  .verdict .txt small { display: block; margin-top: 4px; font-size: 12px; color: var(--text-2); line-height: 1.6; }
+  .findings { margin-top: 10px; }
+  .fd { display: flex; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13px; line-height: 1.6; margin-top: 8px; background: var(--accent-bg); }
+  .fd::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; margin-top: 7px; background: var(--green); }
+  .fd.warn::before { background: var(--warn); }
+  .fd.bad::before { background: var(--red); }
+  .fd.info::before { background: var(--blue); }
+
   .hist table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  .hist th { text-align: left; color: #6f88a8; font-weight: 400; padding: 7px 10px; border-bottom: 1px solid rgba(126, 206, 244, 0.14); }
-  .hist td { padding: 8px 10px; color: #cfe3f8; border-bottom: 1px solid rgba(126, 206, 244, 0.07); font-variant-numeric: tabular-nums; }
+  .hist th { text-align: left; color: var(--text-2); font-weight: 400; padding: 7px 10px; border-bottom: 1px solid color-mix(in srgb, var(--blue) 14%, transparent); white-space: nowrap; }
+  .hist td { padding: 8px 10px; color: var(--text); border-bottom: 1px solid color-mix(in srgb, var(--blue) 7%, transparent); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .hist .g { font-weight: 700; }
-  .empty { color: #6f88a8; font-size: 13px; padding: 10px; }
+  .hist .mode-tag { font-size: 11px; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-2); }
+  .empty { color: var(--text-2); font-size: 13px; padding: 10px 2px; }
+  .hist-head { display: flex; align-items: center; justify-content: space-between; }
+  .link-btn { background: none; border: none; color: var(--text-2); font-size: 12px; cursor: pointer; font-family: inherit; padding: 4px 8px; border-radius: 6px; }
+  .link-btn:hover { color: var(--red); background: var(--accent-bg); }
 
-  footer { text-align: center; padding: 26px 0 34px; font-size: 12px; color: rgba(143, 168, 199, 0.6); }
+  footer { text-align: center; padding: 26px 0 34px; font-size: 12px; color: color-mix(in srgb, var(--text-2) 60%, transparent); }
+
   @media (max-width: 900px) {
     .metrics { grid-template-columns: 1fr 1fr; }
     .grid2 { grid-template-columns: 1fr; }
+    .head h1 { font-size: 20px; }
   }
 </style>
 </head>
 <body>
 <header>
-  <div class="logo"><span class="dot"></span>CyberNWT</div>
+  <div class="logo"><img class="dot" src="logo.png" alt="CyberNWT Logo">CyberNWT</div>
   <nav>
     <a href="home.html">首页</a>
-    <a class="active" href="speedtest.html">功能展示</a>
-    <a href="#" title="建设中">数据看板</a>
-    <a href="#" title="建设中">关于项目</a>
+    <a href="download/CyberNWT-mini.zip" download="CyberNWT-mini.zip">下载功能</a>
+    <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
+    <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
   </nav>
+  <button class="tswitch" id="theme-toggle" aria-label="切换深浅色模式" title="切换深浅色模式" aria-pressed="false">
+    <span class="seg seg-sun"><svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></span>
+    <span class="seg seg-moon"><svg class="ic-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg></span>
+  </button>
   <div class="user">
     <span class="chip"><i></i><b id="username">…</b></span>
-    <button class="logout" id="logout-btn">退出登录</button>
+    <button class="logout" id="logout-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>退出登录</button>
   </div>
 </header>
 
@@ -228,537 +273,842 @@
   <div class="head">
     <div>
       <h1>灵犀测速<span class="en">SPEEDLENS</span></h1>
-      <p>颠覆传统测速：无需输入任何地址，一键完成“握手 → 延迟 → 下载 → 上传 → 智能诊断”全流程，<br />
-        秒级出结果，不止给你数字，更告诉你 —— 网速到底怎么回事。</p>
+      <p>公网/内网双模式精准测速：自动定位，大陆节点就近选择，多源并发实测真实带宽。</p>
     </div>
-    <button class="start-btn" id="start-btn">◉ 一键体检</button>
+    <div class="mode-tabs" id="mode-tabs">
+      <button data-mode="wan" class="on">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3.5 9h17M3.5 15h17"/></svg>
+        公网测速
+      </button>
+      <button data-mode="lan">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/><path d="M8 7.5h.01M8 16.5h.01"/></svg>
+        内网测速
+      </button>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="phases">
-      <span class="phase" data-ph="handshake">① 链路握手</span>
-      <span class="phase" data-ph="latency">② 延迟探测</span>
-      <span class="phase" data-ph="download">③ 突发下载</span>
-      <span class="phase" data-ph="upload">④ 突发上传</span>
-      <span class="phase" data-ph="diagnose">⑤ 智能诊断</span>
+  <div class="strip">
+    <div class="cell"><span class="k">你的线路</span><span class="v" id="loc-val">定位中…</span></div>
+    <div class="sep"></div>
+    <div class="cell" id="node-cell"><span class="k">测试节点</span>
+      <select id="node-sel" title="测速节点"><option value="auto">自动选择（推荐）</option></select>
     </div>
-    <div class="progress"><i id="bar"></i></div>
-    <div class="metrics">
-      <div class="metric main">
-        <label>下载带宽 <span class="live-chip" id="live-chip"></span></label>
-        <div class="val"><span id="m-down">—</span><small>Mbps</small></div>
-        <canvas class="wave" id="wave"></canvas>
+    <div class="cell" id="peer-cell" style="display:none"><span class="k">测速对端</span>
+      <input id="peer-addr" class="peer-input" placeholder="留空 = 本站服务器 · 或对端 IP:端口" spellcheck="false" title="内网测速对端：留空测本站服务器；在目标机器运行 speedpeer.py 后填入其 IP:端口">
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="gauge-wrap idle" id="gauge-wrap">
+      <svg class="gauge" viewBox="0 0 300 300" aria-hidden="true">
+        <circle class="g-track" cx="150" cy="150" r="140"/>
+        <circle class="g-prog" id="g-prog" cx="150" cy="150" r="140"/>
+      </svg>
+      <div class="gauge-center" id="gauge-center">
+        <button class="btn-go" id="btn-go" aria-label="开始测速">
+          <span class="arrows">
+            <svg class="up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+            <svg class="dn" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+          </span>
+          <span class="txt">GO</span>
+          <span class="sub" id="go-sub">公网测速</span>
+        </button>
       </div>
-      <div class="metric"><label>上传带宽</label><div class="val"><span id="m-up">—</span><small>Mbps</small></div></div>
-      <div class="metric"><label>延迟 (中位)</label><div class="val"><span id="m-ping">—</span><small>ms</small></div></div>
-      <div class="metric"><label>抖动</label><div class="val"><span id="m-jit">—</span><small>ms</small></div></div>
+    </div>
+
+    <div class="stage-actions">
+      <button class="btn primary" id="btn-start">开始测速</button>
+      <button class="btn" id="btn-stop" style="display:none">停止</button>
+    </div>
+    <div class="stage-note" id="stage-note">全链路大陆节点：下行 阿里云+腾讯云+华为云（CDN 按工程师位置自动就近调度边缘节点）；上行 按定位扫描大陆全部 Ookla 官方节点多分片并发。</div>
+
+    <div class="metrics">
+      <div class="mt c-ping"><div class="lab"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>延迟 (中位)</div><div class="val"><span id="m-ping">—</span><small>ms</small></div><div class="sub" id="m-ping-sub"></div></div>
+      <div class="mt c-jit"><div class="lab"><svg viewBox="0 0 24 24"><path d="M2 12h4l3-7 4 14 3-7h6"/></svg>抖动</div><div class="val"><span id="m-jit">—</span><small>ms</small></div><div class="sub" id="m-jit-sub"></div></div>
+      <div class="mt c-down"><div class="lab"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>下行带宽</div><div class="val"><span id="m-down">—</span><small>Mbps</small></div><div class="sub" id="m-down-sub"></div></div>
+      <div class="mt c-up"><div class="lab"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>上行带宽</div><div class="val"><span id="m-up">—</span><small>Mbps</small></div><div class="sub" id="m-up-sub"></div></div>
+    </div>
+
+    <div class="curve-box">
+      <div class="cb-head">
+        <span>实时速率曲线</span>
+        <div class="legend"><span class="l-d"><i></i>下载</span><span class="l-u"><i></i>上传</span></div>
+      </div>
+      <canvas id="curve"></canvas>
     </div>
   </div>
 
   <div class="grid2">
     <div class="card">
-      <h2>全链路透视 <span class="chip">FULL-LINK</span></h2>
-      <div class="sub">展示流量经过的每一跳：网关 → 运营商 → 骨干网 → CDN 边缘 → 源站，定位瓶颈到底在哪一环。<br />（演示环境为“实测指标 + 链路建模”，接入真实探测目标后即为全链路实测）</div>
-      <div class="chain" id="chain"></div>
-    </div>
-    <div class="card">
-      <h2>灵犀解读 <span class="chip">AI 诊断</span></h2>
-      <div class="sub">测试完成后自动生成结论：瓶颈定位、原因分析与优化建议。</div>
-      <div class="empty" id="ai-empty">等待测试 —— 点击右上角「一键体检」开始。</div>
-      <div id="ai-body" style="display:none">
+      <h2>灵犀解读<span class="chip">AI 诊断</span></h2>
+      <div class="sub" id="ai-sub">测试完成后自动生成：带宽档位判断、瓶颈定位与优化建议。</div>
+      <div id="ai-body">
         <div class="verdict">
           <div class="grade" id="grade">–</div>
-          <div class="txt"><span id="verdict-txt"></span><small id="verdict-sub"></small></div>
+          <div class="txt"><b id="verdict-txt">等待测试</b><small id="verdict-sub">点击「开始测速」或中央 GO 按钮开始。</small></div>
         </div>
         <div class="findings" id="findings"></div>
-        <div class="attr">
-          <label>延迟构成透视（建模归因）</label>
-          <div class="attr-bar" id="attr-bar"></div>
-          <div class="attr-legend" id="attr-legend"></div>
-        </div>
       </div>
     </div>
-  </div>
-
-  <div class="card ops">
-    <h2>自动化运维组件 <span class="chip">CI / MONITOR</span></h2>
-    <div class="sub">测速不止服务“人”，也服务“机器”：标准 JSON 输出可直接接入 CI 流水线，Prometheus 指标可接入监控告警，成为无人值守的自动化组件。</div>
-    <div class="tabs">
-      <button class="tab-btn on" data-pane="json">JSON 输出</button>
-      <button class="tab-btn" data-pane="prom">Prometheus 指标</button>
-      <button class="tab-btn" data-pane="alert">阈值告警</button>
-    </div>
-    <div class="pane on" id="pane-json">
-      <pre id="json-out">$ cybernwt speedtest --json
-（完成一次测试后自动输出）</pre>
-      <button class="copy-btn" data-copy="json-out">复制</button>
-    </div>
-    <div class="pane" id="pane-prom">
-      <pre id="prom-out"># 完成一次测试后自动生成 Prometheus exposition 格式指标</pre>
-      <button class="copy-btn" data-copy="prom-out">复制</button>
-    </div>
-    <div class="pane" id="pane-alert">
-      <div class="alert-row">
-        <span>告警阈值：下载带宽低于</span>
-        <input type="number" id="threshold" min="1" max="10000" value="50" />
-        <span>Mbps 时触发告警</span>
-        <span class="alert-state" id="alert-state">— 等待测试</span>
+    <div class="card hist">
+      <div class="hist-head">
+        <h2>最近测试<span class="chip">HISTORY</span></h2>
+        <button class="link-btn" id="hist-clear">清除记录</button>
       </div>
-      <div class="sub" style="margin-top:12px">阈值保存在本机；实际部署时由 Prometheus Alertmanager 按同一阈值规则推送告警（如 speedtest_download_mbps &lt; 50）。</div>
+      <div id="hist-body"><div class="empty">暂无记录，完成一次测试后自动保存（保存在本机浏览器）。</div></div>
     </div>
-  </div>
-
-  <div class="card hist">
-    <h2>最近测试 <span class="chip">HISTORY</span></h2>
-    <div id="hist-body"></div>
   </div>
 </main>
 
 <footer>CyberNWT · 演示环境</footer>
-<script src="whiteboard.js" defer></script>
 <script>
 (function () {
   'use strict';
 
-  /* ================= 会话 ================= */
-  fetch('/api/me').then(function (r) {
-    if (r.status === 401) { location.href = 'login.html'; return null; }
-    return r.json();
-  }).then(function (data) {
-    if (data && data.ok) document.getElementById('username').textContent = data.username;
+  /* ================= 画布与全局状态（需在主题初始化前就绪） ================= */
+  var curve = document.querySelector('#curve');
+  var cctx = curve.getContext('2d');
+  var S = {
+    mode: 'wan',
+    running: false,
+    stopped: false,
+    ac: null,          // 下载流 AbortController
+    xhrs: [],          // 进行中的上传 XHR
+    loc: null,         // { ip, region, isp }
+    nodeLat: {},       // id -> { ms } | null
+    nodeChoice: 'auto',
+    node: null,        // 实际使用的节点
+    downNodes: [],     // 可用的下行 CDN 节点
+    downSlots: [],     // 下行源感知分流槽（HTTP 源 6 槽 / HTTPS 源 2 槽）
+    upShardPool: null, // 上行节点池（服务端扫描大陆全部节点 + 静态 IP 分片合并）
+    upShards: [],      // 可用的大陆 Ookla 上行分片
+    peer: null,        // 内网对端 { base, label }
+    res: { ping: null, jitter: null, down: null, up: null },
+    curve: []          // { t, v, ph }
+  };
+
+  /* ================= 主题 / 登录态 ================= */
+  var themeBtn = document.getElementById('theme-toggle');
+  var schemeMq = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.setAttribute('data-on', t);
+    themeBtn.setAttribute('aria-pressed', t === 'light' ? 'true' : 'false');
+    try { localStorage.setItem('cyber-theme', t); } catch (e) {}
+    drawCurve();
+  }
+  themeBtn.addEventListener('click', function () {
+    setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+  });
+  setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+  if (schemeMq && (schemeMq.addEventListener || schemeMq.addListener)) {
+    (schemeMq.addEventListener ? schemeMq.addEventListener.bind(schemeMq, 'change') : schemeMq.addListener.bind(schemeMq))(function (e) {
+      var saved = null; try { saved = localStorage.getItem('cyber-theme'); } catch (err) {}
+      if (saved !== 'light' && saved !== 'dark') setTheme(e.matches ? 'light' : 'dark');
+    });
+  }
+  fetch('/api/me').then(function (r) { return r.json(); }).then(function (data) {
+    document.getElementById('username').textContent = data.username || '工程师';
   }).catch(function () { location.href = 'login.html'; });
   document.getElementById('logout-btn').addEventListener('click', function () {
     fetch('/api/logout', { method: 'POST' }).then(function () { location.href = 'login.html'; });
   });
 
+  /* ================= 基础工具 ================= */
   var $ = function (s) { return document.querySelector(s); };
   var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
-
-  /* ================= 测量引擎 ================= */
-  var S = { testing: false, rtt: [], downWin: [], upWin: [], down: 0, up: 0, ping: 0, jitter: 0, lossPct: 0 };
-  var PHASE_W = { handshake: [0, 10], latency: [10, 26], download: [26, 66], upload: [66, 90], diagnose: [90, 100] };
-  var phase, phaseStart, result = null;
-  var payloadBlob = null;
-
+  function fmt(v, unit) {
+    if (v == null || isNaN(v)) return '—';
+    if (unit === 'ms') return v >= 100 ? v.toFixed(0) : v.toFixed(1);
+    return v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2);
+  }
+  function rand() { return Math.random().toString(36).slice(2); }
   function median(a) {
-    if (!a.length) return 0;
+    if (!a.length) return null;
     var b = a.slice().sort(function (x, y) { return x - y; });
-    var m = Math.floor(b.length / 2);
+    var m = b.length >> 1;
     return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2;
   }
-  function rollingRate(win, span) {
-    var now = performance.now(), sum = 0;
-    for (var i = win.length - 1; i >= 0; i--) {
-      if (now - win[i][0] > span) break;
-      sum += win[i][1];
-    }
-    return sum * 8 / (span / 1000) / 1e6;
-  }
-  function windowRate(win, rampMs) {
-    if (win.length < 2) return 0;
-    var t0 = win[0][0] + rampMs, sum = 0, lastT = win[0][0];
-    for (var i = 0; i < win.length; i++) {
-      if (win[i][0] < t0) continue;
-      sum += win[i][1]; lastT = win[i][0];
-    }
-    if (lastT - t0 < 120) return sum * 8 / ((lastT - win[0][0]) / 1000 || 1) / 1e6;
-    return sum * 8 / ((lastT - t0) / 1000) / 1e6;
+  function fetchTimeout(url, ms, opts) {
+    var ac = new AbortController();
+    var t = setTimeout(function () { ac.abort(); }, ms);
+    return fetch(url, Object.assign({ signal: ac.signal, cache: 'no-store' }, opts)).finally(function () { clearTimeout(t); });
   }
 
-  function setPhase(name) {
-    phase = name; phaseStart = performance.now();
-    document.querySelectorAll('.phase').forEach(function (el) {
-      var cur = el.dataset.ph;
-      el.classList.toggle('active', cur === name);
-      el.classList.toggle('done', PHASE_W[name][0] > PHASE_W[cur][1] - 1 && cur !== name);
-    });
-  }
-  function tickProgress() {
-    if (!phase) return;
-    var w = PHASE_W[phase];
-    var pct = w[0] + (w[1] - w[0]) * Math.min(1, (performance.now() - phaseStart) / phaseBudget());
-    $('#bar').style.width = pct + '%';
-  }
-  function phaseBudget() {
-    return { handshake: 500, latency: 900, download: 1500, upload: 1100, diagnose: 300 }[phase] || 500;
-  }
-
-  async function pingOnce() {
-    var t0 = performance.now();
-    var r = await fetch('/api/speedtest/echo?t=' + Math.random(), { cache: 'no-store' });
-    await r.json();
-    return performance.now() - t0;
-  }
-  function jitterOf(a) {
-    if (a.length < 3) return 0;
-    var sum = 0, n = 0;
-    for (var i = 1; i < a.length; i++) { sum += Math.abs(a[i] - a[i - 1]); n++; }
-    return sum / n;
-  }
-
-  async function downloadPhase() {
-    var budget = 1500, t0 = performance.now(), chunk = 2 * 1048576;
-    S.downWin = [];
-    while (performance.now() - t0 < budget) {
-      try {
-        var resp = await fetch('/api/speedtest/down?bytes=' + chunk + '&r=' + Math.random(), { cache: 'no-store' });
-        var reader = resp.body.getReader();
-        while (true) {
-          var d = await reader.read();
-          if (d.done) break;
-          S.downWin.push([performance.now(), d.value.byteLength]);
-        }
-        var r = rollingRate(S.downWin, 300);
-        chunk = Math.max(1048576, Math.min(16 * 1048576, Math.round(r * 0.30 * 131072)));
-      } catch (e) { break; }
-    }
-    S.down = windowRate(S.downWin, 250);
-  }
-
-  function uploadOnce(blob, onBytes) {
-    return new Promise(function (res, rej) {
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/speedtest/up?r=' + Math.random(), true);
-      var last = 0;
-      xhr.upload.onprogress = function (e) { onBytes(e.loaded - last); last = e.loaded; };
-      xhr.onload = res; xhr.onerror = rej;
-      xhr.send(blob);
-    });
-  }
-  async function uploadPhase() {
-    if (!payloadBlob) {
-      var u8 = new Uint8Array(4 * 1048576);
-      for (var i = 0; i < u8.length; i += 65536) crypto.getRandomValues(u8.subarray(i, Math.min(i + 65536, u8.length)));
-      payloadBlob = new Blob([u8]);
-    }
-    var budget = 1100, t0 = performance.now();
-    S.upWin = [];
-    while (performance.now() - t0 < budget) {
-      try { await uploadOnce(payloadBlob, function (n) { S.upWin.push([performance.now(), n]); }); }
-      catch (e) { break; }
-    }
-    S.up = windowRate(S.upWin, 300);
-  }
-
-  /* ================= 可视化 ================= */
-  var wave = $('#wave'), waveCtx = wave.getContext('2d');
-  function drawWave() {
-    var w = wave.clientWidth, h = wave.clientHeight;
-    if (wave.width !== w * 2) { wave.width = w * 2; wave.height = h * 2; }
-    waveCtx.setTransform(2, 0, 0, 2, 0, 0);
-    waveCtx.clearRect(0, 0, w, h);
-    var win = phase === 'upload' ? S.upWin : S.downWin;
-    if (win.length < 2) return;
-    var t1 = win[win.length - 1][0], span = 1400, max = 1;
-    var pts = [];
-    for (var i = 0; i < win.length; i++) {
-      if (t1 - win[i][0] > span) continue;
-      var v = 0;
-      for (var j = i; j < win.length && win[j][0] - win[i][0] < 120; j++) v += win[j][1];
-      var mbps = v * 8 / 0.12 / 1e6;
-      pts.push([w - (t1 - win[i][0]) / span * w, mbps]);
-      if (mbps > max) max = mbps;
-    }
-    if (pts.length < 2) return;
-    var grad = waveCtx.createLinearGradient(0, 0, w, 0);
-    grad.addColorStop(0, 'rgba(126,206,244,.15)'); grad.addColorStop(1, '#6FBA2C');
-    waveCtx.beginPath();
-    waveCtx.moveTo(pts[0][0], h);
-    pts.forEach(function (p) { waveCtx.lineTo(p[0], h - Math.min(1, p[1] / max) * (h - 6) - 2); });
-    waveCtx.lineTo(pts[pts.length - 1][0], h);
-    waveCtx.closePath();
-    waveCtx.fillStyle = 'rgba(111,186,44,.14)'; waveCtx.fill();
-    waveCtx.beginPath();
-    pts.forEach(function (p, i) { i ? waveCtx.lineTo(p[0], h - Math.min(1, p[1] / max) * (h - 6) - 2) : waveCtx.moveTo(p[0], h - Math.min(1, p[1] / max) * (h - 6) - 2); });
-    waveCtx.strokeStyle = grad; waveCtx.lineWidth = 2; waveCtx.stroke();
-  }
-
-  var CHAIN = [
-    { id: 'term', nm: '本机终端', icon: '💻', share: 0.10 },
-    { id: 'gw', nm: '接入网关', icon: '🖧', share: 0.16 },
-    { id: 'isp', nm: '运营商接入', icon: '🗼', share: 0.22 },
-    { id: 'cdn', nm: 'CDN 边缘', icon: '🌐', share: 0.30, cdn: true },
-    { id: 'org', nm: '服务源站', icon: '🗄️', share: 0.22 }
+  /* ================= 公网节点池（全大陆节点，逐个实测可用） =================
+     下行：3 家国内云 × 5 个独立源交错分流（15 连接并发）。
+           浏览器对同源只开 1 条 H2 连接且镜像站单连接限速（25~190 Mbps 不等），
+           故按「源数量」扩展：阿里 cdn / 腾讯双域 / 华为 https+http，5 源合计 ~560 Mbps 上限。
+     上行：大陆 Ookla 官方测速节点（Speedtest 服务器网络，专为公众测速部署的靶机）
+           苏州 JSQY 双 IP + 域名三线路分片 + 昆山杜克，共 4 分片 × 6 连接
+     延迟：CDN 探针小文件计时（与实测同源，TTFB 口径） */
+  var DOWN_NODES = [
+    { id: 'ali', name: '阿里云', files: [
+        'https://cdn.npmmirror.com/packages/typescript/5.4.5/typescript-5.4.5.tgz',
+        'https://cdn.npmmirror.com/packages/typescript/5.3.3/typescript-5.3.3.tgz',
+        'https://cdn.npmmirror.com/packages/typescript/4.9.5/typescript-4.9.5.tgz'
+      ], probe: 'https://cdn.npmmirror.com/packages/ms/2.1.3/ms-2.1.3.tgz' },
+    { id: 'tx', name: '腾讯云', files: [
+        'https://mirrors.cloud.tencent.com/npm/typescript/-/typescript-5.4.5.tgz',
+        'https://mirrors.cloud.tencent.com/npm/typescript/-/typescript-5.3.3.tgz',
+        'https://mirrors.tencent.com/npm/typescript/-/typescript-5.3.3.tgz',
+        'https://mirrors.tencent.com/npm/typescript/-/typescript-4.9.5.tgz'
+      ], probe: 'https://mirrors.cloud.tencent.com/npm/ms/-/ms-2.1.3.tgz' },
+    { id: 'hw', name: '华为云', files: [
+        'https://mirrors.huaweicloud.com/repository/npm/typescript/-/typescript-5.4.5.tgz',
+        'https://mirrors.huaweicloud.com/repository/npm/typescript/-/typescript-5.3.3.tgz',
+        'http://mirrors.huaweicloud.com/repository/npm/typescript/-/typescript-5.4.5.tgz',
+        'http://mirrors.huaweicloud.com/repository/npm/typescript/-/typescript-4.9.5.tgz'
+      ], probe: 'https://mirrors.huaweicloud.com/repository/npm/ms/-/ms-2.1.3.tgz' }
   ];
-  function renderChain(mod) {
-    var el = $('#chain');
-    el.innerHTML = '';
-    CHAIN.forEach(function (n, i) {
-      var bad = mod && mod.bottleneck === n.id;
-      var node = document.createElement('div');
-      node.className = 'chain-node' + (bad ? ' bad' : '');
-      var rtt = mod ? (mod.rtt[n.id] + ' ms') : '— ms';
-      node.innerHTML =
-        '<div class="bubble">' + n.icon + '</div><div class="nm">' + n.nm + '</div>' +
-        '<div class="rt">' + rtt + '</div>' +
-        (n.cdn ? '<span class="tag-hit ' + (mod ? mod.cdnHit : '') + '">' + (mod ? (mod.cdnHit === 'hit' ? '缓存 HIT' : '缓存 MISS') : 'HIT / MISS') + '</span>' : '') +
-        (bad ? '<div class="rt">⚠ 瓶颈环节</div>' : '');
-      el.appendChild(node);
-      if (i < CHAIN.length - 1) {
-        var link = document.createElement('div');
-        link.className = 'chain-link';
-        link.innerHTML = '<div class="line"></div><div class="pkt" style="animation-delay:' + (i * 0.22) + 's"></div>';
-        el.appendChild(link);
+  var UP_SHARDS = [
+    { id: 'jsqy-a', name: '苏州JSQY·线1', url: 'http://speedtest.jsqiuying.com:8080/speedtest/upload.php' },
+    { id: 'jsqy-b', name: '苏州JSQY·线2', url: 'http://36.156.46.51:8080/speedtest/upload.php' },
+    { id: 'jsqy-c', name: '苏州JSQY·线3', url: 'http://36.156.46.53:8080/speedtest/upload.php' },
+    { id: 'dku', name: '昆山杜克', url: 'http://speedtest.dukekunshan.edu.cn:8080/speedtest/upload.php' }
+  ];
+
+  /* ================= DOM 引用 ================= */
+  var elGo = $('#btn-go'), elStart = $('#btn-start'), elStop = $('#btn-stop');
+  var elWrap = $('#gauge-wrap'), elProg = $('#g-prog'), elCenter = $('#gauge-center');
+  var elLoc = $('#loc-val'), elNodeSel = $('#node-sel'), elNote = $('#stage-note'), elGoSub = $('#go-sub');
+  var C = 880; // 圆环周长 2πr
+
+  /* ================= 模式切换 ================= */
+  var tabs = document.querySelectorAll('#mode-tabs button');
+  var elNodeCell = $('#node-cell'), elPeerCell = $('#peer-cell'), peerInput = $('#peer-addr');
+  tabs.forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (S.mode === b.dataset.mode) return;
+      if (S.running) { stopTest(); sleep(150).then(applyMode); return; }
+      applyMode();
+      function applyMode() {
+        S.mode = b.dataset.mode;
+        tabs.forEach(function (x) { x.classList.toggle('on', x === b); });
+        resetUI();
+        if (S.mode === 'wan') {
+          elNodeCell.style.display = '';
+          elPeerCell.style.display = 'none';
+          elNote.textContent = '全链路大陆节点：下行 阿里云+腾讯云+华为云（CDN 按工程师位置自动就近调度边缘节点，页面实测延迟排序）；上行 按定位扫描大陆全部 Ookla 官方节点后多分片并发实测。';
+          elGoSub.textContent = '公网测速';
+          if (!S.loc) locate();
+          else elLoc.textContent = (S.loc.region || '未知地区') + (S.loc.isp ? ' ｜ ' + S.loc.isp : '') + ' ｜ ' + S.loc.ip;
+          buildNodeSel();
+          probeNodes().then(function () {}).catch(function () {});
+        } else {
+          elNodeCell.style.display = 'none';
+          elPeerCell.style.display = '';
+          elNote.textContent = '直连内网对端压测（4 连接并发）：留空测本站服务器；在目标机器运行 speedpeer.py 后填入其 IP:端口，可测任意两台内网机器间带宽。';
+          elGoSub.textContent = '内网测速';
+          probePeer();
+          echoIp();
+        }
       }
     });
+  });
+  peerInput.addEventListener('change', function () { if (S.mode === 'lan' && !S.running) probePeer(); });
+
+  /* 解析内网对端输入：留空 = 本站服务器（同源）；否则 http://host:port */
+  function lanTarget() {
+    var v = (peerInput.value || '').trim();
+    if (!v) return { base: '', label: '本站服务器 ' + location.host };
+    var m = v.match(/^(?:https?:\/\/)?([A-Za-z0-9.\-]+)(?::(\d{1,5}))?$/);
+    if (!m) return null;
+    var port = m[2] ? parseInt(m[2], 10) : 8644;
+    return { base: 'http://' + m[1] + ':' + port, label: '对端 ' + m[1] + ':' + port };
   }
 
-  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
-
-  function diagnose() {
-    var ping = median(S.rtt), min = S.rtt.length ? Math.min.apply(null, S.rtt) : 0;
-    var jit = jitterOf(S.rtt);
-    var thr = getThreshold();
-    var score = Math.round(100 * (0.55 * clamp(S.down / 100, 0, 1) + 0.30 * clamp(1 - (ping - 15) / 85, 0, 1) + 0.15 * clamp(1 - jit / 25, 0, 1)));
-    var grade = score >= 85 ? 'S' : score >= 70 ? 'A' : score >= 50 ? 'B' : 'C';
-
-    var findings = [];
-    if (S.down < thr) {
-      findings.push(['warn', '下行带宽 ' + S.down.toFixed(1) + ' Mbps，低于告警阈值 ' + thr + ' Mbps',
-        '建议优先排查：出口链路带宽占用、端口协商速率与双工模式、限速/QoS 策略。']);
-    } else {
-      findings.push(['ok', '下行带宽 ' + S.down.toFixed(1) + ' Mbps，达标（阈值 ' + thr + ' Mbps）',
-        '突发式测量已剔除低速率爬坡段，结果贴近真实承载能力。']);
-    }
-    if (ping > 60) {
-      findings.push(['warn', '延迟偏高：中位 ' + ping.toFixed(1) + ' ms（最小 ' + min.toFixed(1) + ' ms）',
-        '可能存在绕行路由或国际出口拥塞；建议 traceroute 核对路径是否最优。']);
-    } else if (ping > 30) {
-      findings.push(['info', '延迟中等：中位 ' + ping.toFixed(1) + ' ms', '局域/城域场景表现正常，跨网访问可接受。']);
-    } else {
-      findings.push(['ok', '延迟优秀：中位 ' + ping.toFixed(1) + ' ms', '路由收玫良好，未发现明显绕行特征。']);
-    }
-    if (jit > 12) {
-      findings.push(['warn', '抖动较大：' + jit.toFixed(1) + ' ms', '链路可能存在拥塞或无线干扰，将影响语音/视频质量。']);
-    } else {
-      findings.push(['ok', '抖动 ' + jit.toFixed(1) + ' ms，链路稳定', '满足实时业务（VoIP / 视频会议）要求。']);
-    }
-    if (S.down > 1 && S.up < S.down * 0.3) {
-      findings.push(['info', '上行 ' + S.up.toFixed(1) + ' Mbps，约为下行的 ' + Math.round(S.up / S.down * 100) + '%',
-        '典型非对称接入特征；若业务以上行为主（上传备份/视频回传），需确认上行规格。']);
-    }
-    var cdnHit = Math.random() < 0.72 ? 'hit' : 'miss';
-    if (cdnHit === 'miss') {
-      findings.push(['warn', 'CDN 缓存未命中（MISS）', '流量被回源导致变慢；建议检查 DNS 调度与 CDN 缓存策略。']);
-    } else {
-      findings.push(['ok', 'CDN 缓存命中（HIT）', '内容由边缘节点直接服务，回源开销小。']);
-    }
-
-    var shares = { term: 0.10, gw: 0.16, isp: 0.22, cdn: 0.30, org: 0.22 };
-    if (cdnHit === 'miss') { shares.cdn = 0.12; shares.org = 0.40; }
-    if (ping > 60) { shares.isp += 0.10; shares.org = Math.max(0.08, shares.org - 0.10); }
-    var mod = { cdnHit: cdnHit, rtt: {}, bottleneck: null, worst: 0 };
-    Object.keys(shares).forEach(function (k) {
-      mod.rtt[k] = +(ping * shares[k]).toFixed(1);
-      if (mod.rtt[k] > mod.worst) { mod.worst = mod.rtt[k]; mod.bottleneck = k; }
+  /* 对端探活：直连 /peer/info，回显主机名与系统 */
+  function probePeer() {
+    var t = lanTarget();
+    if (!t) { elNote.textContent = '对端地址格式无效：请填写 IP 或主机名（可带 :端口）。'; return; }
+    if (!t.base) { elNote.textContent = '目标：本站服务器 ' + location.host + '（留空默认）。如需测其他机器，在对端运行 speedpeer.py 后填入其 IP:端口。'; return; }
+    elNote.textContent = '正在探测对端 ' + t.label + ' …';
+    fetchTimeout(t.base + '/peer/info', 3500).then(function (r) { return r.json(); }).then(function (d) {
+      elNote.textContent = '对端就绪：' + (d.host || '未知主机') + '（' + (d.system || '') + '）· ' + t.label;
+    }).catch(function () {
+      elNote.textContent = '对端 ' + t.label + ' 不可达：请确认对端已运行 speedpeer.py 且 IP/端口正确。';
     });
+  }
 
-    var top = findings.find(function (f) { return f[0] === 'warn'; });
-    var verdict = top
-      ? top[1] + '。' + '已为你定位主要原因与处置建议，见下方明细。'
-      : '链路状态优秀：下行 ' + S.down.toFixed(1) + ' Mbps、延迟 ' + ping.toFixed(1) + ' ms，全链路未发现瓶颈。';
-    return {
-      time: new Date().toISOString(),
-      metrics: {
-        download_mbps: +S.down.toFixed(1), upload_mbps: +S.up.toFixed(1),
-        latency_ms: { min: +min.toFixed(1), median: +ping.toFixed(1) },
-        jitter_ms: +jit.toFixed(1), loss_pct: 0
-      },
-      score: score, grade: grade, threshold_mbps: thr,
-      findings: findings.map(function (f) { return { level: f[0], title: f[1], advice: f[2] }; }),
-      chain: mod, verdict: verdict
+  function echoIp() {
+    fetchTimeout('/api/speedtest/echo', 4000).then(function (r) { return r.json(); }).then(function (d) {
+      var ip = d && d.ip ? d.ip : '';
+      var loop = /^(127\.|::1|localhost)/.test(ip);
+      elLoc.textContent = ip ? (ip + (loop ? '（本机回环）' : ' · 内网终端')) : '未知';
+    }).catch(function () { elLoc.textContent = '未知（服务器不可达）'; });
+  }
+
+  /* ================= 定位（服务端多源，浏览器侧兜底） ================= */
+  function locate() {
+    elLoc.textContent = '定位中…';
+    fetchTimeout('/api/speedtest/geo', 6000).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ok || !d.ip) throw new Error('bad');
+      S.loc = { ip: d.ip, region: d.region || '', isp: d.isp || '' };
+      elLoc.textContent = (S.loc.region || '未知地区') + (S.loc.isp ? ' ｜ ' + S.loc.isp : '') + ' ｜ ' + S.loc.ip;
+    }).catch(function () { locateBrowser(); });
+  }
+  function locateBrowser() {
+    var p1 = fetchTimeout('https://ip.useragentinfo.com/json', 5000).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ip) throw new Error('bad');
+      return { ip: d.ip, region: (d.province || '') + (d.city ? ' · ' + d.city : ''), isp: d.isp || d.area || '' };
+    });
+    var p2 = fetchTimeout('https://ipinfo.io/json', 5000).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ip) throw new Error('bad');
+      return { ip: d.ip, region: (d.city || '') + (d.region ? ' · ' + d.region : ''), isp: (d.org || '').replace(/^AS\d+\s*/, '') };
+    });
+    Promise.any ? Promise.any([p1, p2]).then(renderLoc, locFail) : p1.then(renderLoc, function () { p2.then(renderLoc, locFail); });
+    function renderLoc(l) { S.loc = l; elLoc.textContent = (l.region || '未知地区') + (l.isp ? ' ｜ ' + l.isp : '') + ' ｜ ' + l.ip; }
+    function locFail() { S.loc = { ip: '', region: '', isp: '' }; elLoc.textContent = '定位失败（出口不可达）'; }
+  }
+
+  /* ================= 节点选择 ================= */
+  function buildNodeSel() {
+    elNodeSel.disabled = false;
+    var latTag = function (id) {
+      var lat = S.nodeLat[id];
+      return lat == null ? '' : (lat.ms == null ? ' · 不可达' : ' · ' + Math.round(lat.ms) + ' ms');
     };
+    elNodeSel.innerHTML = '<option value="auto">自动（三 CDN 分流 · 推荐）</option>' + DOWN_NODES.map(function (n) {
+      return '<option value="' + n.id + '">' + n.name + ' CDN' + latTag(n.id) + '</option>';
+    }).join('');
+    elNodeSel.value = S.nodeChoice;
   }
+  elNodeSel.addEventListener('change', function () { S.nodeChoice = elNodeSel.value; });
 
-  function renderResult(r) {
-    $('#ai-empty').style.display = 'none';
-    $('#ai-body').style.display = 'block';
-    $('#grade').textContent = r.grade;
-    $('#verdict-txt').textContent = r.verdict;
-    $('#verdict-sub').textContent = '综合评分 ' + r.score + ' / 100 · 本地规则引擎解读（接入 FastGPT 后可切换为大模型深度分析）';
-    var fEl = $('#findings');
-    fEl.innerHTML = '';
-    r.findings.forEach(function (f) {
-      var d = document.createElement('div');
-      d.className = 'finding ' + f.level;
-      d.innerHTML = '<i></i><div><b>' + f.title + '</b><small>' + f.advice + '</small></div>';
-      fEl.appendChild(d);
+  /* 上行节点池：服务端按区域扫描大陆全部公开 Ookla 节点，
+     与静态 IP 分片合并（不同 IP 突破浏览器单域并发上限），失败回退静态清单 */
+  async function fetchUpNodes() {
+    var pool = [];
+    try {
+      var r = await fetchTimeout('/api/speedtest/upnodes', 12000);
+      var d = await r.json();
+      if (d && d.ok && d.nodes && d.nodes.length) {
+        pool = d.nodes.filter(function (n) { return n.url; }).map(function (n) {
+          return { id: 'dyn-' + n.host, name: n.name, url: n.url };
+        });
+      }
+    } catch (e) { /* 回退静态 */ }
+    UP_SHARDS.forEach(function (sh) {
+      if (!pool.some(function (p) { return p.url === sh.url; })) pool.push(sh);
     });
-    var colors = { term: '#7ECEF4', gw: '#5aa2e8', isp: '#4a7fd4', cdn: '#6FBA2C', org: '#2f9e78' };
-    var names = { term: '本机/终端', gw: '接入网关', isp: '运营商接入', cdn: 'CDN 边缘', org: '服务源站' };
-    var bar = $('#attr-bar'), leg = $('#attr-legend');
-    bar.innerHTML = ''; leg.innerHTML = '';
-    Object.keys(colors).forEach(function (k) {
-      var s = document.createElement('span');
-      var pct = r.chain.rtt[k] / Object.values(r.chain.rtt).reduce(function (a, b) { return a + b; }, 0) * 100;
-      s.style.width = pct + '%'; s.style.background = colors[k];
-      s.title = names[k] + ' ' + pct.toFixed(0) + '%';
-      bar.appendChild(s);
-      var l = document.createElement('em');
-      l.style.setProperty('--c', colors[k]);
-      l.textContent = names[k] + ' ' + pct.toFixed(0) + '%';
-      leg.appendChild(l);
+    S.upShardPool = pool;
+  }
+
+  async function probeNodes() {
+    // 0) 上行节点池（首次调用时拉取）
+    if (!S.upShardPool) await fetchUpNodes();
+    var upPool = S.upShardPool || UP_SHARDS;
+    // 1) 三家 CDN 探针（可达性 + 延迟）
+    await Promise.all(DOWN_NODES.map(async function (n) {
+      var ts = [];
+      for (var i = 0; i < 2; i++) {
+        var t0 = performance.now();
+        try { await fetchTimeout(n.probe + '?r=' + rand(), 4000); ts.push(performance.now() - t0); }
+        catch (e) { break; }
+      }
+      S.nodeLat[n.id] = { ms: ts.length ? Math.min.apply(null, ts) : null };
+    }));
+    buildNodeSel();
+    S.downNodes = DOWN_NODES.filter(function (n) { return S.nodeLat[n.id] && S.nodeLat[n.id].ms != null; });
+    if (!S.downNodes.length) throw new Error('国内 CDN 下行节点不可达，请检查公网出口');
+    // 2) 上行分片探测（大陆 Ookla 节点：no-cors 小块试传，并行逐片验证可达性）
+    var probeRes = await Promise.all(upPool.map(function (sh) { return probeUpShard(sh); }));
+    var usable = upPool.filter(function (sh, i) { return probeRes[i]; });
+    S.upShards = usable;
+    if (!S.upShards.length) throw new Error('大陆 Ookla 上行节点不可达，请检查公网出口');
+    // 3) 按延迟排序：自动模式选最快 CDN 作延迟基准
+    S.downNodes.sort(function (a, b) { return S.nodeLat[a.id].ms - S.nodeLat[b.id].ms; });
+    var picked = S.nodeChoice === 'auto' ? S.downNodes : S.downNodes.filter(function (n) { return n.id === S.nodeChoice; });
+    if (!picked.length) picked = S.downNodes;
+    if (S.nodeChoice === 'auto') S.node = S.downNodes[0];
+    else S.node = picked[0];
+    // 4) 源感知分流：HTTP 源每源 6 槽（浏览器 H1.1 每源最多 6 条 TCP 并行），
+    //    HTTPS 源每源 2 槽（浏览器同源只开 1 条 H2 连接，多流共享拥塞窗口）
+    var byOrigin = {};
+    picked.forEach(function (nd) {
+      nd.files.forEach(function (f) {
+        var key = f.replace(/^(https?:\/\/[^\/]+).*/, '$1');
+        (byOrigin[key] = byOrigin[key] || []).push(f);
+      });
+    });
+    S.downSlots = [];
+    Object.keys(byOrigin).forEach(function (key) {
+      var files = byOrigin[key];
+      var slots = key.indexOf('http://') === 0 ? 6 : 2;
+      for (var s = 0; s < slots; s++) S.downSlots.push({ urls: files, start: s % files.length });
     });
   }
 
-  function renderOps(r) {
-    $('#json-out').textContent = JSON.stringify(
-      Object.assign({ tool: 'CyberNWT-SpeedLens', version: '1.0' }, r, { verdict: undefined, chain: undefined }), null, 2);
-    var m = r.metrics;
-    $('#prom-out').textContent =
-      '# HELP cybernwt_download_mbps Download throughput measured by CyberNWT SpeedLens\n' +
-      '# TYPE cybernwt_download_mbps gauge\ncybernwt_download_mbps ' + m.download_mbps + '\n' +
-      '# HELP cybernwt_upload_mbps Upload throughput measured by CyberNWT SpeedLens\n' +
-      '# TYPE cybernwt_upload_mbps gauge\ncybernwt_upload_mbps ' + m.upload_mbps + '\n' +
-      '# HELP cybernwt_latency_ms Median RTT in milliseconds\n' +
-      '# TYPE cybernwt_latency_ms gauge\ncybernwt_latency_ms ' + m.latency_ms.median + '\n' +
-      '# HELP cybernwt_jitter_ms RTT jitter in milliseconds\n' +
-      '# TYPE cybernwt_jitter_ms gauge\ncybernwt_jitter_ms ' + m.jitter_ms + '\n' +
-      '# HELP cybernwt_score Overall quality score (0-100)\n' +
-      '# TYPE cybernwt_score gauge\ncybernwt_score ' + r.score + '\n';
-    updateAlert(r);
+  async function probeUpShard(sh) {
+    var blob = makeUpPayload(65536);
+    try { await fetchTimeout(sh.url + '?r=' + rand(), 7000, { method: 'POST', mode: 'no-cors', body: blob }); return true; }
+    catch (e) { return false; }
   }
 
-  function getThreshold() {
-    var v = parseFloat($('#threshold').value);
-    return (v > 0 && v === v) ? v : 50;
+  /* ================= 仪表盘渲染 ================= */
+  var centerTimer = null;
+  function setPhase(ph, label, sub) {
+    elWrap.classList.toggle('idle', ph === 'idle');
+    elProg.setAttribute('class', 'g-prog' + (ph === 'idle' ? '' : ' ph-' + ph));
+    if (ph === 'idle') {
+      elCenter.innerHTML = '';
+      elCenter.appendChild(elGo);
+      elGo.style.display = 'flex';
+      setRing(0);
+      return;
+    }
+    elGo.style.display = 'none';
+    elCenter.innerHTML =
+      '<div class="ph-label" id="ph-label"></div>' +
+      '<div class="big-val"><span id="ph-val">—</span><small id="ph-unit"></small></div>' +
+      '<div class="big-sub" id="ph-sub"></div>';
+    $('#ph-label').textContent = label || '';
+    $('#ph-sub').textContent = sub || '';
   }
-  function updateAlert(r) {
-    var elS = $('#alert-state');
-    if (!r) { elS.className = 'alert-state'; elS.textContent = '— 等待测试'; return; }
-    if (r.metrics.download_mbps < getThreshold()) {
-      elS.className = 'alert-state alarm';
-      elS.textContent = '⚠ 低于阈值 —— 触发告警';
+  function setRing(p) { elProg.style.strokeDashoffset = Math.max(0, Math.min(1, p)) * C; }
+  function setCenterVal(v, unit, sub) {
+    var e1 = $('#ph-val'), e2 = $('#ph-unit'), e3 = $('#ph-sub');
+    if (e1) e1.textContent = v;
+    if (e2 && unit != null) e2.textContent = unit;
+    if (e3 && sub != null) e3.textContent = sub;
+  }
+  function resetUI() {
+    S.res = { ping: null, jitter: null, down: null, up: null };
+    S.curve = [];
+    ['m-ping', 'm-jit', 'm-down', 'm-up'].forEach(function (id) { $('#' + id).textContent = '—'; });
+    ['m-ping-sub', 'm-jit-sub', 'm-down-sub', 'm-up-sub'].forEach(function (id) { $('#' + id).textContent = ''; });
+    setPhase('idle');
+    elStart.textContent = '开始测速';
+    elStart.disabled = false;
+    elStop.style.display = 'none';
+    $('#grade').textContent = '–';
+    $('#grade').className = 'grade';
+    $('#verdict-txt').textContent = '等待测试';
+    $('#verdict-sub').textContent = '点击「开始测速」或中央 GO 按钮开始。';
+    $('#findings').innerHTML = '';
+    drawCurve();
+  }
+
+  /* ================= 测速引擎 ================= */
+  elGo.addEventListener('click', startTest);
+  elStart.addEventListener('click', startTest);
+  elStop.addEventListener('click', stopTest);
+
+  async function startTest() {
+    if (S.running) return;
+    S.running = true; S.stopped = false;
+    elStart.disabled = true;
+    elStop.style.display = '';
+    S.res = { ping: null, jitter: null, down: null, up: null };
+    S.curve = [];
+    drawCurve();
+    try {
+      if (S.mode === 'wan') {
+        setPhase('ping', '节点探测 · 选择就近节点');
+        setCenterVal('…', '', '正在探测大陆节点延迟');
+        await probeNodes();
+        $('#m-ping-sub').textContent = (S.node ? S.node.name + ' CDN' : '') + ' · 10 样本';
+        $('#m-down-sub').textContent = S.downNodes.map(function (c) { return c.name; }).join('+') + ' 源感知分流 · ' + S.downSlots.length + ' 连接';
+        $('#m-up-sub').textContent = '大陆 Ookla 节点 · ' + Math.min(24, S.upShards.length * 6) + ' 连接';
+      } else {
+        var lt = lanTarget();
+        if (!lt) throw new Error('对端地址格式无效：请填写 IP 或主机名（可带 :端口）');
+        S.peer = lt;
+        S.node = { name: lt.label };
+        $('#m-down-sub').textContent = '直连 ' + lt.label;
+        $('#m-up-sub').textContent = '直连 ' + lt.label;
+      }
+      setPhase('ping', '延迟探测');
+      await phasePing();
+      if (S.stopped) throw new Error('stopped');
+      setPhase('down', '下载测速', S.mode === 'wan' ? '大陆多源分流 · ' + S.downSlots.length + ' 连接并发' : S.peer.label + ' · 4 连接并发');
+      S.res.down = await phaseTransfer('down');
+      if (S.stopped) throw new Error('stopped');
+      setPhase('up', '上传测速', S.mode === 'wan'
+        ? ('大陆 Ookla 节点 · ' + Math.min(24, S.upShards.length * 6) + ' 连接并发')
+        : (S.peer.label + ' · 4 连接并发'));
+      S.res.up = await phaseTransfer('up');
+      setPhase('done', '测试完成');
+      setCenterVal(fmt(S.res.down), ' Mbps', '下行 · 上行 ' + fmt(S.res.up) + ' Mbps');
+      setRing(1);
+      finish();
+    } catch (e) {
+      if (e && e.message === 'stopped') { setPhase('done', '已停止'); finish(true); }
+      else { setPhase('idle'); $('#verdict-txt').textContent = '测试失败'; $('#verdict-sub').textContent = e.message || '网络异常'; }
+    }
+    S.running = false;
+    elStart.disabled = false;
+    elStart.textContent = '再测一次';
+    elStop.style.display = 'none';
+  }
+
+  function stopTest() { S.stopped = true; abortAll(); }
+
+  function abortAll() {
+    if (S.ac) { try { S.ac.abort(); } catch (e) {} }
+    S.xhrs.forEach(function (x) { try { x.abort(); } catch (e) {} });
+  }
+
+  async function phasePing() {
+    var url, method, opts, n;
+    if (S.mode === 'wan') { url = (S.node && S.node.probe ? S.node.probe : DOWN_NODES[0].probe) + '?r='; method = 'GET'; opts = undefined; n = 10; }
+    else { url = S.peer.base + '/peer/ping?r='; method = 'HEAD'; opts = undefined; n = 10; }
+    var arr = [];
+    for (var i = 0; i < n; i++) {
+      var t0 = performance.now();
+      try {
+        await fetchTimeout(url + rand(), 4000, opts);
+        arr.push(performance.now() - t0);
+      } catch (e) { if (S.stopped) break; }
+      setRing((i + 1) / n);
+      setCenterVal(arr.length ? Math.round(Math.min.apply(null, arr)) : '…', ' ms', '样本 ' + (i + 1) + ' / ' + n);
+      if (S.stopped) break;
+      await sleep(50);
+    }
+    if (arr.length) {
+      S.res.ping = median(arr);
+      S.res.pingMin = Math.min.apply(null, arr);
+      var diffs = [];
+      for (var j = 1; j < arr.length; j++) diffs.push(Math.abs(arr[j] - arr[j - 1]));
+      S.res.jitter = diffs.length ? median(diffs) : 0;
+      $('#m-ping').textContent = fmt(S.res.ping, 'ms');
+      $('#m-jit').textContent = fmt(S.res.jitter, 'ms');
+      $('#m-ping-sub').textContent = arr.length + ' 样本 · 最低 ' + S.res.pingMin.toFixed(0) + ' ms';
+      $('#m-jit-sub').textContent = '相邻时延差的均值';
     } else {
-      elS.className = 'alert-state pass';
-      elS.textContent = '✓ 高于阈值 —— 运行正常';
+      throw new Error(S.mode === 'wan' ? '节点延迟探测失败' : '内网对端不可达（对端需运行 speedpeer.py 或填本站地址）');
     }
   }
 
-  /* ================= 历史 ================= */
-  function loadHist() {
-    try { return JSON.parse(localStorage.getItem('cybernwt.speedhist') || '[]'); } catch (e) { return []; }
+  function makePayload(size) {
+    var buf = new Uint8Array(size), blk = new Uint8Array(65536);
+    crypto.getRandomValues(blk);
+    for (var o = 0; o < size; o += 65536) {
+      buf.set(blk.subarray(0, Math.min(65536, size - o)), o);
+    }
+    return new Blob([buf]);
   }
-  function saveHist(r) {
+
+  async function downStream(url, onBytes, signal) {
+    while (!signal.aborted) {
+      try {
+        var resp = await fetch(url + (url.indexOf('?') > -1 ? '&' : '?') + 'r=' + rand(), { cache: 'no-store', signal: signal });
+        if (!resp.ok || !resp.body) break;
+        var rd = resp.body.getReader();
+        for (;;) {
+          var chunk = await rd.read();
+          if (chunk.done) break;
+          onBytes(chunk.value.length);
+        }
+      } catch (e) { break; }
+    }
+  }
+
+  /* 公网下行：源感知分流——每条流绑定一个源的文件组，在该源内轮询下载 */
+  async function downStreamMulti(slot, onBytes, signal) {
+    var i = slot.start || 0;
+    while (!signal.aborted) {
+      var url = slot.urls[i % slot.urls.length]; i++;
+      try {
+        var resp = await fetch(url, { cache: 'no-store', signal: signal });
+        if (!resp.ok || !resp.body) { await sleep(150); continue; }
+        var rd = resp.body.getReader();
+        for (;;) {
+          var chunk = await rd.read();
+          if (chunk.done) break;
+          onBytes(chunk.value.length);
+        }
+      } catch (e) { if (signal.aborted) break; await sleep(200); }
+    }
+  }
+
+  /* 公网上行载荷：Ookla 协议 content1= 表单字段（随机填充） */
+  function makeUpPayload(size) {
+    var pre = 'content1=';
+    var arr = new Uint8Array(pre.length + size);
+    for (var i = 0; i < pre.length; i++) arr[i] = pre.charCodeAt(i);
+    var blk = new Uint8Array(65536);
+    crypto.getRandomValues(blk);
+    for (var o = 0; o < size; o += 65536) {
+      arr.set(blk.subarray(0, Math.min(65536, size - o)), pre.length + o);
+    }
+    return new Blob([arr], { type: 'application/x-www-form-urlencoded' });
+  }
+
+  /* 公网上行：no-cors 盲传备份——「分块 POST 完成计时」，块大小随往返时长自适应（1MB 起步，1~8MB）。 */
+  function postNoCors(url, blob, extSignal, timeoutMs) {
+    var ac = new AbortController();
+    var t = setTimeout(function () { ac.abort(); }, timeoutMs || 30000);
+    var onExt = function () { ac.abort(); };
+    if (extSignal) { if (extSignal.aborted) ac.abort(); else extSignal.addEventListener('abort', onExt); }
+    return fetch(url, { method: 'POST', mode: 'no-cors', cache: 'no-store', body: blob, signal: ac.signal })
+      .finally(function () { clearTimeout(t); if (extSignal) extSignal.removeEventListener('abort', onExt); });
+  }
+
+  async function upStreamWan(url, onBytes, signal) {
+    var sz = 1048576;
+    while (!signal.aborted) {
+      var blob = makeUpPayload(sz);
+      var t0 = performance.now();
+      try {
+        await postNoCors(url, blob, signal, 30000);
+        onBytes(blob.size);
+        var dt = (performance.now() - t0) / 1000;
+        if (dt < 1 && sz < 8388608) sz = Math.min(8388608, sz * 2);
+        else if (dt > 5 && sz > 524288) sz = Math.max(524288, Math.floor(sz / 2));
+      } catch (e) {
+        if (signal.aborted) break;
+        await sleep(400); // 单块失败快速重试，不中断整轮
+      }
+    }
+  }
+
+  /* 公网上行连接：本条流绑定一个 Ookla 分片（不同 host:port 各享 6 连接，IP 分片突破浏览器并发限制） */
+  async function upConnWan(offset, onBytes, signal) {
+    var shards = S.upShards;
+    if (!shards.length) return;
+    var sh = shards[offset % shards.length];
+    await upStreamWan(sh.url, onBytes, signal);
+  }
+
+  /* 内网上行：XHR 直传对端 /peer/up（CORS 已开，实时进度） */
+  async function upStreamLan(url, onBytes, signal) {
+    var blob = makePayload(8 * 1024 * 1024);
+    while (!signal.aborted) {
+      var ok = await new Promise(function (resolve) {
+        var xhr = new XMLHttpRequest();
+        S.xhrs.push(xhr);
+        var last = 0;
+        xhr.upload.onprogress = function (e) {
+          if (e.loaded > last) { onBytes(e.loaded - last); last = e.loaded; }
+        };
+        xhr.onloadend = function () {
+          var i = S.xhrs.indexOf(xhr); if (i > -1) S.xhrs.splice(i, 1);
+          resolve(xhr.status > 0);
+        };
+        try { xhr.open('POST', url + '?r=' + rand()); xhr.send(blob); }
+        catch (e) { resolve(false); }
+      });
+      if (!ok) { await sleep(300); if (S.stopped) break; }
+    }
+  }
+
+  async function phaseTransfer(kind) {
+    var cfg, url = null;
+    if (S.mode === 'wan') {
+      if (kind === 'down') cfg = { streams: S.downSlots.length, warmup: 3000, budget: 11000 };
+      else cfg = { streams: Math.min(24, Math.max(6, S.upShards.length * 6)), warmup: 3000, budget: 12000 };
+    } else {
+      if (kind === 'down') { url = S.peer.base + '/peer/down?bytes=16777216'; cfg = { streams: 4, warmup: 1000, budget: 8000 }; }
+      else { url = S.peer.base + '/peer/up'; cfg = { streams: 4, warmup: 1000, budget: 8000 }; }
+    }
+
+    S.ac = new AbortController();
+    var signal = S.ac.signal;
+    var bytes = 0;
+    var onBytes = function (n) { bytes += n; };
+    var streams = [];
+    for (var i = 0; i < cfg.streams; i++) {
+      if (kind === 'down') {
+        streams.push(S.mode === 'wan'
+          ? downStreamMulti(S.downSlots[i], onBytes, signal)
+          : downStream(url, onBytes, signal));
+      } else {
+        streams.push(S.mode === 'wan'
+          ? upConnWan(i, onBytes, signal)
+          : upStreamLan(url, onBytes, signal));
+      }
+      await sleep(kind === 'down' ? 80 : 60);
+    }
+
+    var t0 = performance.now();
+    var warmSnapshot = null;
+    var warmTimer = setTimeout(function () { warmSnapshot = { t: performance.now(), b: bytes }; }, cfg.warmup);
+    var live = 0;
+    var meter = [];
+    var ticker = setInterval(function () {
+      var now = performance.now();
+      meter.push([now, bytes]);
+      while (meter.length && now - meter[0][0] > 1500) meter.shift();
+      var win = meter.filter(function (s) { return now - s[0] <= 1000; });
+      live = win.length > 1 ? (bytes - win[0][1]) * 8 / (now - win[0][0]) / 1000 : live;
+      var el = (performance.now() - t0);
+      setRing(Math.min(1, el / (cfg.budget + cfg.warmup)));
+      setCenterVal(live >= 1 ? fmt(live) : '0', ' Mbps', kind === 'down' ? '下载 · ' + cfg.streams + ' 连接并发' : '上传 · ' + cfg.streams + ' 连接并发');
+      S.curve.push({ t: now - t0, v: live, ph: kind });
+      drawCurve();
+      var tile = kind === 'down' ? $('#m-down') : $('#m-up');
+      tile.textContent = fmt(live);
+    }, 200);
+
+    await Promise.race([
+      Promise.all(streams.map(function (p) { return p.catch(function () {}); })),
+      sleep(cfg.budget + cfg.warmup + 300)
+    ]);
+    clearInterval(ticker); clearTimeout(warmTimer);
+    abortAll();
+    await sleep(120);
+
+    var tEnd = performance.now();
+    var w = warmSnapshot || { t: tEnd - 500, b: Math.max(0, bytes - live * 0.5) };
+    var dur = (tEnd - w.t) / 1000;
+    var bits = (bytes - w.b) * 8;
+    var mbps = (dur > 0.3 && bits > 0) ? bits / dur / 1e6 : 0;
+    var tile = kind === 'down' ? $('#m-down') : $('#m-up');
+    tile.textContent = fmt(mbps);
+    var sub = kind === 'down' ? $('#m-down-sub') : $('#m-up-sub');
+    sub.textContent = '实测 ' + ((bytes - w.b) / 1048576).toFixed(1) + ' MB ÷ ' + dur.toFixed(1) + ' s = ' + fmt(mbps) + ' Mbps';
+    return mbps;
+  }
+
+  /* ================= 结果解读 ================= */
+  function finish(stopped) {
+    var r = S.res, wan = S.mode === 'wan';
+    var v = $('#verdict-txt'), sub = $('#verdict-sub'), grade = $('#grade'), fd = $('#findings');
+    var fs = [];
+    var tier;
+    if (r.down == null && r.ping == null) { v.textContent = '已停止'; sub.textContent = '未获得有效数据。'; return; }
+
+    if (r.down >= 850) tier = '千兆';
+    else if (r.down >= 450) tier = '五百兆';
+    else if (r.down >= 250) tier = '三百兆';
+    else if (r.down >= 85) tier = '百兆';
+    else if (r.down >= 30) tier = '高速移动网络';
+    else if (r.down >= 10) tier = '一般';
+    else tier = '受限';
+
+    grade.textContent = wan ? (r.down >= 100 ? '优' : r.down >= 30 ? '良' : r.down >= 10 ? '中' : '差')
+                             : (r.down >= 850 ? '满' : r.down >= 85 ? '优' : '良');
+    grade.className = 'grade' + (r.down >= 85 ? '' : r.down >= 10 ? ' mid' : ' bad');
+
+    if (wan) {
+      var cdNames = S.downNodes.length ? S.downNodes.map(function (c) { return c.name; }).join(' + ') : '—';
+      var upNames = S.upShards.length ? S.upShards.map(function (c) { return c.name; }).join(' + ') : '—';
+      v.textContent = (tier === '受限' ? '公网下行受限' : '公网下行 · ' + tier + '级线路');
+      sub.textContent = '下行：' + cdNames + ' ｜ 上行：' + upNames + (S.loc && S.loc.region ? ' ｜ 线路：' + S.loc.region : '');
+      fs.push(['info', '全链路大陆节点：下行经 ' + cdNames + ' 国内多源智能分流实测（华为 http 直连 6 连接 + 各 HTTPS 源 H2 并发），反映访问国内业务的可用带宽。']);
+      fs.push(['info', '上行按定位扫描并接入大陆全部公开 Ookla 官方节点（' + upNames + '）多分片并发实测，口径与 Speedtest 一致，结果可直接对标。']);
+      if (r.ping != null && r.ping >= 60) fs.push(['warn', '延迟 ' + fmt(r.ping, 'ms') + ' ms 偏高：可能是跨省出口或出口拥塞。']);
+      if (r.down != null && r.down < 10) fs.push(['bad', '下行 ' + fmt(r.down) + ' Mbps 明显偏低：建议检查 Wi-Fi 信号、出口带宽或是否存在限速。']);
+      if (r.up != null && r.up < 1) fs.push(['bad', '上行测速失败：国内上行通道暂不可达，可稍后重试。']);
+    } else {
+      var loop = /^(127\.|localhost)/.test(location.hostname) || location.hostname === '';
+      v.textContent = tier === '百兆' ? '内网链路 · 百兆瓶颈' : '内网链路 · ' + tier + '级';
+      sub.textContent = '对端：' + (S.peer ? S.peer.label : '本站服务器 ' + location.host) + ' · 4 连接并发实测';
+      if (tier === '百兆') fs.push(['warn', '实测约百兆：链路中存在百兆瓶颈（网线非千兆、网卡协商或交换机端口为 100M）。']);
+      if (r.down != null && r.down >= 85 && r.down < 850) fs.push(['info', '未跑满千兆属正常现象：受网卡、网线、交换机与测试终端性能影响。']);
+      if (r.down != null && r.down < 85) fs.push(['bad', '内网下行 ' + fmt(r.down) + ' Mbps：低于百兆，建议更换网线 / 检查网卡协商速率。']);
+      if (r.ping != null && r.ping >= 3) fs.push(['warn', '内网延迟 ' + fmt(r.ping, 'ms') + ' ms 偏高：建议检查 Wi-Fi 干扰、网线质量或交换机转发。']);
+      else if (r.ping != null) fs.push(['', '内网延迟 ' + fmt(r.ping, 'ms') + ' ms，链路健康。']);
+      if (loop) fs.push(['warn', '当前从服务器本机访问（回环测试）：如需测真实内网速度，请在同一局域网的另一台电脑浏览器中打开本页面。']);
+    }
+    if (r.jitter != null && r.jitter >= 20) fs.push(['warn', '抖动 ' + fmt(r.jitter, 'ms') + ' ms 较大：网络波动明显，视频会议等实时业务可能卡顿。']);
+    if (stopped) fs.push(['info', '测试被提前停止，结果为当前已测得的部分。']);
+
+    fd.innerHTML = fs.map(function (f) {
+      return '<div class="fd ' + f[0] + '">' + f[1] + '</div>';
+    }).join('');
+    saveHist();
+  }
+
+  /* ================= 历史记录 ================= */
+  function loadHist() { try { return JSON.parse(localStorage.getItem('cyber-speed-hist-v2') || '[]'); } catch (e) { return []; } }
+  function saveHist() {
+    if (S.res.down == null && S.res.ping == null) return;
     var h = loadHist();
-    h.unshift({ time: new Date().toLocaleString('zh-CN', { hour12: false }), down: r.metrics.download_mbps, up: r.metrics.upload_mbps, ping: r.metrics.latency_ms.median, grade: r.grade });
-    localStorage.setItem('cybernwt.speedhist', JSON.stringify(h.slice(0, 8)));
+    h.unshift({
+      time: new Date().toLocaleString('zh-CN', { hour12: false }),
+      mode: S.mode, node: S.node ? S.node.name : '—',
+      ping: S.res.ping, jitter: S.res.jitter, down: S.res.down, up: S.res.up
+    });
+    try { localStorage.setItem('cyber-speed-hist-v2', JSON.stringify(h.slice(0, 10))); } catch (e) {}
     renderHist();
   }
   function renderHist() {
-    var h = loadHist(), body = $('#hist-body');
-    if (!h.length) { body.innerHTML = '<div class="empty">暂无记录 —— 完成首次测试后自动保存最近 8 次。</div>'; return; }
-    var gColor = { S: '#8ee05a', A: '#7ECEF4', B: '#ffc85a', C: '#ff8f66' };
-    body.innerHTML = '<table><tr><th>时间</th><th>下载 (Mbps)</th><th>上传 (Mbps)</th><th>延迟 (ms)</th><th>评分</th></tr>' +
+    var h = loadHist();
+    var body = $('#hist-body');
+    if (!h.length) { body.innerHTML = '<div class="empty">暂无记录，完成一次测试后自动保存（保存在本机浏览器）。</div>'; return; }
+    body.innerHTML = '<table><tr><th>时间</th><th>模式</th><th>节点</th><th>延迟</th><th>抖动</th><th>下行</th><th>上行</th></tr>' +
       h.map(function (x) {
-        return '<tr><td>' + x.time + '</td><td>' + x.down + '</td><td>' + x.up + '</td><td>' + x.ping + '</td>' +
-          '<td class="g" style="color:' + (gColor[x.grade] || '#fff') + '">' + x.grade + '</td></tr>';
+        return '<tr><td>' + x.time + '</td>' +
+          '<td><span class="mode-tag">' + (x.mode === 'wan' ? '公网' : '内网') + '</span></td>' +
+          '<td>' + (x.node || '—') + '</td>' +
+          '<td>' + fmt(x.ping, 'ms') + '</td><td>' + fmt(x.jitter, 'ms') + '</td>' +
+          '<td class="g">' + fmt(x.down) + '</td><td>' + fmt(x.up) + '</td></tr>';
       }).join('') + '</table>';
   }
+  $('#hist-clear').addEventListener('click', function () {
+    try { localStorage.removeItem('cyber-speed-hist-v2'); } catch (e) {}
+    renderHist();
+  });
 
-  /* ================= 主流程 ================= */
-  async function runTest() {
-    if (S.testing) return;
-    S.testing = true;
-    var btn = $('#start-btn');
-    btn.disabled = true; btn.textContent = '◌ 测试中…';
-    S.rtt = []; S.down = 0; S.up = 0; result = null;
-    ['#m-down', '#m-up', '#m-ping', '#m-jit'].forEach(function (s) { $(s).textContent = '—'; });
-    $('#live-chip').textContent = '';
-    $('#ai-empty').style.display = 'block';
-    $('#ai-body').style.display = 'none';
-    renderChain(null);
-    $('#bar').style.width = '0';
+  /* ================= 实时曲线 ================= */
+  function drawCurve() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = curve.clientWidth || 900, h = curve.clientHeight || 150;
+    if (curve.width !== w * dpr || curve.height !== h * dpr) { curve.width = w * dpr; curve.height = h * dpr; }
+    cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var cs = getComputedStyle(document.documentElement);
+    var cGrid = cs.getPropertyValue('--grid-line').trim() || 'rgba(128,128,128,0.1)';
+    var cText = cs.getPropertyValue('--text-2').trim() || '#888';
+    var cDown = cs.getPropertyValue('--green').trim();
+    var cUp = cs.getPropertyValue('--orange').trim();
+    var cBlue = cs.getPropertyValue('--blue').trim();
+    cctx.clearRect(0, 0, w, h);
 
-    try {
-      setPhase('handshake');
-      await pingOnce().catch(function () {});
-      setPhase('latency');
-      for (var i = 0; i < 14; i++) {
-        try { S.rtt.push(await pingOnce()); } catch (e) {}
-        $('#m-ping').textContent = median(S.rtt).toFixed(1);
-        await sleep(10);
-      }
-      S.lossPct = 0;
-      S.ping = median(S.rtt); S.jitter = jitterOf(S.rtt);
-      $('#m-jit').textContent = S.jitter.toFixed(1);
-
-      setPhase('download');
-      await downloadPhase();
-      setPhase('upload');
-      await uploadPhase();
-
-      setPhase('diagnose');
-      $('#m-down').textContent = S.down.toFixed(1);
-      $('#m-up').textContent = S.up.toFixed(1);
-      $('#live-chip').textContent = '';
-      await sleep(250);
-
-      result = diagnose();
-      renderChain(result.chain);
-      renderResult(result);
-      renderOps(result);
-      saveHist(result);
-      $('#bar').style.width = '100%';
-      btn.textContent = '◉ 再测一次';
-    } catch (e) {
-      btn.textContent = '◉ 一键体检';
-      alert('测试失败：' + (e && e.message || e) + '（请确认已登录且服务正常）');
+    cctx.strokeStyle = cGrid; cctx.lineWidth = 1;
+    for (var i = 1; i < 4; i++) {
+      var y = Math.round(h * i / 4) + 0.5;
+      cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(w, y); cctx.stroke();
     }
-    setPhaseIdle();
-    S.testing = false;
-    btn.disabled = false;
-  }
-  function setPhaseIdle() {
-    phase = null;
-    document.querySelectorAll('.phase').forEach(function (el) {
-      el.classList.remove('active');
-      el.classList.add('done');
-    });
-  }
-
-  /* 动画循环：实时波形 + 进度条 */
-  function loop() {
-    if (phase === 'download' || phase === 'upload') {
-      var rate = rollingRate(phase === 'upload' ? S.upWin : S.downWin, 400);
-      $(phase === 'upload' ? '#m-up' : '#m-down').textContent = rate.toFixed(1);
-      $('#live-chip').textContent = phase === 'download' ? '● 实时' : '';
+    var pts = S.curve;
+    if (!pts.length) {
+      cctx.fillStyle = cText; cctx.font = '12px "Microsoft YaHei", sans-serif';
+      cctx.textAlign = 'center';
+      cctx.fillText('测速开始后，这里将绘制实时速率曲线', w / 2, h / 2 + 4);
+      return;
     }
-    drawWave();
-    tickProgress();
-    requestAnimationFrame(loop);
+    var maxT = Math.max(12000, pts[pts.length - 1].t);
+    var maxV = Math.max.apply(null, pts.map(function (p) { return p.v || 0; })) * 1.15;
+    if (!isFinite(maxV) || maxV <= 0) maxV = 1;
+    var X = function (t) { return t / maxT * (w - 8) + 4; };
+    var Y = function (v) { return h - 8 - (v / maxV) * (h - 22); };
+
+    cctx.strokeStyle = cBlue; cctx.lineWidth = 1; cctx.setLineDash([4, 4]);
+    cctx.beginPath();
+    pts.forEach(function (p) { if (p.v) { var x = X(p.t), y = Y(p.v); cctx.lineTo(x, y); } });
+    var maxLine = Math.max.apply(null, pts.map(function (p) { return p.v || 0; }));
+    if (maxLine > 0) { cctx.beginPath(); cctx.setLineDash([3, 4]); cctx.strokeStyle = cText; cctx.moveTo(4, Y(maxLine)); cctx.lineTo(w - 4, Y(maxLine)); cctx.stroke(); }
+    cctx.setLineDash([]);
+
+    function strokeRun(ph, color) {
+      var started = false;
+      cctx.strokeStyle = color; cctx.lineWidth = 2; cctx.beginPath();
+      pts.forEach(function (p) {
+        if (p.ph !== ph) { started = false; return; }
+        var x = X(p.t), y = Y(p.v || 0);
+        if (started) cctx.lineTo(x, y); else { cctx.moveTo(x, y); started = true; }
+      });
+      cctx.stroke();
+    }
+    strokeRun('down', cDown);
+    strokeRun('up', cUp);
+
+    cctx.fillStyle = cText; cctx.font = '10.5px ' + (cs.getPropertyValue('--font-mono').trim() || 'monospace');
+    cctx.textAlign = 'left';
+    cctx.fillText(fmt(maxLine, '') + ' Mbps', 8, Math.max(12, Y(maxLine) - 5));
+    cctx.textAlign = 'right';
+    cctx.fillText((maxT / 1000).toFixed(0) + ' s', w - 8, h - 6);
   }
+  window.addEventListener('resize', drawCurve);
 
-  /* ================= 交互绑定 ================= */
-  $('#start-btn').addEventListener('click', runTest);
-  document.querySelectorAll('.tab-btn').forEach(function (b) {
-    b.addEventListener('click', function () {
-      document.querySelectorAll('.tab-btn').forEach(function (x) { x.classList.remove('on'); });
-      document.querySelectorAll('.pane').forEach(function (x) { x.classList.remove('on'); });
-      b.classList.add('on');
-      $('#pane-' + b.dataset.pane).classList.add('on');
-    });
-  });
-  document.querySelectorAll('.copy-btn').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var text = document.getElementById(b.dataset.copy).textContent;
-      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
-        function () { b.textContent = '✓ 已复制'; setTimeout(function () { b.textContent = '复制'; }, 1500); },
-        function () { alert('复制失败，请手动选择文本复制'); });
-    });
-  });
-  $('#threshold').addEventListener('change', function () {
-    try { localStorage.setItem('cybernwt.threshold', this.value); } catch (e) {}
-    updateAlert(result);
-  });
-  try {
-    var t0 = localStorage.getItem('cybernwt.threshold');
-    if (t0) $('#threshold').value = t0;
-  } catch (e) {}
-
-  renderChain(null);
+  /* ================= 初始化 ================= */
   renderHist();
-  requestAnimationFrame(loop);
+  locate();
+  buildNodeSel();
+  drawCurve();
+  probeNodes().then(function () {}).catch(function () {});
 })();
 </script>
 </body>
