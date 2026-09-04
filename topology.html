@@ -24,11 +24,11 @@
     color-scheme: dark;
     --bg: #0A0A0A;
     --grid-line: rgba(255, 255, 255, 0.06);
-    --header-bg: rgba(10, 10, 10, 0.84);
-    --border: rgba(255, 255, 255, 0.14);
-    --panel: #111111;
-    --panel-border: rgba(255, 255, 255, 0.14);
-    --panel-hover: #171717;
+    --header-bg: rgba(16, 18, 22, 0.34);
+    --border: rgba(205, 214, 224, 0.14);
+    --panel: rgba(24, 30, 38, 0.86);
+    --panel-border: rgba(205, 214, 224, 0.16);
+    --panel-hover: rgba(38, 47, 58, 0.92);
     --text: #EDEDED;
     --text-2: #9CA3AF;
     --accent: #FFFFFF;
@@ -42,11 +42,11 @@
     --blue: #7cbdf5; --green: #7ed37e; --warn: #f6c453; --orange: #ffa94d; --red: #ff8080;  }
   [data-theme="light"] {
     color-scheme: light;
-    --bg: #FAFAFA;
+    --bg: #dbe1e7;
     --grid-line: rgba(0, 0, 0, 0.07);
-    --header-bg: rgba(250, 250, 250, 0.86);
+    --header-bg: rgba(216, 224, 231, 0.40);   /* 白天半透明银顶栏 */
     --border: rgba(0, 0, 0, 0.14);
-    --panel: #FFFFFF;
+    --panel: rgba(247, 250, 253, 0.45);   /* 白天磨砂银玻璃，透出背景液态银 */
     --panel-border: rgba(0, 0, 0, 0.14);
     --panel-hover: #F1F1F3;
     --text: #111111;
@@ -69,12 +69,16 @@
     transition: background-color 0.3s, color 0.3s;
   }
   body::before {
-    content: ""; position: fixed; inset: 0; pointer-events: none;
-    background-image:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 46px 46px;
+    content: none;   /* 背景网格已去除：让液态金属/星尘背景完整呈现 */
   }
+
+  /* ---------- 登录页移植：液态金属流体 + 星尘背景层 ---------- */
+  .fx {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;   /* 置于全部页面内容之下 */
+    transition: opacity 0.45s ease;
+  }
+  [data-theme="light"] .fx { opacity: 0.8; }   /* 浅色主题自动淡出，保留原浅色观感 */
 
   /* ---------- 顶栏（与 home.html 一致） ---------- */
   header {
@@ -152,6 +156,7 @@
   .card {
     padding: 22px 24px; border-radius: 14px; margin-top: 18px;
     background: color-mix(in srgb, var(--panel) 92%, transparent);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     border: 1px solid color-mix(in srgb, var(--blue) 16%, transparent);
   }
   .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
@@ -160,13 +165,14 @@
   .head p { margin-top: 10px; color: var(--text-2); font-size: 14px; line-height: 1.8; }
   .head-right { flex: none; text-align: right; }
   .conn-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px;
-    padding: 7px 15px; border-radius: 999px; margin-bottom: 12px;
+    padding: 7px 15px; border-radius: 999px; margin-left: 14px; vertical-align: middle;
     border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent); color: var(--text-2); }
   .conn-badge.wifi { color: var(--green); border-color: color-mix(in srgb, var(--green) 50%, transparent); }
   .conn-badge.eth { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 50%, transparent); }
   .scan-btn {
     display: inline-flex; align-items: center; gap: 10px;
     padding: 13px 30px; border-radius: 999px; border: none; cursor: pointer;
+    margin-bottom: 26px;   /* 纵向抬高：不贴着头区底部，与标题更平齐 */
     background: linear-gradient(135deg, #1a56c4, #0f8a5f);
     color: #fff; font-size: 15.5px; font-weight: 700; letter-spacing: 2px; font-family: inherit;
     box-shadow: 0 10px 30px rgba(26, 86, 196, 0.45); transition: all 0.2s;
@@ -183,20 +189,59 @@
   .progress i { display: block; height: 100%; width: 0; border-radius: 999px;
     background: linear-gradient(90deg, var(--blue), #6FBA2C); transition: width 0.2s linear; }
 
+  /* ---------- 扫描范围与深度（多网段 / SNMP） ---------- */
+  .scope-warn { font-size: 12.5px; line-height: 1.75; color: var(--warn);
+    border: 1px solid color-mix(in srgb, var(--warn) 38%, transparent);
+    background: color-mix(in srgb, var(--warn) 9%, transparent);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
+  .scope-warn b { color: var(--text); }
+  .scan-opts { display: flex; flex-direction: column; gap: 12px; }
+  .opt-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .opt-group > label { flex: none; width: 250px; font-size: 12.5px; color: var(--text-2); }
+  .opt-input { flex: 1 1 220px; min-width: 180px; height: 34px; padding: 0 12px;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); font: 12.5px/1 var(--font-mono, monospace); outline: none; }
+  .opt-input:focus { border-color: color-mix(in srgb, var(--blue) 60%, transparent); }
+  .opt-input.short { flex: 0 1 200px; }
+  select.opt-input { padding: 0 8px; }
+  .opt-btn { flex: none; height: 34px; padding: 0 14px; border-radius: 8px; cursor: pointer;
+    font: 12.5px/1 var(--font-mono, monospace); color: var(--text); background: var(--accent-bg);
+    border: 1px solid var(--accent-border); transition: all 0.2s; }
+  .opt-btn:hover { background: var(--accent); color: var(--accent-contrast); }
+  .opt-note { font-size: 12px; color: var(--text-2); line-height: 1.7; }
+  .opt-note b { color: var(--text); font-weight: 600; }
+
   .card h2 { font-size: 16px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .card h2 .chip { font-size: 10.5px; font-weight: 400; color: var(--blue); border: 1px solid color-mix(in srgb, var(--blue) 40%, transparent);
     padding: 2px 9px; border-radius: 999px; letter-spacing: 1px; }
   .card h2 .chip.green { color: var(--green); border-color: color-mix(in srgb, var(--green) 50%, transparent); }
+  .card h2 .chip.pink { color: #b78cff; border-color: color-mix(in srgb, #b78cff 50%, transparent); }
+
+  /* ---------- 部署规划（上架设备声明） ---------- */
+  .plan-row { display: flex; gap: 10px; align-items: center; margin: 10px 0 10px; }
+  .plan-list { display: flex; gap: 8px; flex-wrap: wrap; }
+  .plan-item { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px;
+    border: 1px dashed color-mix(in srgb, #ffb066 55%, transparent); border-radius: 999px;
+    padding: 6px 8px 6px 13px; color: var(--text); background: color-mix(in srgb, #ffb066 8%, transparent); }
+  .plan-item b { font-weight: 600; }
+  .plan-item small { color: var(--text-2); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plan-item .del { cursor: pointer; width: 18px; height: 18px; border-radius: 50%; border: none;
+    color: var(--text-2); background: transparent; font-size: 13px; line-height: 1; }
+  .plan-item .del:hover { color: var(--red, #ff8080); background: var(--accent-bg); }
   .sub { font-size: 12px; color: var(--text-2); margin-bottom: 10px; line-height: 1.7; }
 
   /* 拓扑图 */
-  .topo-svg-wrap { background: color-mix(in srgb, var(--panel) 55%, transparent); border: 1px solid color-mix(in srgb, var(--blue) 12%, transparent);
+  .topo-svg-wrap { position:relative; background: color-mix(in srgb, var(--panel) 55%, transparent); border: 1px solid color-mix(in srgb, var(--blue) 12%, transparent);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     border-radius: 12px; overflow: hidden; }
-  svg.topo { display: block; width: 100%; height: auto; }
+  svg.topo { display: block; width: 100%; height: auto; max-height: 640px; }
   .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-2); margin: 10px 2px 0; }
   .legend em { font-style: normal; display: inline-flex; align-items: center; gap: 6px; }
   .legend em i { width: 18px; height: 0; border-top: 2.5px solid var(--c); border-radius: 2px; }
   .legend em.dash i { border-top-style: dashed; }
+  .manual-sec { margin-top: 14px; font-size: 12.5px; color: var(--text-2); line-height: 1.8; }
+  .manual-sec > b { color: var(--text); margin-right: 6px; }
+  .manual-sec .plan-row { margin-top: 8px; }
   .node-detail { margin-top: 12px; padding: 13px 16px; border-radius: 10px; font-size: 13px; line-height: 1.9;
     background: color-mix(in srgb, var(--blue) 6%, transparent); border: 1px solid color-mix(in srgb, var(--blue) 16%, transparent); color: var(--text); min-height: 66px; }
   .node-detail b { color: var(--text); }
@@ -229,6 +274,10 @@
   .advice-sec { margin-bottom: 14px; }
   .advice-sec h3 { font-size: 13px; color: var(--blue); margin-bottom: 7px; letter-spacing: 1px; }
   .advice-sec ul { margin-left: 18px; }
+  .dev-adv { border: 1px solid color-mix(in srgb, #ffb066 40%, transparent); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 10px; background: color-mix(in srgb, #ffb066 5%, transparent); }
+  .dev-adv h4 { font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .dev-adv ul { margin-left: 18px; font-size: 13px; line-height: 1.9; }
   .advice-sec li { font-size: 13px; line-height: 1.95; color: var(--text); }
   .advice-sec li b { color: var(--text); }
   .notes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
@@ -262,11 +311,13 @@
 </style>
 </head>
 <body>
+<canvas id="fluid" class="fx"></canvas>
+<canvas id="stage" class="fx"></canvas>
 <header>
   <div class="logo"><img class="dot" src="logo.png" alt="CyberNWT Logo">CyberNWT</div>
   <nav>
     <a href="home.html">首页</a>
-    <a href="download/CyberNWT-mini.zip" download="CyberNWT-mini.zip">下载功能</a>
+    <a href="download/CyberNWT.zip" download="CyberNWT.zip">下载功能</a>
     <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
     <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
   </nav>
@@ -283,12 +334,10 @@
 <main>
   <div class="head">
     <div>
-      <h1>内网感知<span class="en">NETSENSE</span></h1>
-      <p>工程师笔记本接入客户内网（网线 / Wi-Fi 均可），自动感知网络设备、网段与无线环境，<br />
-        生成可视化拓扑图 + 深信服设备部署模式建议，告别“听客户描述 + 手动画拓扑”。</p>
+      <h1>内网感知<span class="en">NETSENSE</span><span class="conn-badge" id="conn-badge">◌ 接入方式未知 —— 点击「开始感知」</span></h1>
+      <p>工程师笔记本接入客户内网（网线 / Wi-Fi 均可），真实 ping 扫描网段、识别在线终端与打印机（自动标记），生成实测拓扑图 + 深信服设备部署位置建议，告别“听客户描述 + 手动画拓扑”。</p>
     </div>
     <div class="head-right">
-      <div><span class="conn-badge" id="conn-badge">◌ 接入方式未知 —— 点击「开始感知」</span></div>
       <button class="scan-btn" id="scan-btn">◉ 开始感知</button>
     </div>
   </div>
@@ -305,28 +354,85 @@
   </div>
 
   <div class="card">
-    <h2>网络拓扑图 <span class="chip">TOPOLOGY</span><span class="chip green" id="real-chip" style="display:none">含实测数据</span></h2>
-    <div class="sub">点击任意节点查看详情；连线标签为链路类型（Trunk / Access / CAPWAP）。</div>
-    <div class="empty-tip" id="topo-empty">尚未感知 —— 接入客户内网后点击右上角「开始感知」。<br />支持 Wi-Fi 接入感知，无需额外接网线。</div>
-    <div class="topo-svg-wrap" id="topo-wrap" style="display:none"></div>
-    <div class="legend" id="legend" style="display:none">
-      <em style="--c:#ffb066"><i></i>出口链路</em>
-      <em style="--c:var(--blue)"><i></i>Trunk 干道</em>
-      <em style="--c:#6a7f98"><i></i>Access 接入</em>
-      <em style="--c:#8ee05a" class="dash"><i></i>无线 / Wi-Fi</em>
-      <em style="--c:#7ee2a8"><i style="border-top:none;width:10px;height:10px;border-radius:3px;background:#7ee2a8;opacity:.8"></i>绿色描边 = 实测节点</em>
+    <h2>部署规划 <span class="chip pink">DEPLOY PLAN</span></h2>
+    <div class="opt-note">本次交付要上架 / 部署哪些深信服设备？选型后在「期望的部署模式与功能」里填写该台的要求，点「＋添加一台」逐台加入（可加多台）；感知时会按设备特性在拓扑上建模、找准部署位置并给出针对性建议。不添加则默认按一台 AF 规划。</div>
+    <div class="plan-row">
+      <select id="plan-type" class="opt-input short"></select>
+      <button type="button" class="opt-btn" id="btn-plan-add">＋ 添加一台</button>
     </div>
+    <div class="plan-list" id="plan-list"></div>
+    <div class="opt-group" style="margin-top:12px">
+      <label>期望的部署模式与功能（可选，自由填写）</label>
+    </div>
+    <textarea id="deploy-note" style="width:100%;height:72px;padding:8px 12px;line-height:1.6;resize:vertical;box-sizing:border-box;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font:12.5px/1.6 var(--font-mono,monospace);outline:none"
+      placeholder="例：AF 出口；AC 串联（网桥串接在路由器下方，审计全部上网流量并做员工认证）" spellcheck="false"></textarea>
+  </div>
+
+  <div class="card">
+    <div class="scope-warn">⚠ 当前<b>仅探测本机接入 VLAN / 网段</b>：客户内网普遍多 VLAN，其他 VLAN 的设备 ping / ARP 全部探测不到，拓扑会缺一块。可在下方手动补充其他网段，或多网卡时自动批量扫描。</div>
+    <div class="scan-opts">
+      <div class="opt-group">
+        <label>其他网段（可多个，逗号或换行分隔）</label>
+        <input id="extra-subnets" class="opt-input" placeholder="例：192.168.20.0/24, 172.16.8（默认按 /24）" spellcheck="false" />
+        <button type="button" class="opt-btn" id="btn-autonic" title="读取本机全部网卡的网段并填入">自动读取多网卡网段</button>
+      </div>
+      <div class="opt-group">
+        <label>SNMP 读交换机（可选 · 拿真实物理链路）</label>
+        <div class="opt-row">
+          <input id="snmp-ip" class="opt-input short" placeholder="交换机 IP（默认网关）" spellcheck="false" />
+          <input id="snmp-community" class="opt-input short" placeholder="团体字 community" spellcheck="false" />
+          <select id="snmp-version" class="opt-input short">
+            <option value="v2c" selected>v2c</option>
+            <option value="v1">v1</option>
+            <option value="v3">v3（暂不支持）</option>
+          </select>
+        </div>
+      </div>
+      <div class="opt-note"> 填写交换机 IP 和 SNMP 团体字（交换机上开启了 SNMP 时），可读出真实物理链路；不填则连线按逻辑推演绘制。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>网络拓扑图 <span class="chip">TOPOLOGY</span><span class="chip green" id="real-chip" style="display:none">含实测数据</span></h2>
+    <div class="legend" id="legend" style="display:none">
+      <em style="--c:#7ee2a8"><i style="border-top:none;width:10px;height:10px;border-radius:3px;background:#7ee2a8;opacity:.8"></i>绿色描边 = 实测节点</em>
+      <em style="--c:#b78cff"><i style="border-top:none;width:10px;height:10px;border-radius:3px;background:#b78cff;opacity:.85"></i>紫色描边 = 实测打印机</em>
+      <em style="--c:#ffb066" class="dash"><i></i>橙色虚线 = 深信服规划部署</em>
+      <em style="--c:#5aa7e8" class="dash"><i></i>青色描边 = 手动录入设备</em>
+    </div>
+    <div class="manual-sec">
+      <b>手动添加设备</b>（画在图上；可直接拖拽节点调位置、双击改名称；点击连线可改接续或删除）
+      <div class="plan-row">
+        <input id="mn-name" class="opt-input short" placeholder="名称，如 核心交换机-SW1" spellcheck="false" />
+        <select id="mn-type" class="opt-input short">
+          <option value="switch">交换机</option>
+          <option value="ap">无线 AP</option>
+          <option value="server">服务器</option>
+          <option value="fw">防火墙</option>
+          <option value="router">路由器</option>
+          <option value="dev">其他设备</option>
+        </select>
+        <input id="mn-ip" class="opt-input short" placeholder="IP（可空）" spellcheck="false" />
+        <select id="mn-parent" class="opt-input short"></select>
+        <button type="button" class="opt-btn" id="btn-manual-add">＋ 添加到拓扑</button>
+        <button type="button" class="opt-btn" id="btn-reset-layout" title="恢复自动布局">重置布局</button>
+        <button type="button" class="opt-btn" id="btn-link-mode" title="依次点击两个节点建立连线">＋ 连接链路</button>
+      </div>
+    </div>
+    <div class="empty-tip" id="topo-empty">尚未感知 —— 接入客户内网后点击右上角「开始感知」。<br />支持 Wi-Fi 接入感知，无需额外接网线；感知基于 ICMP ping + ARP + 端口指纹，禁 ping 设备可能未列出。</div>
+    <div class="topo-svg-wrap" id="topo-wrap" style="display:none"></div>
+    <div id="link-panel" style="display:none;position:fixed;z-index:99;left:50%;top:120px;transform:translateX(-50%);background:#0b1626;border:1px solid #5aa7e8;border-radius:10px;padding:12px 14px;box-shadow:0 12px 30px rgba(0,0,0,.6);min-width:280px;max-width:320px;max-height:60vh;overflow:auto"></div>
     <div class="node-detail" id="node-detail" style="display:none"></div>
   </div>
 
   <div class="grid2">
     <div class="card">
       <h2>网段与 VLAN <span class="chip">SUBNETS</span></h2>
-      <div id="subnet-body"><div class="empty-tip">感知后展示发现的网段、VLAN 划分与 DHCP 情况</div></div>
+      <div id="subnet-body"><div class="empty-tip">感知后展示实测网段与 DHCP 情况</div></div>
     </div>
     <div class="card">
       <h2>设备清单 <span class="chip">INVENTORY</span></h2>
-      <div id="host-body"><div class="empty-tip">感知后展示网络设备与在线终端指纹</div></div>
+      <div id="host-body"><div class="empty-tip">感知后展示实测在线设备与终端指纹（打印机自动标记）</div></div>
     </div>
   </div>
 
@@ -346,6 +452,7 @@
           <div class="advice-sec"><h3>接口 / VLAN 规划要点</h3><ul id="adv-planning"></ul></div>
         </div>
       </div>
+      <div class="advice-sec" id="adv-devices" style="display:none;margin-top:16px"><h3>逐台设备部署建议</h3></div>
       <div class="notes">
         <div class="note" id="adv-wifi-note"></div>
         <div class="note" id="adv-access-note"></div>
@@ -359,15 +466,10 @@
 
   <div class="card">
     <h2>导出 <span class="chip">EXPORT</span></h2>
-    <div class="sub">拓扑可导出为 Mermaid 源码（粘进 Markdown / draw.io 即可二次编辑）、标准 JSON 或 PNG 图片，直接放进交付文档。</div>
+    <div class="sub">拓扑可导出为标准 JSON 报告或 PNG 图片，直接放进交付文档。</div>
     <div class="exp-row">
-      <button class="exp-btn" id="exp-mermaid" disabled>Mermaid 源码</button>
       <button class="exp-btn" id="exp-json" disabled>JSON 报告</button>
       <button class="exp-btn" id="exp-png" disabled>PNG 图片</button>
-    </div>
-    <div class="exp-pane" id="pane-mermaid">
-      <pre id="mermaid-out"></pre>
-      <button class="copy-btn" data-copy="mermaid-out">复制</button>
     </div>
     <div class="exp-pane" id="pane-json">
       <pre id="json-out"></pre>
@@ -378,6 +480,7 @@
 
 <footer>CyberNWT · 演示环境</footer>
 <script src="whiteboard.js" defer></script>
+<script src="bg-live.js"></script>
 <script>
 (function () {
   'use strict';
@@ -441,6 +544,41 @@
     $('#bar').style.width = pct + '%';
   }
 
+  /* ================= 部署规划：上架设备声明 ================= */
+  var DEV_LABELS = {};                 // key -> 设备名
+  var planItems = [];                  // [{key, note}]
+  function renderPlanList() {
+    $('#plan-list').innerHTML = planItems.map(function (p, i) {
+      return '<span class="plan-item"><b>' + esc(DEV_LABELS[p.key] || p.key) + '</b>' +
+        (p.note ? '<small>' + esc(p.note) + '</small>' : '') +
+        '<button type="button" class="del" data-i="' + i + '" title="移除">✕</button></span>';
+    }).join('') || '<span class="opt-note">未逐台添加——感知时将按上方下拉中选中的设备建模（当前下拉选中的设备会自动生效）。</span>';
+    document.querySelectorAll('#plan-list .del').forEach(function (b) {
+      b.addEventListener('click', function () {
+        planItems.splice(+b.dataset.i, 1); renderPlanList();
+      });
+    });
+  }
+  (function initPlanPanel() {
+    var sel = document.getElementById('plan-type');
+    fetch('/api/sangfor/devices', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) return;
+      sel.innerHTML = d.devices.map(function (v) {
+        return '<option value="' + esc(v.key) + '">' + esc(v.name) + ' — ' + esc(v.full) + '</option>';
+      }).join('');
+      d.devices.forEach(function (v) { DEV_LABELS[v.key] = v.name; });
+      renderPlanList();
+    }).catch(function () { sel.innerHTML = '<option value="AF">深信服 AF</option>'; DEV_LABELS.AF='深信服 AF'; renderPlanList(); });
+    document.getElementById('btn-plan-add').addEventListener('click', function () {
+      var key = sel.value; if (!key) return;
+      // 该台的备注直接取「期望的部署模式与功能」输入框，添加后清空，全程无弹窗
+      var note = ($('#deploy-note').value || '').trim();
+      planItems.push({ key: key, note: note });
+      $('#deploy-note').value = '';
+      renderPlanList();
+    });
+  })();
+
   async function scan() {
     var btn = $('#scan-btn');
     btn.disabled = true; btn.textContent = '◌ 感知中…';
@@ -449,7 +587,28 @@
     });
     var anim = setInterval(tickProgress, 100);
     try {
-      var r = await fetch('/api/topology/scan', { cache: 'no-store' });
+      var extra = ($('#extra-subnets').value || '').split(/[,\n;，；\s]+/)
+        .map(function (x) { return x.trim(); }).filter(Boolean);
+      // 未点「添加一台」但下拉已选中设备时，把当前选择自动作为要部署的设备
+      var planned = planItems;
+      var selType = ($('#plan-type').value || '').trim();
+      if (!planned.length && selType) {
+        planned = [{ key: selType, note: ($('#deploy-note').value || '').trim() }];
+      }
+      var payload = { extra_subnets: extra,
+                      planned_devices: planned,
+                      deploy_note: ($('#deploy-note').value || '').trim() };
+      var community = ($('#snmp-community').value || '').trim();
+      if (community) {
+        payload.snmp = { community: community,
+                         version: $('#snmp-version').value || 'v2c',
+                         ip: ($('#snmp-ip').value || '').trim() };
+      }
+      var r = await fetch('/api/topology/scan', {
+        method: 'POST', cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
       var data = await r.json();
       if (!data.ok) throw new Error(data.message || '感知失败');
       await new Promise(function (res) { setTimeout(res, 3600); });
@@ -468,17 +627,45 @@
     btn.disabled = false;
   }
 
+  // 自动读取本机多网卡网段填入输入框
+  $('#btn-autonic').addEventListener('click', async function () {
+    var btn = this;
+    btn.disabled = true; btn.textContent = '读取中…';
+    try {
+      var r = await fetch('/api/topology/nics', { cache: 'no-store' });
+      var data = await r.json();
+      if (!data.ok || !(data.subnets || []).length) throw new Error('未能读取到网卡网段');
+      var cur = ($('#extra-subnets').value || '').split(/[,\n;，；\s]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+      data.subnets.forEach(function (s) { if (cur.indexOf(s) < 0) cur.push(s); });
+      $('#extra-subnets').value = cur.join(', ');
+      if ((data.virtual_subnets || []).length) {
+        alert('已填入物理网卡网段。\n已跳过本机虚拟网卡网段（' + data.virtual_subnets.join('、') + '）——它们是 VirtualBox/VMware 等宿主私有网段，不属于客户内网。');
+      }
+    } catch (e) {
+      alert('读取多网卡网段失败：' + (e.message || e));
+    }
+    btn.disabled = false; btn.textContent = '自动读取多网卡网段';
+  });
+
   /* ================= 拓扑渲染 ================= */
-  var TIER_Y = { 0: 58, 1: 168, 2: 278, 3: 390, 4: 500 };
+  /* 经典三层模型（内部指导布局，不在图上标注）：
+     L0 互联网 → L1 出口层(网关/串接设备) → L2 核心层 → L3 汇聚层 → L4 接入层(AP/接入交换) → L5 终端层 */
+  var LAYER_Y = { 0: 36, 1: 128, 2: 220, 3: 312, 4: 404, 5: 496, 6: 588 };
   var LINK_STYLE = {
-    uplink: { color: '#ffb066', dash: '7 5', w: 2.5 },
+    uplink: { color: '#ffb066', dash: '', w: 2.5 },
+    plan: { color: '#ffb066', dash: '7 5', w: 2.5 },
     trunk: { color: 'var(--blue)', dash: '', w: 2.5 },
-    access: { color: '#6a7f98', dash: '', w: 1.8 },
-    wireless: { color: '#8ee05a', dash: '5 6', w: 2 }
+    access: { color: '#6a7f98', dash: '6 5', w: 1.8 },
+    snmp: { color: '#34d399', dash: '', w: 2.6 },
+    'snmp-real': { color: '#34d399', dash: '', w: 2.6 },
+    bypass: { color: '#8ab4f8', dash: '4 5', w: 1.8 },
+    wireless: { color: '#8ee05a', dash: '5 6', w: 2 },
+    suggest: { color: '#ff9d4d', dash: '3 5', w: 2.2 }
   };
   var ROLE_NAME = { gateway: '出口路由/网关', core: '核心交换', access: '接入交换', ac: '无线控制器',
     ap: '无线 AP', server: '服务器', 'server-sw': '服务器区交换', clients: '终端群', printer: '打印设备',
-    self: '工程师本机', isp: '运营商出口' };
+    self: '工程师本机', isp: '运营商出口', unknown: '待识别设备', 'sangfor-suggest': '深信供建议部署',
+    sangfor: '深信服安全设备（规划）', switch: '交换机', manual: '手动录入设备' };
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -486,51 +673,114 @@
 
   function renderTopology(data) {
     var nodes = data.topology.nodes, links = data.topology.links;
-    var byTier0 = {};
-    nodes.forEach(function (n) { (byTier0[n.tier] = byTier0[n.tier] || []).push(n); });
-    var maxTier = Math.max.apply(null, Object.keys(byTier0).map(function (t) { return byTier0[t].length; }));
-    var W = Math.max(1120, maxTier * 190 + 40), H = 560;
-    var byTier = {};
-    nodes.forEach(function (n) { (byTier[n.tier] = byTier[n.tier] || []).push(n); });
+    var ov = (window.topoOverrides = window.topoOverrides || {});
+    /* -- 识别旁挂节点：以后端建模位置为准（pos='bypass'），不按设备类型猜测。
+          后端语义：up=互联网与路由器之间；down=路由器下方串接；bypass=仅工程师明示旁挂才侧位 -- */
+    var bypassOf = {};      // bypass节点id -> 父节点id
+    nodes.forEach(function (n) {
+      if (n.pos === 'bypass') {
+        var inc = links.find(function (l) { return l.to === n.id; });
+        if (inc) bypassOf[n.id] = inc.from;
+      }
+    });
+    /* -- 分层定位 -- */
+    var byLayer = {};
+    nodes.forEach(function (n) {
+      var L = (n.layer !== undefined) ? n.layer : (n.tier !== undefined ? n.tier : 9);
+      n.layer = L;
+      (byLayer[L] = byLayer[L] || []).push(n);
+    });
+    var maxPer = Math.max.apply(null, Object.keys(byLayer).map(function (t) { return byLayer[t].length; }));
+    var layerKeys = Object.keys(byLayer).map(Number).sort(function (a, b) { return a - b; });
+    var layerY = {};
+    var nextY = LAYER_Y[0];
+    layerKeys.forEach(function (t) {
+      if (LAYER_Y[t] !== undefined) { layerY[t] = LAYER_Y[t]; nextY = LAYER_Y[t] + 92; }
+      else { layerY[t] = nextY; nextY += 92; }
+    });
+    var W = Math.max(1120, maxPer * 200 + 260), H = nextY + 44;
     var pos = {};
-    Object.keys(byTier).forEach(function (t) {
-      var arr = byTier[t], y = TIER_Y[t];
+    layerKeys.forEach(function (t) {
+      // 主干成员：排除旁挂节点（旁挂画在父节点侧位，不占本层排位）
+      var arr = byLayer[t].filter(function (n) { return !bypassOf[n.id]; });
+      var y = layerY[t];
       arr.forEach(function (n, i) {
-        pos[n.id] = { x: W * (i + 1) / (arr.length + 1), y: y, tier: +t };
+        pos[n.id] = { x: (W - 260) * (i + 1) / (arr.length + 1) + 40, y: y, layer: t };
       });
     });
+    // 旁挂节点：画在父节点的右侧偏上（侧位短链，不占主干竖线）
+    Object.keys(bypassOf).forEach(function (id) {
+      var parent = bypassOf[id];
+      var pp = pos[parent];
+      if (!pp) return;
+      var same = Object.keys(bypassOf).filter(function (k) { return bypassOf[k] === parent; });
+      var idx = same.indexOf(id);
+      pos[id] = { x: Math.min(pp.x + 250, W - 110), y: pp.y - 34 - idx * 6, layer: pp.layer, bypass: true };
+    });
+    // 工程师手动拖拽过的位置优先
+    Object.keys(ov).forEach(function (id) { if (pos[id]) pos[id] = { x: ov[id].x, y: ov[id].y, layer: pos[id].layer }; });
 
-    var NW = 164, NH = 60, s = [];
+    var NW = 150, NH = 52, s = [];
     s.push('<svg class="topo" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">');
     s.push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#081120"/>');
     /* 连线（在下层） */
+    window.__linkMid = {};
     links.forEach(function (lk, i) {
       var a = pos[lk.from], b = pos[lk.to];
       var st = LINK_STYLE[lk.kind] || LINK_STYLE.access;
+      // 下垂量按层间距走（层距越大曲线越饱满），避免相邻层节点间拉出近似水平的硬线
+      var sag = Math.max(46, Math.round((b.y - a.y) * 0.34));
       var d = 'M ' + a.x + ' ' + (a.y + NH / 2) +
-        ' C ' + a.x + ' ' + (a.y + NH / 2 + 46) + ', ' + b.x + ' ' + (b.y - NH / 2 - 46) + ', ' + b.x + ' ' + (b.y - NH / 2);
+        ' C ' + a.x + ' ' + (a.y + NH / 2 + sag) + ', ' + b.x + ' ' + (b.y - NH / 2 - sag) + ', ' + b.x + ' ' + (b.y - NH / 2);
       s.push('<path id="lk' + i + '" d="' + d + '" fill="none" stroke="' + st.color + '" stroke-width="' + st.w + '"' +
         (st.dash ? ' stroke-dasharray="' + st.dash + '"' : '') + ' opacity="0.65"/>');
       s.push('<circle r="3.4" fill="' + st.color + '" opacity="0.95">' +
         '<animateMotion dur="' + (1.3 + (i % 4) * 0.25) + 's" begin="' + (i * 0.3) + 's" repeatCount="indefinite">' +
         '<mpath href="#lk' + i + '"/></animateMotion></circle>');
-      var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + 12;
-      s.push('<rect x="' + (mx - 30) + '" y="' + (my - 10) + '" width="60" height="17" rx="8.5" fill="#0d1b2e" opacity="0.9"/>');
-      s.push('<text x="' + mx + '" y="' + (my + 2.5) + '" text-anchor="middle" font-size="9.5" fill="var(--text-2)" font-family="Microsoft YaHei,sans-serif">' + esc(lk.label) + '</text>');
+      var mx = (a.x + b.x) / 2, my = Math.round((a.y + b.y) / 2 + 12);
+      window.__linkMid[i] = { x: mx, y: my };
+      s.push('<rect x="' + (mx - 30) + '" y="' + (my - 10) + '" width="60" height="17" rx="8.5" fill="#0d1b2e" opacity="0.9" style="pointer-events:none"/>');
+      s.push('<text x="' + mx + '" y="' + (my + 2.5) + '" text-anchor="middle" font-size="9.5" fill="var(--text-2)" font-family="Microsoft YaHei,sans-serif" style="pointer-events:none">' + esc(lk.label) + '</text>');
     });
     /* 节点 */
     nodes.forEach(function (n) {
       var p = pos[n.id], isReal = String(n.conf).indexOf('实测') >= 0;
-      var border = isReal ? '#7ee2a8' : 'rgba(126,206,244,0.4)';
-      var fill = n.role === 'isp' ? 'rgba(20,34,56,0.9)' : 'rgba(13,27,46,0.95)';
+      var isPlan = n.conf === '规划部署';
+      var isPrt = n.role === 'printer';
+      var isManual = n.role === 'manual';
+      var border, fill, dashAttr = '', barColor = '';
+      if (isPlan) {
+        border = '#ffb066'; fill = 'rgba(64,44,12,0.95)'; dashAttr = ' stroke-dasharray="7 4"'; barColor = '#ffb066';
+      } else if (isPrt) {
+        border = '#b78cff'; fill = 'rgba(40,32,62,0.95)'; barColor = '#b78cff';
+      } else if (isManual) {
+        border = '#5aa7e8'; fill = 'rgba(13,32,52,0.95)'; barColor = '#5aa7e8';
+      } else {
+        border = isReal ? '#7ee2a8' : 'rgba(126,206,244,0.4)';
+        fill = n.role === 'isp' ? 'rgba(20,34,56,0.9)' : 'rgba(13,27,46,0.95)';
+        if (isReal) barColor = '#7ee2a8';
+      }
       s.push('<g class="tnode" data-id="' + n.id + '" style="cursor:pointer">' +
         '<rect x="' + (p.x - NW / 2) + '" y="' + (p.y - NH / 2) + '" width="' + NW + '" height="' + NH +
-        '" rx="12" fill="' + fill + '" stroke="' + border + '" stroke-width="1.6"/>' +
-        (isReal ? '<rect x="' + (p.x - NW / 2) + '" y="' + (p.y - NH / 2) + '" width="4" height="' + NH + '" rx="2" fill="#7ee2a8"/>' : '') +
+        '" rx="12" fill="' + fill + '" stroke="' + border + '" stroke-width="' + (isPlan || isPrt ? '2.2' : '1.6') + '"' + dashAttr + '/>' +
+        (barColor ? '<rect x="' + (p.x - NW / 2) + '" y="' + (p.y - NH / 2) + '" width="4" height="' + NH + '" rx="2" fill="' + barColor + '"/>' : '') +
+        (isPlan ? '<rect x="' + (p.x + NW / 2 - 46) + '" y="' + (p.y - NH / 2 - 9) + '" width="40" height="17" rx="8.5" fill="#3a2a0a" stroke="#ffb066" stroke-width="1"/>' +
+          '<text x="' + (p.x + NW / 2 - 26) + '" y="' + (p.y - NH / 2 + 3.5) + '" text-anchor="middle" font-size="9.5" fill="#ffb066" font-family="Microsoft YaHei,sans-serif">规划</text>' : '') +
+        (isPrt ? '<rect x="' + (p.x + NW / 2 - 46) + '" y="' + (p.y - NH / 2 - 9) + '" width="40" height="17" rx="8.5" fill="#281e42" stroke="#b78cff" stroke-width="1"/>' +
+          '<text x="' + (p.x + NW / 2 - 26) + '" y="' + (p.y - NH / 2 + 3.5) + '" text-anchor="middle" font-size="9.5" fill="#b78cff" font-family="Microsoft YaHei,sans-serif">打印</text>' : '') +
         '<text x="' + (p.x - NW / 2 + 16) + '" y="' + (p.y + 6) + '" font-size="19">' + n.icon + '</text>' +
         '<text x="' + (p.x - NW / 2 + 42) + '" y="' + (p.y - 3) + '" font-size="12.5" fill="#e8f2ff" font-family="Microsoft YaHei,sans-serif">' + esc(n.name) + '</text>' +
-        '<text x="' + (p.x - NW / 2 + 42) + '" y="' + (p.y + 14) + '" font-size="10" fill="var(--blue)" font-family="Consolas,monospace">' + esc(n.ip || n.conf) + '</text>' +
+        '<text x="' + (p.x - NW / 2 + 42) + '" y="' + (p.y + 14) + '" font-size="10" fill="' + (isPlan ? '#ffb066' : 'var(--blue)') + '" font-family="Consolas,monospace">' + esc(n.ip || n.conf) + '</text>' +
         '</g>');
+    });
+    /* 链路命中区（画在节点之上，确保点得到） */
+    links.forEach(function (lk, i) {
+      var a = pos[lk.from], b = pos[lk.to];
+      if (!a || !b) return;
+      var sag = Math.max(46, Math.round((b.y - a.y) * 0.34));
+      var d = 'M ' + a.x + ' ' + (a.y + NH / 2) +
+        ' C ' + a.x + ' ' + (a.y + NH / 2 + sag) + ', ' + b.x + ' ' + (b.y - NH / 2 - sag) + ', ' + b.x + ' ' + (b.y - NH / 2);
+      s.push('<path class="lk-hit" data-li="' + i + '" d="' + d + '" fill="none" stroke="#000" stroke-opacity="0" stroke-width="18" style="cursor:pointer;pointer-events:stroke"/>');
     });
     s.push('</svg>');
     $('#topo-wrap').innerHTML = s.join('');
@@ -543,26 +793,232 @@
       g.addEventListener('click', function () {
         var n = nodes.find(function (x) { return x.id === g.dataset.id; });
         var isReal = String(n.conf).indexOf('实测') >= 0;
+        var isPlan = n.conf === '规划部署';
         var extra = [];
+        if (n.mac) extra.push('MAC：<b style="font-family:Consolas,monospace">' + esc(n.mac.toUpperCase()) + '</b>');
         if (n.vendor) extra.push('厂商指纹：<b>' + esc(n.vendor) + '</b>');
         if (n.role === 'self') extra.push('网卡：' + esc(data.real.adapter) + '（' + esc(data.real.desc) + '）');
+        var confChip, confNote = '';
+        if (isPlan) {
+          confChip = '<span class="conf model">规划部署（建模）</span>';
+          confNote = '<br /><span style="color:#ffc85a">唯一建模节点：按透明串接模式规划在出口网关与内网之间，为施工建议而示意；实际部署位置以施工方案为准。</span>';
+        } else if (n.role === 'printer') {
+          confChip = '<span class="conf real">实测 · 打印机</span>';
+          confNote = '<br /><span style="color:#b78cff">打印机已标记：端口指纹实测确认（打印端口 9100/631/515 开放）。</span>';
+        } else {
+          confChip = '<span class="conf ' + (isReal ? 'real' : 'model') + '">' + (isReal ? '实测数据' : '建模数据') + '</span>';
+        }
         $('#node-detail').style.display = 'block';
         $('#node-detail').innerHTML =
-          '<span class="conf ' + (isReal ? 'real' : 'model') + '">' + (isReal ? '实测数据' : '探测依据不足') + '</span>' +
+          confChip +
           '<b>' + n.icon + ' ' + esc(n.name) + '</b>（' + (ROLE_NAME[n.role] || n.role) + '）<br />' +
           (n.ip ? 'IP 地址：<b>' + esc(n.ip) + '</b>' : '') +
-          (extra.length ? '　' + extra.join('　') : '');
+          (extra.length ? '　' + extra.join('　') : '') +
+          '<br />依据：<b>' + esc(n.conf) + '</b>' + confNote;
+      });
+    });
+
+    /* ---- 图上交互：拖拽移动节点 / 双击改名（拖过的位置会记忆，感知重渲染后仍生效） ---- */
+    var svgEl = document.querySelector('#topo-wrap svg');
+    var dragNode = null, dragOff = null, dragMoved = false;
+    function svgPoint(evt) {
+      var pt = svgEl.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      return pt.matrixTransform(svgEl.getScreenCTM().inverse());
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('#topo-wrap .tnode'), function (g) {
+      var id = g.dataset.id;
+      g.addEventListener('mousedown', function (e) {
+        if (e.button !== 0 || linkMode) return;   // 连线模式下不启动拖拽，避免重绘打断点击
+        var pt = svgPoint(e);
+        var p = pos[id];
+        dragNode = id; dragOff = { x: pt.x - p.x, y: pt.y - p.y }; dragMoved = false;
+        e.preventDefault();
+      });
+      g.addEventListener('dblclick', function () {
+        var n = nodes.find(function (x) { return x.id === id; });
+        if (!n) return;
+        var p = pos[id];
+        var box = document.createElement('div');
+        box.style.cssText = 'position:absolute;z-index:50;background:#0d1b2e;border:1px solid var(--blue);border-radius:8px;padding:6px;';
+        var inp = document.createElement('input');
+        inp.value = n.name;
+        inp.style.cssText = 'width:170px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:12.5px/1.4 sans-serif;outline:none';
+        var ok = document.createElement('button');
+        ok.textContent = '确定';
+        ok.style.cssText = 'margin-left:6px;padding:4px 10px;border:none;border-radius:6px;background:var(--blue);color:#04121a;font:12.5px/1 sans-serif;cursor:pointer';
+        box.appendChild(inp); box.appendChild(ok);
+        var wrap = document.getElementById('topo-wrap');
+        wrap.style.position = 'relative';
+        box.style.left = (p.x - 90) + 'px'; box.style.top = (p.y + NH / 2 + 8) + 'px';
+        wrap.appendChild(box);
+        inp.focus(); inp.select();
+        function commit() {
+          if (inp.value.trim()) { n.name = inp.value.trim(); ov[id] = { x: p.x, y: p.y }; renderTopology(data); }
+          box.remove();
+        }
+        ok.addEventListener('click', commit);
+        inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') commit(); if (ev.key === 'Escape') box.remove(); });
+      });
+    });
+    document.addEventListener('mousemove', function (e) {
+      if (!dragNode) return;
+      var pt = svgPoint(e);
+      var p = pos[dragNode];
+      var g = document.querySelector('#topo-wrap .tnode[data-id="' + dragNode + '"]');
+      if (!g) return;
+      if (g.__ox === undefined) { g.__ox = p.x; g.__oy = p.y; }   // 拖拽起点
+      dragMoved = true;
+      var nx = pt.x - dragOff.x, ny = pt.y - dragOff.y;
+      g.setAttribute('transform', 'translate(' + (nx - g.__ox) + ',' + (ny - g.__oy) + ')');
+      p.x = nx; p.y = ny;    // 松手后整体重绘，连线跟随
+    });
+    document.addEventListener('mouseup', function () {
+      if (!dragNode) return;
+      if (dragMoved) {                          // 只有真的拖动过才重绘，纯点击不打断页面
+        ov[dragNode] = { x: pos[dragNode].x, y: pos[dragNode].y };
+        renderTopology(data);                   // 松手后按新位置整体重绘（连线跟随）
+      }
+      dragNode = null; dragMoved = false;
+    });
+
+    bindLinkHits();   // 每次渲染后重绑链路命中（拖拽/重置/手动添加等所有渲染路径统一生效）
+  }
+
+  /* 重置布局：清空手动拖拽记录 */
+  var resetBtn = document.getElementById('btn-reset-layout');
+  if (resetBtn) resetBtn.addEventListener('click', function () {
+    window.topoOverrides = {};
+    if (window.__lastResult) renderTopology(window.__lastResult);
+  });
+
+  /* ---- 链路编辑：点击连线改两端/删除；「＋连接链路」点两个节点建新链 ---- */
+  var linkSel = -1, linkMode = false, linkFrom = null;
+  function nodeOptions(selId) {
+    var res = window.__lastResult || {};
+    return (res.topology ? res.topology.nodes : []).map(function (n) {
+      return '<option value="' + esc(n.id) + '"' + (n.id === selId ? ' selected' : '') + '>' +
+        esc(n.name) + (n.ip ? '（' + esc(n.ip) + '）' : '') + '</option>';
+    }).join('');
+  }
+  function closeLinkPanel() {
+    document.getElementById('link-panel').style.display = 'none';
+    linkSel = -1;
+    document.querySelectorAll('#topo-wrap .lk-hit').forEach(function (p) { p.style.stroke = 'rgba(0,0,0,0)'; });
+  }
+  function bindLinkHits() {
+    document.querySelectorAll('#topo-wrap .lk-hit').forEach(function (p) {
+      p.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (linkMode) return;                       // 连线模式下不打开面板
+        openLinkPanel(+p.dataset.li);
       });
     });
   }
+  function openLinkPanel(li) {
+    var res = window.__lastResult; if (!res || !res.topology) return;
+    var lk = res.topology.links[li]; if (!lk) return;
+    linkSel = li;
+    document.querySelectorAll('#topo-wrap .lk-hit').forEach(function (p) {
+      p.style.stroke = (+p.dataset.li === li) ? 'rgba(52,211,153,0.5)' : 'rgba(0,0,0,0)';
+    });
+    var mid = (window.__linkMid || {})[li] || { x: 300, y: 200 };
+    var panel = document.getElementById('link-panel');
+    panel.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<span style="font-size:13px;font-weight:700;color:#ffffff">编辑链路 <span style="color:#8ab4f8;font-weight:400">第 ' + (li + 1) + ' 条</span></span>' +
+        '<span id="lp-close" style="cursor:pointer;color:#ffffff;font-size:17px;padding:0 4px;line-height:1" title="关闭">✕</span>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:#e8f2ff">' +
+        '<label style="color:#cfe2f5;display:block">从：<select id="lp-from" style="width:100%;margin-top:3px">' + nodeOptions(lk.from) + '</select></label>' +
+        '<label style="color:#cfe2f5;display:block">到：<select id="lp-to" style="width:100%;margin-top:3px">' + nodeOptions(lk.to) + '</select></label>' +
+        '<label style="color:#cfe2f5;display:block">标注：<input id="lp-label" value="' + esc(lk.label || '') + '" style="width:100%;margin-top:3px"></label>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px">' +
+        '<button id="lp-save" style="flex:1;padding:6px 0;border:none;border-radius:7px;background:var(--blue);color:#04121a;font:12.5px/1 sans-serif;cursor:pointer">保存</button>' +
+        '<button id="lp-del" style="flex:1;padding:6px 0;border:none;border-radius:7px;background:rgba(255,128,128,.15);color:#ff8080;font:12.5px/1 sans-serif;cursor:pointer">删除此链路</button>' +
+      '</div>';
+    panel.style.display = 'block';   // 位置固定视口中央偏上（CSS），编辑哪条线由高亮指示
+    document.getElementById('lp-save').addEventListener('click', function () {
+      var f = document.getElementById('lp-from').value, t = document.getElementById('lp-to').value;
+      if (!f || !t || f === t) { alert('两端不能为空且不能相同'); return; }
+      lk.from = f; lk.to = t; lk.label = document.getElementById('lp-label').value;
+      closeLinkPanel(); renderTopology(res);
+    });
+    document.getElementById('lp-del').addEventListener('click', function () {
+      res.topology.links.splice(li, 1);
+      closeLinkPanel(); renderTopology(res);
+    });
+    document.getElementById('lp-close').addEventListener('click', closeLinkPanel);
+  }
+  /* 连线模式：点两个节点建新链 */
+  var linkModeBtn = document.getElementById('btn-link-mode');
+  function setLinkMode(on) {
+    linkMode = on;
+    linkModeBtn.style.background = on ? 'var(--accent)' : '';
+    linkModeBtn.style.color = on ? 'var(--accent-contrast)' : '';
+    linkModeBtn.textContent = on ? '连线中：点两个节点（Esc 取消）' : '＋ 连接链路';
+    if (!on) linkFrom = null;
+  }
+  if (linkModeBtn) linkModeBtn.addEventListener('click', function () { setLinkMode(!linkMode); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && linkMode) setLinkMode(false); });
+  document.addEventListener('click', function (e) {
+    var g = e.target.closest ? e.target.closest('#topo-wrap .tnode') : null;
+    if (!linkMode || !g) return;
+    var id = g.dataset.id;
+    e.stopPropagation();
+    if (!linkFrom) { linkFrom = id; setLinkMode(true); return; }
+    if (linkFrom === id) { setLinkMode(false); return; }
+    var res = window.__lastResult;
+    res.topology.links.push({ from: linkFrom, to: id, label: '下联', kind: 'access' });
+    setLinkMode(false);
+    renderTopology(res);
+  }, true);   // 捕获阶段先于节点详情
+  // 渲染后重新绑定命中区
+  var _rtBind = renderTopology;
+  
+
+  /* ---- 手动添加设备：画在图上（青色描边，层级=接入节点下一层） ---- */
+  var TYPE_ICON = { switch: '🔀', ap: '📡', server: '🖥️', fw: '🛡️', router: '🔗', dev: '🔗' };
+  var TYPE_NAME = { switch: '交换机', ap: '无线 AP', server: '服务器', fw: '防火墙', router: '路由器', dev: '设备' };
+  function refreshParentOptions() {
+    var psel = document.getElementById('mn-parent');
+    if (!psel) return;
+    var res = window.__lastResult;
+    var nodes = res && res.topology ? res.topology.nodes : [];
+    psel.innerHTML = nodes.map(function (n) {
+      return '<option value="' + esc(n.id) + '">' + esc(n.name) + (n.ip ? '（' + esc(n.ip) + '）' : '') + '</option>';
+    }).join('') || '<option value="">（先感知一次）</option>';
+  }
+  setInterval(refreshParentOptions, 1500);
+  document.getElementById('btn-manual-add').addEventListener('click', function () {
+    var res = window.__lastResult;
+    if (!res || !res.topology) { alert('请先点击「开始感知」生成拓扑，再手动添加设备。'); return; }
+    var name = (document.getElementById('mn-name').value || '').trim();
+    if (!name) { alert('请填写设备名称'); return; }
+    var type = document.getElementById('mn-type').value;
+    var ip = (document.getElementById('mn-ip').value || '').trim();
+    var parent = document.getElementById('mn-parent').value;
+    var pnode = res.topology.nodes.find(function (n) { return n.id === parent; });
+    var layer = pnode ? Math.min((pnode.layer !== undefined ? pnode.layer : pnode.tier) + 1, 5) : 5;
+    var id = 'mn' + Date.now();
+    res.topology.nodes.push({ id: id, layer: layer, icon: (TYPE_ICON[type] || '🔗'),
+      name: name, role: 'manual', ip: ip || '', vendor: '', mac: '',
+      conf: '手动录入（工程师添加）', manual_type: type });
+    res.topology.links.push({ from: parent || 'gw', to: id, label: '下联', kind: 'access' });
+    document.getElementById('mn-name').value = '';
+    document.getElementById('mn-ip').value = '';
+    renderTopology(res);
+    refreshParentOptions();
+  });
 
   /* ================= 列表渲染 ================= */
   function renderLists(data) {
     var sb = $('#subnet-body');
-    sb.innerHTML = '<table class="tbl"><tr><th>网段</th><th>VLAN</th><th>用途</th><th>网关</th><th>终端数</th><th>DHCP</th></tr>' +
+    sb.innerHTML = '<table class="tbl"><tr><th>网段</th><th>VLAN</th><th>用途</th><th>网关</th><th>实测在线</th><th>DHCP</th></tr>' +
       data.topology.subnets.map(function (x) {
         return '<tr><td>' + esc(x.cidr) + '</td><td><span class="vlan-chip">' + esc(x.vlan) + '</span></td>' +
-          '<td>' + esc(x.name) + '</td><td>' + esc(x.gateway) + '</td><td>≈' + x.hosts + '</td>' +
+          '<td>' + esc(x.name) + '</td><td>' + esc(x.gateway) + '</td><td>' + x.hosts + '</td>' +
           '<td>' + (x.dhcp ? '开启' : '静态') + '</td></tr>';
       }).join('') + '</table>';
 
@@ -570,16 +1026,21 @@
     var infra = data.topology.nodes.filter(function (n) {
       return n.role !== 'isp' && n.role !== 'clients';
     });
-    hb.innerHTML = '<div class="host-list"><table class="tbl"><tr><th>设备 / 终端</th><th>IP</th><th>指纹</th><th>依据</th></tr>' +
+    var prtTag = ' <span style="color:#b78cff;font-size:10.5px;border:1px solid rgba(183,140,255,0.45);padding:1px 8px;border-radius:999px;">已标记</span>';
+    hb.innerHTML = '<div class="host-list"><table class="tbl"><tr><th>设备 / 终端</th><th>IP</th><th>MAC</th><th>指纹</th><th>依据</th></tr>' +
       infra.map(function (n) {
         var real = String(n.conf).indexOf('实测') >= 0;
-        return '<tr><td>' + n.icon + ' ' + esc(n.name) + '</td><td>' + esc(n.ip || '—') + '</td>' +
+        var rowStyle = n.role === 'printer' ? ' style="background:rgba(183,140,255,0.08)"' : '';
+        return '<tr' + rowStyle + '><td>' + n.icon + ' ' + esc(n.name) + (n.role === 'printer' ? prtTag : '') + '</td><td>' + esc(n.ip || '—') + '</td>' +
+          '<td style="font-family:Consolas,monospace;font-size:12px">' + esc((n.mac && n.mac.toUpperCase()) || '—') + '</td>' +
           '<td>' + esc(n.vendor || ROLE_NAME[n.role] || '—') + '</td>' +
-          '<td style="color:' + (real ? 'var(--green)' : 'var(--warn)') + '">' + esc(n.conf) + '</td></tr>';
+          '<td style="color:' + (n.conf === '规划部署' ? '#ffb066' : (real ? 'var(--green)' : 'var(--warn)')) + '">' + esc(n.conf) + '</td></tr>';
       }).join('') +
       data.topology.hosts.map(function (h) {
-        return '<tr><td>🖥️ ' + esc(h.type) + '</td><td>' + esc(h.ip) + '</td><td>' + esc(h.vendor) + '</td>' +
-          '<td style="color:var(--warn)">' + esc(h.conf) + '</td></tr>';
+        return '<tr><td>🖥️ ' + esc(h.type) + '</td><td>' + esc(h.ip) + '</td>' +
+          '<td style="font-family:Consolas,monospace;font-size:12px">' + esc((h.mac && h.mac.toUpperCase()) || '—') + '</td>' +
+          '<td>' + esc(h.vendor) + '</td>' +
+          '<td style="color:' + (String(h.conf).indexOf('实测') >= 0 ? 'var(--green)' : 'var(--warn)') + '">' + esc(h.conf) + '</td></tr>';
       }).join('') + '</table></div>';
   }
 
@@ -597,6 +1058,16 @@
     fill('#adv-reasons', a.reasons);
     fill('#adv-planning', a.planning);
     fill('#adv-risks', a.risks);
+    // 逐台设备建议（工程师声明的上架设备）
+    var dbox = document.getElementById('adv-devices');
+    if (dbox) {
+      var list = a.device_advices || [];
+      dbox.style.display = list.length ? 'block' : 'none';
+      dbox.innerHTML = list.map(function (v, i) {
+        return '<div class="dev-adv"><h4>' + v.icon + ' ' + esc(v.full) + ' <span class="chip">第 ' + (i + 1) + ' 台</span></h4>' +
+          '<ul>' + v.steps.map(function (st) { return '<li>' + esc(st) + '</li>'; }).join('') + '</ul></div>';
+      }).join('');
+    }
     $('#adv-wifi-note').textContent = a.me_access;
     $('#adv-access-note').textContent = a.wireless_note;
     var saved = [];
@@ -647,7 +1118,7 @@
         return { name: n.name, role: ROLE_NAME[n.role] || n.role, ip: n.ip, vendor: n.vendor || '', confidence: n.conf };
       }),
       links: data.topology.links,
-      deployment_advice: data.advice, note: '设备与拓扑由 ICMP 扫描 + ARP 表 + OUI 厂商 + 端口指纹 + Wi-Fi BSSID 实测发现'
+      deployment_advice: data.advice, note: '除「深信服 AF 规划部署」为建模建议外，其余节点与主机均为实测（ICMP ping 扫描 / ARP / 端口指纹）；关闭 ping 的设备可能未被发现'
     }, null, 2);
   }
 
@@ -660,14 +1131,8 @@
   }
 
   function bindExports() {
-    $('#exp-mermaid').disabled = $('#exp-json').disabled = $('#exp-png').disabled = false;
-    $('#exp-mermaid').onclick = function () {
-      $('#pane-json').classList.remove('on');
-      $('#pane-mermaid').classList.toggle('on');
-      $('#mermaid-out').textContent = mermaidOf(result);
-    };
+    $('#exp-json').disabled = $('#exp-png').disabled = false;
     $('#exp-json').onclick = function () {
-      $('#pane-mermaid').classList.remove('on');
       $('#pane-json').classList.toggle('on');
       $('#json-out').textContent = jsonOf(result);
     };
@@ -699,6 +1164,7 @@
   }
 
   function render(data) {
+    window.__lastResult = data;
     renderConn(data);
     renderTopology(data);
     renderLists(data);

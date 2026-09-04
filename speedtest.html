@@ -22,30 +22,37 @@
     color-scheme: dark;
     --bg: #0A0A0A;
     --grid-line: rgba(255, 255, 255, 0.06);
-    --header-bg: rgba(10, 10, 10, 0.84);
-    --border: rgba(255, 255, 255, 0.14);
-    --panel: #111111;
-    --panel-border: rgba(255, 255, 255, 0.14);
+    --header-bg: rgba(16, 18, 22, 0.34);
+    --border: rgba(205, 214, 224, 0.14);
+    --panel: rgba(24, 30, 38, 0.86);
+    --panel-border: rgba(205, 214, 224, 0.16);
     --text: #EDEDED;
     --text-2: #9CA3AF;
     --accent: #FFFFFF;
+    --accent-contrast: #0A0A0A;
     --accent-bg: rgba(255, 255, 255, 0.06);
+    --accent-border: rgba(255, 255, 255, 0.38);
+    --accent-strong: rgba(255, 255, 255, 0.8);
     --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     --blue: #7cbdf5; --green: #7ed37e; --warn: #f6c453; --orange: #ffa94d; --red: #ff8080;
     --prog-track: rgba(255, 255, 255, 0.16);
+    --fab-size: 48px;    /* 悬浮白板按钮尺寸（whiteboard.js 读取，与 home 页一致） */
   }
   [data-theme="light"] {
     color-scheme: light;
-    --bg: #FAFAFA;
+    --bg: #dbe1e7;
     --grid-line: rgba(0, 0, 0, 0.07);
-    --header-bg: rgba(250, 250, 250, 0.86);
+    --header-bg: rgba(216, 224, 231, 0.40);   /* 白天半透明银顶栏 */
     --border: rgba(0, 0, 0, 0.14);
-    --panel: #FFFFFF;
+    --panel: rgba(247, 250, 253, 0.45);   /* 白天磨砂银玻璃，透出背景液态银 */
     --panel-border: rgba(0, 0, 0, 0.14);
     --text: #111111;
     --text-2: #52525B;
     --accent: #0A0A0A;
+    --accent-contrast: #FAFAFA;
     --accent-bg: rgba(0, 0, 0, 0.05);
+    --accent-border: rgba(0, 0, 0, 0.35);
+    --accent-strong: rgba(0, 0, 0, 0.7);
     --blue: #0369a1; --green: #15803d; --warn: #b45309; --orange: #c2410c; --red: #dc2626;
     --prog-track: rgba(0, 0, 0, 0.14);
   }
@@ -56,12 +63,16 @@
     transition: background-color 0.3s, color 0.3s;
   }
   body::before {
-    content: ""; position: fixed; inset: 0; pointer-events: none;
-    background-image:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 46px 46px;
+    content: none;   /* 背景网格已去除：让液态金属/星尘背景完整呈现 */
   }
+
+  /* ---------- 登录页移植：液态金属流体 + 星尘背景层 ---------- */
+  .fx {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;   /* 置于全部页面内容之下 */
+    transition: opacity 0.45s ease;
+  }
+  [data-theme="light"] .fx { opacity: 0.8; }   /* 浅色主题自动淡出，保留原浅色观感 */
   header {
     position: sticky; top: 0; z-index: 10;
     display: flex; align-items: center; gap: 18px;
@@ -91,23 +102,37 @@
   .logout svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .logout:hover { color: var(--text); background: var(--accent-bg); border-color: var(--border); }
   .tswitch {
-    display: inline-flex; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-    background: var(--panel); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 2px;
+    height: 32px; padding: 2px;
+    border-radius: 6px; cursor: pointer; font-family: inherit;
+    border: 1px solid var(--border); background: var(--panel);
+    transition: border-color 0.3s, background-color 0.3s;
   }
-  .tswitch .seg { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 100%; color: var(--text-2); transition: background-color 0.25s, color 0.25s; }
-  .tswitch[data-on="light"] .seg-sun { background: var(--accent-bg); color: var(--warn); }
-  .tswitch[data-on="dark"] .seg-moon { background: var(--accent-bg); color: var(--blue); }
-  .tswitch svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .ic-sun circle { fill: currentColor; stroke: none; }
+  .tswitch:hover { border-color: var(--accent-border); }
+  .tswitch .seg {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+  .tswitch .seg:hover { background: var(--accent-bg); }
+  .tswitch svg {
+    width: 13px; height: 13px; fill: none;
+    stroke: var(--text-2); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    transition: stroke 0.3s;
+  }
+  [data-theme="light"] .tswitch .seg-sun { background: var(--accent); }
+  [data-theme="light"] .tswitch .seg-sun svg { stroke: var(--accent-contrast); }
+  [data-theme="dark"] .tswitch .seg-moon { background: var(--accent); }
+  [data-theme="dark"] .tswitch .seg-moon svg { stroke: var(--accent-contrast); }
 
-  main { max-width: 1080px; margin: 0 auto; padding: 30px 26px 10px; }
+  main { max-width: 1080px; margin: 0 auto; padding: 30px 26px 10px; position: relative; z-index: 1; }
 
   /* ---------- 页头与模式切换 ---------- */
   .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
   .head h1 { font-size: 24px; letter-spacing: 0.5px; }
   .head h1 .en { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); letter-spacing: 2px; margin-left: 10px; vertical-align: middle; }
   .head p { margin-top: 8px; font-size: 13px; color: var(--text-2); line-height: 1.7; }
-  .mode-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--panel); }
+  .mode-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--panel); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
   .mode-tabs button {
     display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 20px; border: none; cursor: pointer;
     background: transparent; color: var(--text-2); font-size: 14px; font-family: inherit; transition: all 0.2s;
@@ -116,7 +141,7 @@
   .mode-tabs button.on { background: var(--accent-bg); color: var(--text); font-weight: 600; }
 
   /* ---------- 线路 / 节点信息条 ---------- */
-  .strip { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border: 1px solid var(--panel-border); border-radius: 12px; background: var(--panel); margin-bottom: 18px; }
+  .strip { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border: 1px solid var(--panel-border); border-radius: 12px; background: var(--panel); margin-bottom: 18px; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
   .strip .cell { display: flex; align-items: center; gap: 8px; font-size: 13px; }
   .strip .cell .k { color: var(--text-2); white-space: nowrap; }
   .strip .cell .v { font-family: var(--font-mono); font-weight: 600; }
@@ -138,6 +163,7 @@
   /* ---------- 主舞台：圆环仪表 ---------- */
   .stage {
     position: relative; border: 1px solid var(--panel-border); border-radius: 14px; background: var(--panel);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     padding: 34px 20px 26px; display: flex; flex-direction: column; align-items: center;
   }
   .gauge-wrap { position: relative; width: 300px; height: 300px; user-select: none; }
@@ -198,6 +224,30 @@
   .mt .sub { margin-top: 3px; font-size: 11px; color: var(--text-2); min-height: 14px; font-family: var(--font-mono); }
 
   /* ---------- 实时曲线 ---------- */
+  .strip select {
+    -webkit-appearance: none; appearance: none;
+    background: var(--panel) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;
+    color: var(--text); border: 1px solid var(--border); border-radius: 7px;
+    font-size: 13px; outline: none; cursor: pointer;
+    padding: 5px 26px 5px 10px; min-width: 150px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .strip select:hover { border-color: var(--accent-border); }
+  .strip select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+  .strip select:disabled { opacity: 0.55; cursor: not-allowed; }
+  .strip select option { background: var(--panel); color: var(--text); padding: 6px 10px; }
+  .hint-inline { margin-left: auto; font-size: 11.5px; color: var(--text-2); font-weight: 400; }
+  .hops-card { margin-top: 16px; }
+  .hops-card h2 { display: flex; align-items: center; }
+  .hop-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; font-size: 12.5px; border-bottom: 1px dashed var(--grid-line); }
+  .hop-row .hn { width: 38px; color: var(--text-2); font-family: Consolas, monospace; }
+  .hop-row .hip { width: 150px; font-family: Consolas, monospace; color: var(--text); }
+  .hop-row .bar-wrap { flex: 1; height: 8px; border-radius: 99px; background: var(--prog-track); overflow: hidden; }
+  .hop-row .bar-wrap i { display: block; height: 100%; border-radius: 99px; background: var(--blue); }
+  .hop-row .hms { width: 76px; text-align: right; font-family: Consolas, monospace; }
+  .hop-row .hloss { width: 60px; text-align: right; }
+  .hop-row .hloss.warn { color: var(--warn); }
+  .hop-row .hloss.bad { color: var(--red); }
   .curve-box { width: 100%; margin-top: 16px; }
   .curve-box .cb-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
   .curve-box .cb-head span { font-size: 12px; color: var(--text-2); letter-spacing: 1px; }
@@ -209,7 +259,7 @@
 
   /* ---------- 下方两栏 ---------- */
   .grid2 { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; margin-top: 18px; align-items: start; }
-  .card { border: 1px solid var(--panel-border); border-radius: 12px; background: var(--panel); padding: 20px; }
+  .card { border: 1px solid var(--panel-border); border-radius: 12px; background: var(--panel); padding: 20px; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
   .card h2 { font-size: 15px; display: flex; align-items: center; gap: 10px; }
   .card h2 .chip { font-size: 10px; font-family: var(--font-mono); letter-spacing: 1.5px; color: var(--text-2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; font-weight: 400; }
   .card .sub { margin-top: 8px; font-size: 12.5px; color: var(--text-2); line-height: 1.7; }
@@ -251,11 +301,13 @@
 </style>
 </head>
 <body>
+<canvas id="fluid" class="fx"></canvas>
+<canvas id="stage" class="fx"></canvas>
 <header>
   <div class="logo"><img class="dot" src="logo.png" alt="CyberNWT Logo">CyberNWT</div>
   <nav>
     <a href="home.html">首页</a>
-    <a href="download/CyberNWT-mini.zip" download="CyberNWT-mini.zip">下载功能</a>
+    <a href="download/CyberNWT.zip" download="CyberNWT.zip">下载功能</a>
     <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
     <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
   </nav>
@@ -294,8 +346,20 @@
       <select id="node-sel" title="测速节点"><option value="auto">自动选择（推荐）</option></select>
     </div>
     <div class="cell" id="peer-cell" style="display:none"><span class="k">测速对端</span>
-      <input id="peer-addr" class="peer-input" placeholder="留空 = 本站服务器 · 或对端 IP:端口" spellcheck="false" title="内网测速对端：留空测本站服务器；在目标机器运行 speedpeer.py 后填入其 IP:端口">
+      <input id="peer-addr" class="peer-input" placeholder="留空 = 本站服务器 · 或对端 IP:端口" spellcheck="false" title="内网测速对端：留空测本站服务器；填内网其他机器 IP 即可互测（对方需运行 CyberNWT 站点），网关/网络设备自动降级为仅测延迟">
     </div>
+    <div class="sep"></div>
+    <div class="cell"><span class="k">并发模式</span>
+      <select id="stream-sel" title="多流=跑满带宽测硬件极限；单流=模拟真实单文件传输/单请求业务">
+        <option value="multi">多流（跑满网卡 · 极限）</option>
+        <option value="single">单流（模拟真实业务）</option>
+      </select>
+    </div>
+  </div>
+  <div class="strip" id="env-strip" style="display:none">
+    <div class="cell"><span class="k">链路协商</span><span class="v" id="link-val">读取中…</span></div>
+    <div class="sep"></div>
+    <div class="cell"><span class="k">本机负载</span><span class="v" id="cpu-val">CPU —% · 内存 —%</span></div>
   </div>
 
   <div class="stage">
@@ -336,6 +400,18 @@
       </div>
       <canvas id="curve"></canvas>
     </div>
+    <div class="curve-box" id="ping-series" style="display:none">
+      <div class="cb-head">
+        <span>负载下延迟时序（抖动 / 丢包）</span>
+        <span id="ps-summary" style="font-size:11.5px;color:var(--text-2)"></span>
+      </div>
+      <canvas id="ping-curve" style="height:130px"></canvas>
+    </div>
+  </div>
+
+  <div class="card hops-card" id="hops-card" style="display:none">
+    <h2>分段时延（逐跳）<span class="chip">PATH</span><span class="hint-inline" id="hops-target"></span></h2>
+    <div id="hops-body"><div class="empty">开始测速后自动采样每一跳的延迟与丢包。</div></div>
   </div>
 
   <div class="grid2">
@@ -371,6 +447,9 @@
   var S = {
     mode: 'wan',
     running: false,
+    streamMode: 'multi',   // multi | single
+    pingProbe: [],         // 压测期间的负载下延迟采样
+    hopsData: null,
     stopped: false,
     ac: null,          // 下载流 AbortController
     xhrs: [],          // 进行中的上传 XHR
@@ -388,19 +467,24 @@
   };
 
   /* ================= 主题 / 登录态 ================= */
+  var rootEl = document.documentElement;
   var themeBtn = document.getElementById('theme-toggle');
+  var THEME_COLORS = { dark: '#0A0A0A', light: '#FAFAFA' };
   var schemeMq = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
   function setTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    themeBtn.setAttribute('data-on', t);
+    rootEl.setAttribute('data-theme', t);
     themeBtn.setAttribute('aria-pressed', t === 'light' ? 'true' : 'false');
-    try { localStorage.setItem('cyber-theme', t); } catch (e) {}
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEME_COLORS[t]);
     drawCurve();
   }
+  setTheme(rootEl.getAttribute('data-theme') || 'dark');
   themeBtn.addEventListener('click', function () {
-    setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    var next = rootEl.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try { localStorage.setItem('cyber-theme', next); } catch (e) {}
   });
-  setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+  // 用户未手动选择过主题时，跟随系统变化
   if (schemeMq && (schemeMq.addEventListener || schemeMq.addListener)) {
     (schemeMq.addEventListener ? schemeMq.addEventListener.bind(schemeMq, 'change') : schemeMq.addListener.bind(schemeMq))(function (e) {
       var saved = null; try { saved = localStorage.getItem('cyber-theme'); } catch (err) {}
@@ -423,6 +507,11 @@
     return v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2);
   }
   function rand() { return Math.random().toString(36).slice(2); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
   function median(a) {
     if (!a.length) return null;
     var b = a.slice().sort(function (x, y) { return x - y; });
@@ -498,7 +587,7 @@
         } else {
           elNodeCell.style.display = 'none';
           elPeerCell.style.display = '';
-          elNote.textContent = '直连内网对端压测（4 连接并发）：留空测本站服务器；在目标机器运行 speedpeer.py 后填入其 IP:端口，可测任意两台内网机器间带宽。';
+          elNote.textContent = '直连内网对端压测（4 连接并发）：留空测本站服务器；填内网其他机器 IP 即可互测（对方运行 CyberNWT 站点即可，无需额外部署）；网关/网络设备自动降级为仅测延迟。';
           elGoSub.textContent = '内网测速';
           probePeer();
           echoIp();
@@ -507,6 +596,115 @@
     });
   });
   peerInput.addEventListener('change', function () { if (S.mode === 'lan' && !S.running) probePeer(); });
+  var streamSel = document.getElementById('stream-sel');
+  if (streamSel) streamSel.addEventListener('change', function () { S.streamMode = streamSel.value; });
+
+  /* ---------- 环境与硬件诊断（链路协商 + CPU/内存） ---------- */
+  function loadEnv() {
+    fetchTimeout('/api/speedtest/link', 8000).then(function (r) { return r.json(); }).then(function (d) {
+      var el = document.getElementById('env-strip');
+      if (!d.ok || !d.adapters.length) { el.style.display = 'none'; return; }
+      var txt = d.adapters.map(function (a) { return a.name + ' · ' + a.speed; }).join('　|　');
+      $('#link-val').textContent = txt;
+      // 协商降速告警：千兆环境出现 100Mbps 链路
+      var slow = d.adapters.filter(function (a) { return /100\s*Mbps/i.test(a.speed) && !/2\.5|5\s*Gbps|10\s*Gbps/i.test(a.speed); });
+      if (slow.length) {
+        $('#link-val').innerHTML = txt + ' <b style="color:var(--warn)">⚠ 网卡协商为百兆——检查网线/水晶头/对端端口</b>';
+      }
+      el.style.display = '';
+    }).catch(function () {});
+    fetchTimeout('/api/speedtest/cpu', 6000).then(function (r) { return r.json(); }).then(function (d) {
+      $('#cpu-val').textContent = 'CPU ' + (d.cpu == null ? '—' : d.cpu) + '% · 内存 ' + (d.mem == null ? '—' : d.mem) + '%';
+    }).catch(function () {});
+  }
+  // 测速期间轮询本机负载（CPU 打满说明是电脑性能瓶颈而非网络）
+  var cpuTimer = null, cpuPeak = { cpu: 0, mem: 0 };
+  function startCpuPoll() {
+    stopCpuPoll();
+    cpuTimer = setInterval(function () {
+      fetchTimeout('/api/speedtest/cpu', 5000).then(function (r) { return r.json(); }).then(function (d) {
+        if (d.cpu != null && d.cpu > cpuPeak.cpu) cpuPeak.cpu = d.cpu;
+        if (d.mem != null && d.mem > cpuPeak.mem) cpuPeak.mem = d.mem;
+        $('#cpu-val').textContent = 'CPU ' + (d.cpu == null ? '—' : d.cpu) + '% · 内存 ' + (d.mem == null ? '—' : d.mem) + '%';
+      }).catch(function () {});
+    }, 3000);
+  }
+  function stopCpuPoll() { if (cpuTimer) { clearInterval(cpuTimer); cpuTimer = null; } }
+
+  /* ---------- 逐跳时延面板 ---------- */
+  /* 逐跳目标：国内知名公共 DNS 链（阿里/腾讯/114/百度），任一失败自动切换下一个 */
+  var HOP_TARGETS = ['223.5.5.5', '119.29.29.29', '114.114.114.114', '180.76.76.76'];
+  function loadHopsChain(targets) {
+    var list = targets && targets.length ? targets : HOP_TARGETS;
+    function attempt(i) {
+      if (i >= list.length) {
+        $('#hops-body').innerHTML = '<div class="empty">路径探测失败（阿里/腾讯/114/百度 DNS 均不可达，请检查出口）。</div>';
+        return;
+      }
+      runHops(list[i], function () { attempt(i + 1); });
+    }
+    attempt(0);
+  }
+  function loadHops(host) { loadHopsChain([host]); }
+  function runHops(host, onFail) {
+    $('#hops-target').textContent = '目标 ' + host;
+    $('#hops-card').style.display = '';
+    $('#hops-body').innerHTML = '<div class="empty">正在追踪路径并逐跳采样（约 30 秒）…</div>';
+    var _t0 = performance.now();
+    fetchTimeout('/api/speedtest/hops?host=' + encodeURIComponent(host), 110000).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok || !d.hops.length) { if (onFail) onFail(); return; }
+      S.hopsData = d.hops;
+      var maxMs = Math.max.apply(null, d.hops.filter(function (h) { return h.ms != null; }).map(function (h) { return h.ms; }).concat([1]));
+      $('#hops-body').innerHTML = d.hops.map(function (h) {
+        if (!h.ip) {   // 无响应跳（tracert * * *）：跳号保留，不显示 IP/延迟/丢包
+          return '<div class="hop-row"><span class="hn">' + h.hop + '</span><span class="hip">*</span>' +
+            '<span class="bar-wrap"></span>' +
+            '<span class="hms">超时</span>' +
+            '<span class="hloss"></span></div>';
+        }
+        var cls = h.loss >= 50 ? 'bad' : (h.loss > 0 ? 'warn' : '');
+        var w = h.ms == null ? 0 : Math.max(4, h.ms / maxMs * 100);
+        return '<div class="hop-row"><span class="hn">' + h.hop + '</span><span class="hip">' + esc(h.ip) + '</span>' +
+          '<span class="bar-wrap"><i style="width:' + w + '%"></i></span>' +
+          '<span class="hms">' + (h.ms == null ? '超时' : h.ms + ' ms') + '</span>' +
+          '<span class="hloss ' + cls + '">丢包 ' + h.loss + '%</span></div>';
+      }).join('');
+    }).catch(function (e) {
+      if (onFail) onFail();
+    });
+  }
+
+  /* ---------- 逐跳并行启动 ---------- */
+  /* 与测速同时启动：tracert 流量极小（每跳仅 3 个小包），不影响带宽采样；
+     服务器为 ThreadingHTTPServer，长耗时的 hops 请求不会阻塞测速接口。
+     S.hopsStarted 防重入，保证每次测试只跑一条探测链。 */
+  function startHopsParallel() {
+    if (S.hopsStarted) return;
+    S.hopsStarted = true;
+    var hopTarget = S.mode === 'lan'
+      ? (lanHost() || (S.peer ? S.peer.base.replace(/^https?:\/\//, '').replace(/:\d+$/, '') : ''))
+      : '';   // 公网：走知名公共 DNS 目标链（阿里→腾讯→114→百度，自动降级）
+    if (hopTarget && /^[A-Za-z0-9.\-]+$/.test(hopTarget)) loadHopsChain([hopTarget].concat(HOP_TARGETS));
+    else loadHopsChain();
+  }
+
+  /* ---------- 负载下延迟采样（抖动/丢包时序） ---------- */
+  function startPingProbe(target) {
+    S.pingProbe = [];
+    function once() {
+      if (!S.running) return;
+      var t0 = performance.now();
+      fetchTimeout(target + '?r=' + rand(), 3000).then(function () {
+        S.pingProbe.push({ t: performance.now() - t0, ok: true });
+      }).catch(function () {
+        S.pingProbe.push({ t: -1, ok: false });
+      });
+    }
+    // 2 秒一个轻量探测，压测期间持续采样
+    S.pingTimer = setInterval(once, 2000);
+    once();
+  }
+  function stopPingProbe() { if (S.pingTimer) { clearInterval(S.pingTimer); S.pingTimer = null; } }
 
   /* 解析内网对端输入：留空 = 本站服务器（同源）；否则 http://host:port */
   function lanTarget() {
@@ -518,24 +716,53 @@
     return { base: 'http://' + m[1] + ':' + port, label: '对端 ' + m[1] + ':' + port };
   }
 
-  /* 对端探活：直连 /peer/info，回显主机名与系统 */
+  /* 对端探活三级：测速服务（CyberNWT 站点/speedpeer）→ 任意 HTTP 站点 → ICMP（网关） */
   function probePeer() {
     var t = lanTarget();
     if (!t) { elNote.textContent = '对端地址格式无效：请填写 IP 或主机名（可带 :端口）。'; return; }
-    if (!t.base) { elNote.textContent = '目标：本站服务器 ' + location.host + '（留空默认）。如需测其他机器，在对端运行 speedpeer.py 后填入其 IP:端口。'; return; }
+    if (!t.base) { elNote.textContent = '目标：本站服务器 ' + location.host + '（留空默认）。也可直接填内网其他机器的 IP 互测。'; return; }
     elNote.textContent = '正在探测对端 ' + t.label + ' …';
     fetchTimeout(t.base + '/peer/info', 3500).then(function (r) { return r.json(); }).then(function (d) {
+      S.peerKind = 'speedpeer';
       elNote.textContent = '对端就绪：' + (d.host || '未知主机') + '（' + (d.system || '') + '）· ' + t.label;
     }).catch(function () {
-      elNote.textContent = '对端 ' + t.label + ' 不可达：请确认对端已运行 speedpeer.py 且 IP/端口正确。';
+      // 二级：验证 /peer/down 压测能力（CyberNWT 站点内置；普通网站无此端点则转 ICMP）
+      fetchTimeout(t.base + '/peer/down?bytes=1024', 4000).then(function (r) {
+        S.peerKind = 'speedpeer';
+        elNote.textContent = '对端是 CyberNWT 站点（' + t.label + '）：支持带宽互测，点开始测速。';
+      }).catch(function () {
+        // 三级：ICMP（网关/交换机等网络设备）
+        fetchTimeout('/api/speedtest/icmp?host=' + encodeURIComponent(lanHost()), 5000).then(function (r) { return r.json(); }).then(function (d) {
+          if (d.ok && d.ms && d.ms.length) {
+            S.peerKind = 'icmp';
+            var avg = d.ms.reduce(function (a, b) { return a + b; }, 0) / d.ms.length;
+            elNote.textContent = '对端可达（ICMP ' + Math.round(avg) + ' ms）：该地址是网关/网络设备，不支持带宽压测——开始测速将仅测延迟。';
+          } else {
+            S.peerKind = 'unreachable';
+            elNote.textContent = '对端 ' + t.label + ' 不可达（HTTP/ICMP 均失败）：请确认地址正确、设备在线。';
+          }
+        }).catch(function () {
+          S.peerKind = 'unreachable';
+          elNote.textContent = '对端 ' + t.label + ' 不可达：请确认地址正确、设备在线。';
+        });
+      });
     });
+  }
+  function lanHost() {
+    var v = (peerInput.value || '').trim();
+    var m = v.match(/^(?:https?:\/\/)?([A-Za-z0-9.\-]+)(?::(\d{1,5}))?$/);
+    return m ? m[1] : '';
   }
 
   function echoIp() {
     fetchTimeout('/api/speedtest/echo', 4000).then(function (r) { return r.json(); }).then(function (d) {
-      var ip = d && d.ip ? d.ip : '';
+      d = d || {};
+      var ip = d.ip || '';
       var loop = /^(127\.|::1|localhost)/.test(ip);
-      elLoc.textContent = ip ? (ip + (loop ? '（本机回环）' : ' · 内网终端')) : '未知';
+      // 回环访问（127.0.0.1/localhost 打开站点）时，展示本机真实内网 IP 更有工程意义
+      elLoc.textContent = loop && d.local_ip
+        ? (d.local_ip + ' · 本机（内网 IP）')
+        : (ip ? (ip + (loop ? '（本机回环）' : ' · 内网终端')) : '未知');
     }).catch(function () { elLoc.textContent = '未知（服务器不可达）'; });
   }
 
@@ -615,6 +842,8 @@
     // 2) 上行分片探测（大陆 Ookla 节点：no-cors 小块试传，并行逐片验证可达性）
     var probeRes = await Promise.all(upPool.map(function (sh) { return probeUpShard(sh); }));
     var usable = upPool.filter(function (sh, i) { return probeRes[i]; });
+    // 择优：只保留预探测延迟最快的前 6 片（每片独立 host，过多分片反而拉低整体）
+    if (usable.length > 6) usable = usable.slice(0, 6);
     S.upShards = usable;
     if (!S.upShards.length) throw new Error('大陆 Ookla 上行节点不可达，请检查公网出口');
     // 3) 按延迟排序：自动模式选最快 CDN 作延迟基准
@@ -676,6 +905,7 @@
   function resetUI() {
     S.res = { ping: null, jitter: null, down: null, up: null };
     S.curve = [];
+    S.hopsStarted = false;   // 重置逐跳防重入标志
     ['m-ping', 'm-jit', 'm-down', 'm-up'].forEach(function (id) { $('#' + id).textContent = '—'; });
     ['m-ping-sub', 'm-jit-sub', 'm-down-sub', 'm-up-sub'].forEach(function (id) { $('#' + id).textContent = ''; });
     setPhase('idle');
@@ -720,8 +950,36 @@
         $('#m-up-sub').textContent = '直连 ' + lt.label;
       }
       setPhase('ping', '延迟探测');
+      // 环境诊断（并行，不阻塞主流程）；逐跳路径也与测速并行启动——
+      // tracert 流量极小不影响带宽采样，测试结束时路径结果恰好也就绪（省去测后等待）
+      loadEnv();
+      startHopsParallel();
+      startCpuPoll();
+      var psBox = document.getElementById('ping-series');
+      if (psBox) { psBox.style.display = ''; var pc = document.getElementById('ping-curve'); if (pc) pc.getContext('2d').clearRect(0, 0, pc.width, pc.height); $('#ps-summary').textContent = '采样中…'; }
+      // 负载下延迟采样（抖动/丢包时序）：延迟阶段结束后持续采样
+      var pingProbeUrl = S.mode === 'wan'
+        ? ((S.node && S.node.probe ? S.node.probe : DOWN_NODES[0].probe) + '?r=')
+        : (S.peerKind === 'icmp' ? null : (S.peer.base + '/peer/ping?r='));
+      if (S.mode === 'wan' || S.peerKind !== 'icmp') startPingProbe(pingProbeUrl);
       await phasePing();
       if (S.stopped) throw new Error('stopped');
+      if (S.mode === 'lan' && S.peerKind === 'icmp') {
+        // 网关类对端：仅延迟有工程意义；带宽无压测服务，直接出结果
+        setPhase('down', '带宽测速', '对端为网络设备，不支持 HTTP 压测');
+        S.res.down = 0; S.res.up = 0;
+        $('#m-down').textContent = '—';
+        $('#m-up').textContent = '—';
+        $('#m-down-sub').textContent = '对端是网关/网络设备（不支持压测）';
+        $('#m-up-sub').textContent = '带宽互测需对端运行 CyberNWT 站点';
+        elStart.disabled = false;
+        elStart.textContent = '再测一次';
+        S.running = false;
+        setCenterVal(Math.round(S.res.ping), ' ms', '延迟测速完成');
+        elNote.textContent = '已完成延迟测速：该对端是网关/网络设备，不支持带宽压测；测带宽请填一台运行了 CyberNWT 站点的内网机器 IP，或留空测本站。';
+        // 逐跳路径已随测试启动并行执行（startHopsParallel），此处无需再触发
+        return;
+      }
       setPhase('down', '下载测速', S.mode === 'wan' ? '大陆多源分流 · ' + S.downSlots.length + ' 连接并发' : S.peer.label + ' · 4 连接并发');
       S.res.down = await phaseTransfer('down');
       if (S.stopped) throw new Error('stopped');
@@ -732,10 +990,14 @@
       setPhase('done', '测试完成');
       setCenterVal(fmt(S.res.down), ' Mbps', '下行 · 上行 ' + fmt(S.res.up) + ' Mbps');
       setRing(1);
+      stopCpuPoll(); stopPingProbe();
+      drawPingSeries();
       finish();
+      // 逐跳路径已在测试启动时并行执行（startHopsParallel），此处无需再触发
     } catch (e) {
       if (e && e.message === 'stopped') { setPhase('done', '已停止'); finish(true); }
       else { setPhase('idle'); $('#verdict-txt').textContent = '测试失败'; $('#verdict-sub').textContent = e.message || '网络异常'; }
+      stopCpuPoll(); stopPingProbe();
     }
     S.running = false;
     elStart.disabled = false;
@@ -752,19 +1014,32 @@
 
   async function phasePing() {
     var url, method, opts, n;
-    if (S.mode === 'wan') { url = (S.node && S.node.probe ? S.node.probe : DOWN_NODES[0].probe) + '?r='; method = 'GET'; opts = undefined; n = 10; }
-    else { url = S.peer.base + '/peer/ping?r='; method = 'HEAD'; opts = undefined; n = 10; }
     var arr = [];
-    for (var i = 0; i < n; i++) {
-      var t0 = performance.now();
-      try {
-        await fetchTimeout(url + rand(), 4000, opts);
-        arr.push(performance.now() - t0);
-      } catch (e) { if (S.stopped) break; }
-      setRing((i + 1) / n);
-      setCenterVal(arr.length ? Math.round(Math.min.apply(null, arr)) : '…', ' ms', '样本 ' + (i + 1) + ' / ' + n);
-      if (S.stopped) break;
-      await sleep(50);
+    if (S.mode === 'wan') { url = (S.node && S.node.probe ? S.node.probe : DOWN_NODES[0].probe) + '?r='; method = 'GET'; opts = undefined; n = 10; }
+    else if (S.peerKind === 'icmp') {
+      // 网关/网络设备：服务端 ICMP 代理测延迟（真实 ping 值，最多 10 样本）
+      var d = await (await fetchTimeout('/api/speedtest/icmp?host=' + encodeURIComponent(lanHost()) + '&n=10', 15000)).json();
+      arr = (d && d.ms) || [];
+      if (!arr.length) throw new Error('ICMP 延迟探测失败：对端不响应 ping');
+      for (var k = 0; k < arr.length; k++) {
+        setRing((k + 1) / arr.length);
+        setCenterVal(Math.round(Math.min.apply(null, arr)), ' ms', '样本 ' + (k + 1) + ' / ' + arr.length);
+        await sleep(40);
+      }
+    }
+    else { url = S.peer.base + '/peer/ping?r='; method = 'HEAD'; opts = undefined; n = 10; }
+    if (S.mode === 'wan' || S.peerKind !== 'icmp') {
+      for (var i = 0; i < n; i++) {
+        var t0 = performance.now();
+        try {
+          await fetchTimeout(url + rand(), 4000, opts);
+          arr.push(performance.now() - t0);
+        } catch (e) { if (S.stopped) break; }
+        setRing((i + 1) / n);
+        setCenterVal(arr.length ? Math.round(Math.min.apply(null, arr)) : '…', ' ms', '样本 ' + (i + 1) + ' / ' + n);
+        if (S.stopped) break;
+        await sleep(50);
+      }
     }
     if (arr.length) {
       S.res.ping = median(arr);
@@ -777,7 +1052,7 @@
       $('#m-ping-sub').textContent = arr.length + ' 样本 · 最低 ' + S.res.pingMin.toFixed(0) + ' ms';
       $('#m-jit-sub').textContent = '相邻时延差的均值';
     } else {
-      throw new Error(S.mode === 'wan' ? '节点延迟探测失败' : '内网对端不可达（对端需运行 speedpeer.py 或填本站地址）');
+      throw new Error(S.mode === 'wan' ? '节点延迟探测失败' : '内网对端不可达（HTTP/ICMP 均失败）');
     }
   }
 
@@ -896,12 +1171,16 @@
 
   async function phaseTransfer(kind) {
     var cfg, url = null;
+    var single = S.streamMode === 'single';
     if (S.mode === 'wan') {
-      if (kind === 'down') cfg = { streams: S.downSlots.length, warmup: 3000, budget: 11000 };
-      else cfg = { streams: Math.min(24, Math.max(6, S.upShards.length * 6)), warmup: 3000, budget: 12000 };
+      if (single) cfg = { streams: 1, warmup: 2500, budget: 15000 };
+      else if (kind === 'down') cfg = { streams: S.downSlots.length, warmup: 3000, budget: 11000 };
+      else cfg = { streams: Math.min(24, Math.max(6, S.upShards.length * 6)), warmup: 4000, budget: 18000 };
+    } else if (S.peerKind === 'icmp') {
+      throw new Error('该对端不支持带宽压测（网关/网络设备）');
     } else {
-      if (kind === 'down') { url = S.peer.base + '/peer/down?bytes=16777216'; cfg = { streams: 4, warmup: 1000, budget: 8000 }; }
-      else { url = S.peer.base + '/peer/up'; cfg = { streams: 4, warmup: 1000, budget: 8000 }; }
+      if (kind === 'down') { url = S.peer.base + '/peer/down?bytes=16777216'; cfg = { streams: single ? 1 : 4, warmup: 1000, budget: 8000 }; }
+      else { url = S.peer.base + '/peer/up'; cfg = { streams: single ? 1 : 4, warmup: 1000, budget: 8000 }; }
     }
 
     S.ac = new AbortController();
@@ -959,7 +1238,62 @@
     tile.textContent = fmt(mbps);
     var sub = kind === 'down' ? $('#m-down-sub') : $('#m-up-sub');
     sub.textContent = '实测 ' + ((bytes - w.b) / 1048576).toFixed(1) + ' MB ÷ ' + dur.toFixed(1) + ' s = ' + fmt(mbps) + ' Mbps';
+    // 上行（no-cors 盲传）存在块间隙/重传低尾：取实时速率曲线顶部 75% 的平均，对齐 Ookla 统计口径
+    if (kind === 'up' && S.mode === 'wan') {
+      var vs = S.curve.filter(function (pt) { return pt.ph === 'up' && pt.t >= (w.t - t0); }).map(function (pt) { return pt.v; });
+      if (vs.length >= 6) {
+        vs.sort(function (a, b) { return b - a; });
+        var top = vs.slice(0, Math.max(4, Math.ceil(vs.length * 0.75)));
+        var avg = top.reduce(function (a, b) { return a + b; }, 0) / top.length;
+        if (avg > mbps) { mbps = avg; tile.textContent = fmt(mbps); }
+      }
+    }
     return mbps;
+  }
+
+  /* ================= 抖动/丢包时序曲线（负载下延迟采样） ================= */
+  function drawPingSeries() {
+    var box = document.getElementById('ping-series');
+    if (!box) return;
+    var data = S.pingProbe.filter(function (p) { return p.ok; }).map(function (p) { return p.t; });
+    var loss = S.pingProbe.length - data.length;
+    var avg = data.length ? data.reduce(function (a, b) { return a + b; }, 0) / data.length : 0;
+    var jit = 0;
+    for (var j = 1; j < data.length; j++) jit += Math.abs(data[j] - data[j - 1]);
+    jit = data.length > 1 ? jit / (data.length - 1) : 0;
+    var lossPct = S.pingProbe.length ? Math.round(loss / S.pingProbe.length * 100) : 0;
+    S.res.loadJitter = Math.round(jit * 10) / 10;
+    S.res.loadLoss = lossPct;
+    var c = document.getElementById('ping-curve');
+    if (!c) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = c.clientWidth || 900, h = c.clientHeight || 130;
+    if (c.width !== w * dpr || c.height !== h * dpr) { c.width = w * dpr; c.height = h * dpr; }
+    var x = c.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var cs = getComputedStyle(document.documentElement);
+    var cGrid = cs.getPropertyValue('--grid-line').trim() || 'rgba(128,128,128,0.1)';
+    var cText = cs.getPropertyValue('--text-2').trim() || '#888';
+    var cBlue = cs.getPropertyValue('--blue').trim();
+    x.clearRect(0, 0, w, h);
+    if (!data.length) {
+      x.fillStyle = cText; x.font = '12px "Microsoft YaHei", sans-serif'; x.textAlign = 'center';
+      x.fillText('压测期间未采到延迟样本', w / 2, h / 2 + 4);
+      return;
+    }
+    var maxMs = Math.max.apply(null, data) * 1.15 || 1;
+    x.strokeStyle = cGrid; x.lineWidth = 1;
+    for (var i = 1; i < 3; i++) { var yy = Math.round(h * i / 3) + 0.5; x.beginPath(); x.moveTo(0, yy); x.lineTo(w, yy); x.stroke(); }
+    x.strokeStyle = cBlue; x.lineWidth = 1.8; x.beginPath();
+    data.forEach(function (ms, i) {
+      var px = i / Math.max(1, data.length - 1) * (w - 16) + 8;
+      var py = h - 10 - (ms / maxMs) * (h - 26);
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    });
+    x.stroke();
+    x.fillStyle = cText; x.font = '10.5px Consolas, monospace'; x.textAlign = 'left';
+    x.fillText('峰值 ' + Math.round(maxMs / 1.15) + ' ms', 8, 12);
+    $('#ps-summary').textContent = '负载下延迟 ' + Math.round(avg) + ' ms · 抖动 ' + (Math.round(jit * 10) / 10) + ' ms · 丢包 ' + lossPct + '%（' + S.pingProbe.length + ' 次探测）';
   }
 
   /* ================= 结果解读 ================= */
@@ -967,6 +1301,14 @@
     var r = S.res, wan = S.mode === 'wan';
     var v = $('#verdict-txt'), sub = $('#verdict-sub'), grade = $('#grade'), fd = $('#findings');
     var fs = [];
+    // 工程诊断：链路协商 / 本机负载 / 负载下抖动丢包 / 单流对比（插到清单最前，工程视角优先展示）
+    var engFs = [];
+    var linkTxt = ($('#link-val') || {}).textContent || '';
+    if (/百兆/.test(linkTxt)) engFs.push(['warn', '⚠ 链路协商异常：网卡协商为百兆——网线/水晶头/对端端口可能不达标，带宽被压到百兆上限（' + linkTxt.split('⚠')[0].trim() + '）。']);
+    if (cpuPeak.cpu >= 90) engFs.push(['warn', '⚠ 测速期间本机 CPU 峰值 ' + cpuPeak.cpu + '%：电脑性能可能压制测速上限，建议关闭其他程序后复测再判断网络。']);
+    if (S.res.loadJitter != null && S.res.loadJitter > 30) engFs.push(['warn', '⚠ 带宽跑满时抖动 ' + S.res.loadJitter + ' ms：高负载下延迟波动大，视频会议/VOIP 类业务可能卡顿。']);
+    if (S.res.loadLoss > 0) engFs.push(['warn', '⚠ 压测期间探测丢包 ' + S.res.loadLoss + '%：存在间歇性丢包，检查链路质量与对端负载。']);
+    if (S.streamMode === 'multi' && r.down > 0) engFs.push(['info', '提示：本次为多流极限测试；实际单文件传输速度通常低于该值，可切换「单流」模式模拟真实业务。']);
     var tier;
     if (r.down == null && r.ping == null) { v.textContent = '已停止'; sub.textContent = '未获得有效数据。'; return; }
 
@@ -1006,7 +1348,8 @@
     if (r.jitter != null && r.jitter >= 20) fs.push(['warn', '抖动 ' + fmt(r.jitter, 'ms') + ' ms 较大：网络波动明显，视频会议等实时业务可能卡顿。']);
     if (stopped) fs.push(['info', '测试被提前停止，结果为当前已测得的部分。']);
 
-    fd.innerHTML = fs.map(function (f) {
+    var allFs = engFs.concat(fs);
+    fd.innerHTML = allFs.map(function (f) {
       return '<div class="fd ' + f[0] + '">' + f[1] + '</div>';
     }).join('');
     saveHist();
@@ -1111,5 +1454,7 @@
   probeNodes().then(function () {}).catch(function () {});
 })();
 </script>
+<script src="whiteboard.js" defer></script>
+<script src="bg-live.js"></script>
 </body>
 </html>

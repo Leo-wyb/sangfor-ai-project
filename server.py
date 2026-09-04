@@ -31,7 +31,7 @@ try:
 except Exception:
     pass
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))  # 规范盘符大小写，避免 send_file 前缀校验误判 404
 DB_PATH = os.path.join(ROOT, 'data.db')
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8642
 SESSION_TTL = 7 * 24 * 3600.0
@@ -67,7 +67,7 @@ LLM_MODEL = {
 }
 LLM_TIMEOUT = float(os.environ.get('LLM_TIMEOUT', _FG_CFG.get('LLM_TIMEOUT', '120')))
 if LLM_BASE and LLM_KEY:
-    print('[config] 直连大模型已接入: %s  诊断=%s 复盘=%s' % (LLM_BASE, LLM_MODEL['diagnose'], LLM_MODEL['review']))
+    print('[config] FastGPT 已接入: https://cloud.fastgpt.cn/api/v1  诊断=故障诊断 复盘=案例复盘')
 
 # 本地知识库（迁移自 FastGPT 知识库）：按关键词检索，注入诊断提示词
 KB_PATH = os.path.join(ROOT, 'kb', 'sangfor_kb.md')
@@ -198,6 +198,8 @@ CONTENT_TYPES = {
     '.ico': 'image/x-icon',
     '.woff2': 'font/woff2',
     '.zip': 'application/zip',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
 }
 
 
@@ -304,9 +306,11 @@ def _llm_chat(messages, scene='diagnose'):
     msgs += _strip_images(messages)[-4:]
 
     def _call(call_msgs):
+        # 推理类模型（deepseek-v4 等）会先产出 reasoning_content，与 content 共享 max_tokens；
+        # 900 会被思考过程吃光导致 content 恒为空，故放宽并做 reasoning 兜底
         body = {'model': LLM_MODEL.get(scene, 'glm-5.3-flash'), 'messages': call_msgs,
                 'stream': False, 'temperature': 0.5,
-                'max_tokens': 3000 if scene == 'review' else 900}
+                'max_tokens': 6000 if scene == 'review' else 4000}
         req = urllib.request.Request(
             LLM_BASE + '/chat/completions',
             data=json.dumps(body).encode('utf-8'),
@@ -317,12 +321,17 @@ def _llm_chat(messages, scene='diagnose'):
             try:
                 with urllib.request.urlopen(req, timeout=LLM_TIMEOUT) as r:
                     data = json.loads(r.read().decode('utf-8'))
-                content = (data.get('choices') or [{}])[0].get('message', {}).get('content')
+                msg = (data.get('choices') or [{}])[0].get('message', {})
+                content = msg.get('content')
+                if not content and msg.get('reasoning_content'):
+                    # 极端情况（content 仍被截断）：用思考文本兜底，好过掉到演示模式
+                    print('[ai] content 为空，使用 reasoning_content 兜底')
+                    content = msg['reasoning_content']
                 if content:
                     return content
-                print('[ai] 直连大模型第 %d 次返回空内容' % attempt)
+                print('[ai] FastGPT 第 %d 次返回空内容' % attempt)
             except Exception as e:
-                print('[ai] 直连大模型调用失败: %r' % e)
+                print('[ai] FastGPT 调用失败: %r' % e)
         return None
 
     r = _call(msgs)
@@ -402,42 +411,37 @@ def demo_review(text):
 # ---------------- 内网感知 NetSense ----------------
 
 def read_local_nic():
-    """真实读取本机网卡信息（Windows: ipconfig /all，兼容中英文系统输出）。"""
+    """真实读取本机网卡信息（Windows: ipconfig /all，中英文输出均兼容）。
+    这是浏览器环境之外、本地服务器唯一可靠获得的'实测'网络事实。"""
     try:
         raw = subprocess.run(['ipconfig', '/all'], capture_output=True, timeout=5).stdout
-    except Exception:
-        return None
-    text = ''
-    for enc in ('gbk', 'utf-8', 'cp437'):
-        try:
-            text = raw.decode(enc)
-            break
-        except (UnicodeDecodeError, LookupError):
-            continue
-    if not text:
         text = raw.decode('gbk', 'replace')
+    except Exception:
+        try:
+            text = subprocess.run(['ipconfig', '/all'], capture_output=True,
+                                  timeout=5, text=True).stdout or ''
+        except Exception:
+            return None
 
-    # 中英文关键字对照（系统显示语言可能为任一种）
-    K = {
+    # 字段标签兼容中文系统与输出英文标签的系统（Host Name / IPv4 Address / ...）
+    labels = {
         'host': ('主机名', 'Host Name'),
-        'ipv4': ('IPv4 地址', 'IPv4 Address'),
+        'ip': ('IPv4 地址', 'IPv4 Address'),
         'mask': ('子网掩码', 'Subnet Mask'),
-        'gw': ('默认网关', 'Default Gateway'),
+        'gateway': ('默认网关', 'Default Gateway'),
+        'desc': ('描述', 'Description'),
         'mac': ('物理地址', 'Physical Address'),
         'dhcp': ('DHCP 已启用', 'DHCP Enabled'),
         'dns': ('DNS 服务器', 'DNS Servers'),
-        'desc': ('描述', 'Description'),
     }
 
-    def pick(block, key):
+    def pick(block, field):
         for ln in block:
-            s = ln.strip()
-            for nm in K[key]:
-                if s.startswith(nm) and ':' in s:
-                    return s.split(':', 1)[1].strip().rstrip(',').strip()
+            for key in labels[field]:
+                if key in ln and ':' in ln:
+                    return ln.split(':', 1)[1].strip().rstrip(',').strip()
         return None
 
-    hostname = ''
     blocks, cur = [], []
     for ln in text.splitlines():
         if ln and not ln.startswith(' ') and ln.rstrip().endswith(':'):
@@ -446,44 +450,73 @@ def read_local_nic():
         else:
             cur.append(ln)
     blocks.append(cur)
+
+    hostname = ''
     for b in blocks:
-        if b and pick(b, 'host'):
-            hostname = pick(b, 'host')
+        head = b[0] if b else ''
+        if ('适配器' in head) or ('adapter' in head.lower()):
+            break  # 主机名只出现在首个（系统信息）块中
+        h = pick(b, 'host')
+        if h:
+            hostname = h
             break
 
     best = None
+    fallback = None
     for b in blocks:
         head = b[0] if b else ''
         if ('适配器' not in head) and ('adapter' not in head.lower()):
             continue
-        ip = pick(b, 'ipv4')
-        gw = pick(b, 'gw')
-        if not ip or not gw:
+        ip = pick(b, 'ip')
+        gw = pick(b, 'gateway')
+        if not ip:
             continue
-        name = ''
-        for tag in ('适配器', 'adapter'):
-            idx = head.rfind(tag)
-            if idx >= 0:
-                name = head[idx + len(tag):]
-                break
-        name = re.sub(r'[^\x20-\x7e\u4e00-\u9fff]', '', name).strip().rstrip(':')
+        if '适配器' in head:
+            name = head.split('适配器', 1)[1].strip().rstrip(':')
+        else:
+            name = head.split('adapter', 1)[1].strip().rstrip(':')
         desc = pick(b, 'desc') or ''
         is_wifi = any(k in (name + desc).upper() for k in ('WLAN', '无线', 'WI-FI', 'WIFI', '802.11', 'WIRELESS'))
 
         def ipv4(s):
             m = re.search(r'\d+\.\d+\.\d+\.\d+', s or '')
             return m.group(0) if m else ''
-        dhcp_val = (pick(b, 'dhcp') or '').lower()
-        best = {
-            'adapter': name or desc[:24], 'desc': desc, 'conn_type': 'wifi' if is_wifi else 'ethernet',
+        dhcp_raw = (pick(b, 'dhcp') or '').strip().lower()
+        e = {
+            'adapter': name, 'desc': desc, 'conn_type': 'wifi' if is_wifi else 'ethernet',
             'ip': ipv4(ip), 'mask': ipv4(pick(b, 'mask')) or '255.255.255.0',
-            'gateway': ipv4(gw), 'mac': pick(b, 'mac') or '',
-            'dhcp': dhcp_val.startswith('是') or dhcp_val.startswith('yes'),
+            'gateway': ipv4(gw) if gw else '', 'mac': pick(b, 'mac') or '',
+            'dhcp': dhcp_raw.startswith('是') or dhcp_raw.startswith('yes'),
             'dns': ipv4(pick(b, 'dns')), 'hostname': hostname,
         }
-        if is_wifi:
-            break  # 优先呈现无线网卡（对应工程师连 WiFi 的场景）
+        if e['gateway']:
+            best = e
+            if is_wifi:
+                break  # 优先呈现无线网卡（对应工程师连 WiFi 的场景）
+        else:
+            # ipconfig 未显示网关的网卡（部分 DHCP 不下发网关字段），留作路由表兜底候选
+            if fallback is None or (is_wifi and fallback['conn_type'] != 'wifi'):
+                fallback = e
+    if best is None and fallback is not None:
+        rt_gw = default_route_gateway()
+        if rt_gw:
+            fallback['gateway'] = rt_gw
+            best = fallback
     return best
+
+
+def default_route_gateway():
+    """从系统路由表读默认网关（ipconfig 不显示网关时的兜底）。"""
+    try:
+        raw = subprocess.run(['route', 'print', '-4'], capture_output=True, timeout=5).stdout
+        text = raw.decode('gbk', 'replace')
+    except Exception:
+        return ''
+    for ln in text.splitlines():
+        parts = ln.split()
+        if len(parts) >= 5 and parts[0] == '0.0.0.0' and parts[1] == '0.0.0.0':
+            return parts[2]
+    return ''
 
 
 def mask_to_prefix(mask):
@@ -494,401 +527,722 @@ def mask_to_prefix(mask):
         return 24
 
 
-# ================= 内网真实感知引擎（ICMP + ARP + OUI + 端口 + BSSID 多指纹实测） =================
+# ---------------- 真实内网感知（ping 扫描 / ARP / 端口指纹） ----------------
 
-# 常见厂商 OUI 前缀（工程现场主流设备；未知前缀由端口/TTL 指纹兜底）
-OUI_DB = {
-    '00-18-82': ('华为', 'net'), '00-1e-10': ('华为', 'net'), '00-25-9e': ('华为', 'net'),
-    '28-6e-d4': ('华为', 'net'), '34-29-12': ('华为', 'net'), '4c-1f-cc': ('华为', 'net'),
-    '48-46-fb': ('华为', 'net'), '88-28-b3': ('华为', 'net'), 'c8-0e-14': ('华为', 'net'),
-    'e0-24-7f': ('华为', 'net'), 'f4-4c-7f': ('华为', 'net'), '58-60-5f': ('华为', 'net'),
-    '00-0f-e2': ('H3C', 'net'), '00-23-89': ('H3C', 'net'), '3c-8c-40': ('H3C', 'net'),
-    '80-f6-2e': ('H3C', 'net'), 'd4-3a-e9': ('H3C', 'net'),
-    '00-00-0c': ('思科', 'net'), '00-1b-0d': ('思科', 'net'), '00-1e-14': ('思科', 'net'),
-    '00-26-0b': ('思科', 'net'), 'f8-72-ea': ('思科', 'net'),
-    '00-14-a9': ('锐捷', 'net'), '90-55-de': ('锐捷', 'net'), 'c0-82-e1': ('锐捷', 'net'),
-    '50-c7-bf': ('TP-LINK', 'net'), '00-27-19': ('TP-LINK', 'net'), '14-cc-20': ('TP-LINK', 'net'),
-    'a4-2b-b0': ('TP-LINK', 'net'),
-    '00-05-5d': ('D-Link', 'net'), '14-d6-4d': ('D-Link', 'net'),
-    '00-d0-d0': ('中兴', 'net'), 'f8-4e-06': ('中兴', 'net'), '74-d5-0e': ('深信服', 'net'),
-    '00-1f-29': ('惠普', 'printer'), '3c-52-82': ('惠普', 'printer'), '00-1a-a0': ('惠普', 'printer'),
-    '10-1f-74': ('惠普', 'printer'), 'b0-5a-da': ('惠普', 'printer'),
-    '00-1e-a2': ('佳能', 'printer'), '18-8b-45': ('佳能', 'printer'),
-    '00-80-92': ('兄弟', 'printer'), '30-05-5c': ('兄弟', 'printer'),
-    '00-1b-25': ('爱普生', 'printer'), 'ac-18-26': ('爱普生', 'printer'),
-    '00-00-aa': ('富士施乐', 'printer'), '00-80-77': ('富士施乐', 'printer'),
-    '00-1e-8f': ('理光', 'printer'), '00-25-15': ('理光', 'printer'),
-    '64-87-88': ('京瓷', 'printer'), '00-04-00': ('利盟', 'printer'),
-    '00-e0-4c': ('Realtek', 'nic'), '3c-97-0e': ('Intel', 'nic'), '8c-ec-4b': ('Intel', 'nic'),
-    'f0-18-98': ('Apple', 'nic'), 'ac-de-48': ('Apple', 'nic'),
-    '28-6c-07': ('小米', 'nic'), '64-09-80': ('小米', 'nic'),
-    '88-ae-1d': ('戴尔', 'nic'), 'f8-b1-56': ('戴尔', 'nic'), '00-59-19': ('联想', 'nic'),
+PING_TIMEOUT_MS = 300
+PRINTER_PORT_NAME = {9100: 'JetDirect 9100', 631: 'IPP 631', 515: 'LPD 515'}
+
+# 常见服务端口 → 设备/系统特征（补充指纹：22/3389/8443 等）
+PORT_HINTS = {
+    22: 'SSH（Linux / 网络设备）',
+    3389: 'Windows 远程桌面',
+    8443: '管理口（深信服设备常用 8443）',
 }
 
-PRINTER_PORTS = {9100, 631, 515}   # JetDirect / IPP / LPD
-NETMGMT_PORTS = {23, 22, 161}      # Telnet / SSH / SNMP
-PC_PORTS = {445, 135}              # SMB / RPC
-SCAN_PORTS = (22, 23, 80, 135, 161, 443, 445, 515, 631, 9100)
+# 常见厂商 OUI 前缀（MAC 前 3 字节）
+OUI_VENDORS = {
+    '00-0f-e2': 'H3C', '00-e0-fc': 'H3C', '00-23-89': 'H3C', '28-6e-d4': '华为/H3C',
+    '04-f9-38': '华为', '18-c5-8a': '华为', '48-46-fb': '华为', '5c-c9-99': '华为',
+    '88-28-b3': '华为', '8c-ec-4b': '华为', 'd4-61-2e': '华为', 'e8-08-1f': '华为',
+    '00-25-86': '锐捷', '04-25-c5': '锐捷',
+    '00-00-0c': '思科', 'f8-72-ea': '思科', '00-1b-0d': '思科', '00-26-99': '思科',
+    '50-c7-bf': 'TP-LINK', 'd8-5d-84': 'TP-LINK', '14-cc-20': 'TP-LINK', 'f4-f2-6d': 'TP-LINK',
+    '3c-d9-2b': 'HP 打印机', '10-1f-74': 'HP 打印机', '2c-41-38': 'HP 打印机', '6c-3b-e5': 'HP 打印机',
+    '00-1e-8f': 'Canon 打印机', '18-e7-f4': 'Canon 打印机', 'f4-ce-8c': 'Canon 打印机',
+    '00-1b-a9': 'Brother 打印机', 'e0-5f-b9': 'Brother 打印机', '84-38-35': 'Brother 打印机',
+    '00-1b-25': 'Epson 打印机', '64-eb-8c': 'Epson 打印机',
+    '00-20-6d': 'Ricoh 打印机', '00-c0-ee': 'Kyocera 打印机',
+    'f8-db-88': 'Dell', '14-fe-b5': 'Dell', '18-03-73': 'Dell', 'a4-ba-db': 'Dell', '5c-f9-38': 'Dell',
+    '54-ee-75': '联想', '8c-16-45': '联想', '60-d9-c7': '联想', '5c-c3-07': '联想',
+    '14-da-e9': '联想', 'd0-7e-35': '联想', '00-25-64': '联想',
+    'f0-18-98': '苹果', '3c-07-54': '苹果', '14-99-e2': '苹果', 'a4-83-e7': '苹果', '50-ed-3c': '苹果',
+    '64-09-80': '小米', '8c-be-be': '小米', 'e4-46-da': '小米',
+}
 
 
-def run_cmd(cmd, timeout):
+def ping_alive(ip, timeout_ms=PING_TIMEOUT_MS):
     try:
-        r = subprocess.run(cmd, capture_output=True, timeout=timeout)
-        return r.stdout.decode('gbk', 'replace')
+        r = subprocess.run(['ping', '-n', '1', '-w', str(timeout_ms), ip],
+                           capture_output=True, timeout=timeout_ms / 1000.0 + 2)
+        out = r.stdout.decode('gbk', 'replace')
+        return r.returncode == 0 and 'TTL=' in out
     except Exception:
-        return ''
+        return False
 
 
-def oui_lookup(mac):
-    if not mac or len(mac) < 8:
-        return '', ''
-    return OUI_DB.get(mac[:8].lower(), ('', ''))
+def ping_sweep(prefix):
+    """并发 ping 扫描本机所在 /24 网段，返回在线 IP 列表。"""
+    ips = ['%s.%d' % (prefix, i) for i in range(1, 255)]
+    with ThreadPoolExecutor(max_workers=64) as ex:
+        results = list(ex.map(ping_alive, ips))
+    return [ip for ip, ok in zip(ips, results) if ok]
 
 
-def wifi_link_info():
-    """netsh 实测 Wi-Fi 关联信息（SSID / BSSID / 信号），AP 定位的实测依据。"""
-    info = {}
-    for ln in run_cmd(['netsh', 'wlan', 'show', 'interfaces'], 4).splitlines():
-        s = ln.strip()
-        for key, name in (('SSID', 'ssid'), ('BSSID', 'bssid')):
-            if s.startswith(key) and ':' in s:
-                info[name] = s.split(':', 1)[1].strip()
-        for sig_key in ('信号', 'Signal'):
-            if s.startswith(sig_key) and ':' in s:
-                m = re.search(r'(\d+)', s.split(':', 1)[1])
-                if m:
-                    info['signal'] = int(m.group(1))
-    return info
-
-
-def norm_mac(s):
-    """MAC 归一化（去分隔符小写），统一 netsh 'aa:bb:cc' 与 ARP 'aa-bb-cc' 两种格式。"""
-    return re.sub(r'[^0-9a-f]', '', (s or '').lower())
-
-
-def ping_sweep(base, workers=64):
-    """并发 ICMP 扫描 /24 网段，返回 {ip: ttl}。"""
-    result = {}
-
-    def one(i):
-        ip = '%s.%d' % (base, i)
-        text = run_cmd(['ping', '-n', '1', '-w', '500', '-l', '1', ip], 2)
-        m = re.search(r'TTL[=:：]\s*(\d+)', text, re.I)
-        return (ip, int(m.group(1))) if m else None
-
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        for r in ex.map(one, range(1, 255)):
-            if r:
-                result[r[0]] = r[1]
-    return result
-
-
-def arp_table():
-    """解析系统 ARP 缓存 {ip: mac}（ping 扫描后缓存最全）。"""
-    table = {}
-    for ln in run_cmd(['arp', '-a'], 5).splitlines():
-        m = re.match(r'\s*(\d+\.\d+\.\d+\.\d+)\s+((?:[0-9a-f]{2}-){5}[0-9a-f]{2})\s', ln, re.I)
+def read_arp_table():
+    """读取系统 ARP 表（ping 扫描后 MAC 已缓存），返回 {ip: mac}。"""
+    arp = {}
+    try:
+        raw = subprocess.run(['arp', '-a'], capture_output=True, timeout=5).stdout
+        text = raw.decode('gbk', 'replace')
+    except Exception:
+        return arp
+    for ln in text.splitlines():
+        m = re.search(r'(\d+\.\d+\.\d+\.\d+)\s+(([0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2})', ln)
         if m:
-            table[m.group(1)] = m.group(2).lower()
-    return table
+            arp[m.group(1)] = m.group(2).lower()
+    return arp
 
 
-def probe_ports(ip, timeout=0.4):
-    """并发 TCP 探测特征端口，返回开放端口列表。"""
-    def one(p):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(timeout)
-        try:
-            s.connect((ip, p))
-            return p
-        except OSError:
-            return None
-        finally:
-            s.close()
-
-    with ThreadPoolExecutor(max_workers=len(SCAN_PORTS)) as ex:
-        return [r for r in ex.map(one, SCAN_PORTS) if r]
-
-
-def http_title(ip, port):
-    """读取管理页 / 打印机 Web 标题（设备身份线索）。"""
-    try:
-        s = socket.create_connection((ip, port), timeout=1.0)
-        s.settimeout(1.2)
-        s.sendall(('GET / HTTP/1.0\r\nHost: %s\r\nUser-Agent: CyberNWT-NetSense/1.0\r\n\r\n' % ip).encode())
-        buf = b''
-        while len(buf) < 4096:
-            chunk = s.recv(1024)
-            if not chunk:
-                break
-            buf += chunk
-        s.close()
-        m = re.search(r'<title[^>]*>([^<]{1,80})</title>', buf.decode('utf-8', 'replace'), re.I)
-        return m.group(1).strip() if m else ''
-    except OSError:
+def mac_vendor(mac):
+    if not mac:
         return ''
+    return OUI_VENDORS.get(mac[:8].lower(), '')
 
 
-def reverse_names(ips, budget=4.0):
-    """并发反查主机名（Windows 走 NBNS/DNS，主机与打印机常可解析）。
-    有严格时间预算：卡住的解析线程不阻塞主流程。"""
-    names = {}
-
-    def one(ip):
-        try:
-            return ip, socket.gethostbyaddr(ip)[0]
-        except Exception:
+def parse_subnet(text):
+    """把用户录入的网段解析成 (prefix, bits)；支持 192.168.20.0/24、192.168.20、192.168.20.0 255.255.255.0。
+    非法返回 None。"""
+    t = (text or '').strip()
+    m = re.fullmatch(r'(\d{1,3}(?:\.\d{1,3}){0,3})(?:/(\d{1,2}))?(?:\s+(?:mask[:：]?)?(\d{1,3}(?:\.\d{1,3}){3}))?', t)
+    if not m:
+        return None
+    parts = m.group(1).split('.')
+    while len(parts) < 4:
+        parts.append('0')
+    try:
+        if any(int(p) > 255 for p in parts):
             return None
+        if m.group(3):                       # 点分掩码
+            bits = mask_to_prefix(m.group(3))
+        elif m.group(2) is not None:         # /bits
+            bits = int(m.group(2))
+        else:                                # 无掩码默认 /24
+            bits = 24
+        if not (8 <= bits <= 30):
+            return None
+    except Exception:
+        return None
+    # 统一成三段 prefix（与 build_real_network 的 base 同构）：'192.168.20.0/24' → '192.168.20'
+    prefix = '.'.join(parts[:3])
+    return (prefix, bits)
 
-    ex = ThreadPoolExecutor(max_workers=48)
+
+VIRTUAL_NIC_KEYWORDS = ('VirtualBox', 'VMware', 'Hyper-V', 'WSL', 'Loopback', 'TAP', 'TUN',
+                        'virtual', 'vEthernet', '蓝牙', 'Bluetooth')
+
+
+def is_virtual_adapter_name(name):
+    """按适配器名称判断是否虚拟/本地回环类网卡。"""
+    n = name or ''
+    return any(k.lower() in n.lower() for k in VIRTUAL_NIC_KEYWORDS)
+
+
+def local_nic_subnets():
+    """读 ipconfig，按【适配器块】枚举本机全部 IPv4 网卡。
+    返回 [{'prefix','bits','virtual'}]；virtual=True 为虚拟网卡（VirtualBox/VMware 等宿主私有网段，
+    不属于客户内网，自动批量扫描时应排除）。失败返回 []。"""
+    out = []
     try:
-        futs = [ex.submit(one, ip) for ip in ips]
-        deadline = time.time() + budget
-        for f in futs:
-            if time.time() > deadline:
-                break
-            try:
-                r = f.result(timeout=max(0.05, deadline - time.time()))
-                if r:
-                    names[r[0]] = r[1]
-            except Exception:
-                pass
-    finally:
-        ex.shutdown(wait=False)
-    return names
-
-
-def ssdp_discover(budget=2.5):
-    """SSDP M-SEARCH：UPnP 设备发现（路由器/打印机/NAS 常响应，含自报身份）。"""
-    found = {}
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        msg = (b'M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\n'
-               b'MAN: "ssdp:discover"\r\nMX: 2\r\nST: ssdp:all\r\n\r\n')
-        sock.sendto(msg, ('239.255.255.250', 1900))
-        sock.settimeout(0.3)
-        t0 = time.time()
-        while time.time() - t0 < budget:
-            try:
-                data, addr = sock.recvfrom(2048)
-            except socket.timeout:
+        raw = subprocess.run(['ipconfig'], capture_output=True, timeout=6).stdout
+        text = raw.decode('gbk', 'replace')
+    except Exception:
+        return out
+    # 按"适配器"行切分块，逐块内配对 IPv4 与掩码
+    blocks = re.split(r'\n(?=\s*\S*适配器|\n(?=\s*adapter ))', '\n' + text, flags=re.I)
+    for blk in blocks:
+        mname = re.search(r'适配器\s*([^\n:：]+)|adapter\s+([^\n:：]+)', blk, re.I)
+        name = (mname.group(1) or mname.group(2)).strip() if mname else ''
+        virtual = is_virtual_adapter_name(name)
+        ips = re.findall(r'IPv4[^：:\n]*[：:]\s*(\d+\.\d+\.\d+\.\d+)', blk)
+        masks = re.findall(r'(?:子网掩码|Subnet Mask)[^：:\n]*[：:]\s*(\d+\.\d+\.\d+\.\d+)', blk)
+        for ip, mask in zip(ips, masks[:len(ips)]):
+            if ip.startswith('127.') or ip.startswith('169.254.'):
                 continue
-            except OSError:
+            bits = mask_to_prefix(mask)
+            prefix = '.'.join(ip.split('.')[:3])
+            cand = {'prefix': prefix, 'bits': bits, 'virtual': virtual}
+            if cand not in out:
+                out.append(cand)
+    # 兜底：知名虚拟宿主网段即使名称没带上关键字也标为虚拟
+    KNOWN_VIRTUAL_PREFIXES = ('192.168.56.',)   # VirtualBox Host-Only 默认段
+    for item in out:
+        if item['prefix'].startswith(KNOWN_VIRTUAL_PREFIXES):
+            item['virtual'] = True
+    return out
+
+
+# ---------------- SNMP v2c（纯标准库 BER，读交换机 MAC 地址表） ----------------
+SNMP_OID_SYSDESCR = '1.3.6.1.2.1.1.1.0'          # sysDescr.0：探活+识别交换机型号
+SNMP_OID_MAC_TABLE = '1.3.6.1.2.1.17.4.3.1.2'    # dot1dTpFdbTable：MAC → 端口
+
+
+def _ber_len(n):
+    if n < 128:
+        return bytes([n])
+    b = n.to_bytes((n.bit_length() + 7) // 8, 'big')
+    return bytes([0x80 | len(b)]) + b
+
+
+def _ber_oid(oid):
+    parts = [int(x) for x in oid.split('.')]
+    body = bytes([parts[0] * 40 + parts[1]])
+    for p in parts[2:]:
+        chunk = []
+        chunk.append(p & 0x7F)
+        p >>= 7
+        while p:
+            chunk.append((p & 0x7F) | 0x80)
+            p >>= 7
+        body += bytes(reversed(chunk))
+    return b'\x06' + _ber_len(len(body)) + body
+
+
+def _ber_int(n):
+    b = n.to_bytes(max(1, (n.bit_length() + 8) // 8), 'big', signed=True)
+    return b'\x02' + _ber_len(len(b)) + b
+
+
+def _ber_octets(b):
+    return b'\x04' + _ber_len(len(b)) + b
+
+
+def _ber_seq(payload, tag=0x30):
+    return bytes([tag]) + _ber_len(len(payload)) + payload
+
+
+def _asn1_walk(objs, tag):
+    """从 BER 缓冲里取出指定 tag 的所有 TLV（用于解 SNMP 响应）。"""
+    out = []
+    i = 0
+    while i < len(objs):
+        t = objs[i]
+        if i + 1 >= len(objs):
+            break
+        ln = objs[i + 1]
+        hd = 2
+        if ln & 0x80:
+            k = ln & 0x7F
+            ln = int.from_bytes(objs[i + 2:i + 2 + k], 'big')
+            hd = 2 + k
+        if t == tag:
+            out.append(objs[i + hd:i + hd + ln])
+        i += hd + ln
+    return out
+
+
+def snmp_getnext_walk(ip, community, version, base_oid, max_rows=200, timeout=1.0):
+    """纯标准库实现 SNMP v2c GETNEXT 遍历，返回 {oid字符串: 值字节}。
+    仅支持 v2c（v3 需要 USM 加密，超出标准库范围，前端给出提示）。失败返回 {}。"""
+    if version not in ('v2c', '2c', '2'):
+        return {}
+    res = {}
+    oid = base_oid
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(timeout)
+    try:
+        for _ in range(max_rows):
+            # SNMP GETNEXT PDU tag = 0xA1；请求 id=1, err=0, erridx=0
+            varbind = _ber_seq(_ber_oid(oid))
+            pdu_body = _ber_int(1) + _ber_int(0) + _ber_int(0) + _ber_seq(varbind)
+            pdu = b'\xa1' + _ber_len(len(pdu_body)) + pdu_body
+            packet = _ber_seq(_ber_int(version_map(version)) + _ber_octets(community.encode()) + pdu)
+            sock.sendto(packet, (ip, 161))
+            try:
+                data, _ = sock.recvfrom(4096)
+            except socket.timeout:
                 break
-            text = data.decode('utf-8', 'replace')
-            m = re.search(r'LOCATION:\s*http://(\d+\.\d+\.\d+\.\d+)', text, re.I)
-            srv = re.search(r'SERVER:\s*(.+)', text, re.I)
-            if m:
-                ip = m.group(1)
-                cur = found.get(ip, '')
-                if srv and len(srv.group(1).strip()) > len(cur):
-                    found[ip] = srv.group(1).strip()
-        sock.close()
-    except OSError:
+            # 粗解：直接在整包里找 OCTET STRING（第一个为 OID，最后一个为值）
+            octets = _asn1_walk(data, 0x06)
+            if len(octets) < 2:
+                break
+            next_oid_raw, val_raw = octets[0], octets[-1]
+            next_oid = '.'.join(str(b) for b in _decode_oid(next_oid_raw))
+            if not next_oid.startswith(base_oid):
+                break
+            res[next_oid] = val_raw
+            oid = next_oid
+    except Exception:
         pass
-    return found
+    finally:
+        sock.close()
+    return res
 
 
-def classify_device(dev, wifi_bssid):
-    """多指纹分类（优先级从高到低）：BSSID 实测 > 打印端口 > OUI 厂商 > 管理端口 > TTL。"""
-    ports = set(dev['ports'])
-    vendor, kind = oui_lookup(dev.get('mac', ''))
-    ttl = dev.get('ttl', 0)
-    if wifi_bssid and norm_mac(dev.get('mac')) == wifi_bssid:
-        return 'ap', '实测·Wi-Fi BSSID', vendor or '—'
-    if ports & PRINTER_PORTS:
-        hit = sorted(ports & PRINTER_PORTS)[0]
-        return 'printer', '实测·打印端口 %d' % hit, vendor or '—'
-    if kind == 'printer':
-        return 'printer', '实测·OUI 厂商指纹', vendor
-    if kind == 'net' and (ports & NETMGMT_PORTS):
-        return 'switch', '实测·OUI+管理端口', vendor
-    if kind == 'net':
-        return ('ap' if 80 in ports else 'switch'), '实测·OUI+端口', vendor
-    if ports & PC_PORTS:
-        return 'client', '实测·SMB/RPC 端口', vendor or '—'
-    if ttl >= 120:
-        return 'client', '实测·ICMP(TTL=%d)' % ttl, vendor or '—'
-    if 80 in ports or 443 in ports:
-        return 'server', '实测·Web 服务', vendor or '—'
-    return 'client', '实测·ICMP 存活', vendor or '—'
+def version_map(v):
+    return {0: 0, 1: 0, 'v1': 0, 'v2c': 1, '2c': 1, '2': 1}.get(v, 1)
 
 
-def _dev_label(dev):
-    """设备显示名：主机名 / Web 标题 / 厂商+角色，取最有识别度的一个。"""
-    if dev['role'] == 'printer' and dev.get('title'):
-        return dev['title'][:24]
-    if dev.get('hostname'):
-        return dev['hostname'].split('.')[0][:24]
-    role_names = {'gateway': '网关/路由', 'switch': '交换机', 'ap': '无线 AP',
-                  'printer': '打印机', 'server': '服务器', 'client': '网络终端'}
-    v = dev.get('vendor')
-    label = '%s %s' % (v if v and v != '—' else '', role_names.get(dev['role'], '设备'))
-    return label.strip()
+def _decode_oid(raw):
+    if not raw:
+        return []
+    first = raw[0]
+    out = [first // 40, first % 40]
+    val = 0
+    for b in raw[1:]:
+        val = (val << 7) | (b & 0x7F)
+        if not (b & 0x80):
+            out.append(val)
+            val = 0
+    return out
 
 
-def build_real_network(real):
-    """真实感知主流程：ICMP 扫描 → ARP → 端口/HTTP/主机名指纹 → 分类 → 实测拓扑。"""
-    base = real['ip'].rsplit('.', 1)[0]
-    wifi = wifi_link_info()
-    wifi_bssid = norm_mac(wifi.get('bssid'))
-    gw_ip = real['gateway']
+def snmp_probe_switch(ip, community, version):
+    """SNMP 探测交换机：取 sysDescr 验证可达；成功返回 {'ok':True,'sysdescr':...}。"""
+    rows = snmp_getnext_walk(ip, community, version, SNMP_OID_SYSDESCR, max_rows=1)
+    if not rows:
+        return {'ok': False}
+    val = next(iter(rows.values()), b'')
+    return {'ok': True, 'sysdescr': val.decode('utf-8', 'replace').strip()[:120]}
 
-    # 1) 并行：ICMP 全网段扫描 + SSDP 发现
-    with ThreadPoolExecutor(max_workers=2) as ex:
-        f_ping = ex.submit(ping_sweep, base)
-        f_ssdp = ex.submit(ssdp_discover)
-        live = f_ping.result()
-        ssdp = f_ssdp.result()
-    # 2) ARP 表（扫描后缓存最全）
-    macs = arp_table()
-    # 3) 存活设备逐台指纹（端口 + Web 标题）
-    devs = [{'ip': ip, 'ttl': ttl, 'mac': macs.get(ip, ''), 'ports': [], 'title': '',
-             'hostname': '', 'ssdp': ssdp.get(ip, '')} for ip, ttl in live.items()]
 
-    def fingerprint(d):
-        d['ports'] = probe_ports(d['ip'])
-        web_port = 80 if 80 in d['ports'] else (443 if 443 in d['ports'] else 0)
-        if web_port:
-            d['title'] = http_title(d['ip'], web_port)
-        return d
+def snmp_read_mac_table(ip, community, version):
+    """读交换机 dot1dTpFdbTable，返回 {'mac列表': [...], 'ok': True}；不可达返回 {'ok':False}。"""
+    rows = snmp_getnext_walk(ip, community, version, SNMP_OID_MAC_TABLE, max_rows=256)
+    if not rows:
+        return {'ok': False}
+    macs = []
+    for oid, val in rows.items():
+        # FdbTable 索引尾部 6 字节即 MAC
+        tail = oid.split('.')[-6:]
+        if len(tail) == 6 and all(t.isdigit() for t in tail):
+            macs.append('-'.join('%02x' % int(t) for t in tail))
+    return {'ok': True, 'macs': macs}
 
-    with ThreadPoolExecutor(max_workers=24) as ex:
-        devs = list(ex.map(fingerprint, devs))
-    # 4) 主机名反查
-    names = reverse_names([d['ip'] for d in devs])
-    for d in devs:
-        d['hostname'] = names.get(d['ip'], '')
 
-    # 5) 分类（排除本机；网关单独标注）
-    classified = []
-    for d in devs:
-        if d['ip'] == real['ip']:
+def fingerprint_host(ip):
+    """对在线主机做端口指纹：打印机(9100/631/515) + SMB(445) + SSH/RDP/管理口(22/3389/8443)。
+    返回 fp：printer_port / smb / hints(服务特征列表) / label(综合推断)。"""
+    fp = {'ip': ip, 'printer_port': None, 'smb': False, 'hints': []}
+    open_ports = []
+    for port in (9100, 631, 515, 445, 22, 3389, 8443):
+        try:
+            s = socket.create_connection((ip, port), timeout=0.5)
+            s.close()
+            open_ports.append(port)
+        except Exception:
+            pass
+    for port in open_ports:
+        if port in PRINTER_PORT_NAME and fp['printer_port'] is None:
+            fp['printer_port'] = port
+        elif port == 445:
+            fp['smb'] = True
+        elif port in PORT_HINTS:
+            fp['hints'].append(PORT_HINTS[port])
+    # 综合标签：多特征叠加推断设备身份
+    labels = []
+    if fp['smb']:
+        labels.append('Windows 终端（SMB）')
+    if 22 in open_ports:
+        labels.append('Linux / 网络设备（SSH）')
+    if 3389 in open_ports:
+        labels.append('Windows（远程桌面开放）')
+    if 8443 in open_ports:
+        labels.append('疑似深信服设备（8443 管理口）')
+    fp['label'] = ' + '.join(labels) if labels else ''
+    fp['open_ports'] = open_ports
+    return fp
+
+
+# ---------------- 深信服设备知识库（工程师声明上架设备 → 建模 + 部署建议） ----------------
+# mode: inline=串接在出口链路上 / onearm=旁挂核心或核心交换 / serverzone=旁挂服务器区
+# 旁挂类设备（部署不改变主链路，拓扑上画在核心/汇聚侧位）
+SANGFOR_BYPASS = {'AC', 'SSL', 'EDR', 'VDC', 'XAC'}
+
+SANGFOR_DEVICES = {
+    'AF': {'name': '深信服 AF', 'full': 'AF 下一代防火墙', 'icon': '🛡️', 'mode': 'inline', 'tier': 1,
+           'summary': '边界安全：防火墙 / IPS / 防病毒 / 上网策略',
+           'deploy': '串接在出口网关与内网之间（透明桥或路由模式），做出口边界防护与策略控制'},
+    'AC': {'name': '深信服 AC', 'full': 'AC 上网行为管理', 'icon': '🎛️', 'mode': 'onearm', 'tier': 3,
+           'summary': '上网行为管理：流量管控 / 行为审计 / 上网认证',
+           'deploy': '默认旁挂（经核心交换机镜像/引流审计，不改变路由）；注明「串联/串接/网桥」时透明串接在路由器下方，内网终端接于其下'},
+    'AD': {'name': '深信服 AD', 'full': 'AD 应用交付', 'icon': '⚖️', 'mode': 'inline', 'tier': 1,
+           'summary': '应用交付：链路负载均衡 / 服务器负载均衡',
+           'deploy': '部署在互联网多线接入与服务器区之间，做链路选路与应用发布加速'},
+    'EDR': {'name': '深信服 EDR', 'full': 'EDR 终端安全平台', 'icon': '🧬', 'mode': 'serverzone', 'tier': 3,
+           'summary': '终端检测与响应：病毒查杀 / 勒索防护 / 资产盘点',
+           'deploy': '旁挂部署在服务器区或办公网段可达位置，各终端安装 Agent 统一管控'},
+    'VDC': {'name': '深信服 VDC', 'full': 'VDC 虚拟桌面管理', 'icon': '🖥️', 'mode': 'serverzone', 'tier': 3,
+            'summary': '云桌面：虚拟桌面交付 / 集中管控',
+            'deploy': '旁挂部署在服务器区，配套 aDesk 云终端使用，承载桌面虚拟化业务'},
+    'SSL': {'name': '深信服 SSL VPN', 'full': 'SSL VPN / 零信任接入', 'icon': '🔐', 'mode': 'onearm', 'tier': 3,
+            'summary': '远程接入：SSL VPN / 多因素认证 / 零信任',
+            'deploy': '旁挂或串接在出口区，对外发布远程接入入口，供移动办公与运维接入'},
+    'WOC': {'name': '深信服 WOC', 'full': 'WOC 广域网优化', 'icon': '🚀', 'mode': 'inline', 'tier': 1,
+            'summary': '广域网优化：链路加速 / 数据缓存 / QoS',
+            'deploy': '串接在出口链路上（两端各一台成对部署），加速跨广域业务流量'},
+    'XAC': {'name': '深信服 XAC', 'full': 'XAC 云原生安全平台', 'icon': '☁️', 'mode': 'serverzone', 'tier': 3,
+            'summary': '云安全资源池：按需交付安全能力',
+            'deploy': '旁挂部署在服务器区/云管理网，按业务按需编排安全资源'},
+}
+
+
+def build_planned_devices(planned):
+    """把工程师声明的上架设备清单规范化：[{key,type,note}]，key 为类型缩写。
+    未识别的类型按自定义设备处理。返回 (规范化列表, 无法识别提示)。"""
+    norm, unknown = [], []
+    for item in (planned or [])[:12]:
+        key = str(item.get('type') or item.get('key') or '').strip().upper()
+        note = str(item.get('note', '')).strip()
+        if not key:
             continue
-        if d['ip'] == gw_ip:
-            d['role'], d['conf'] = 'gateway', '实测·ARP 网关+ICMP'
-            d['vendor'] = oui_lookup(d['mac'])[0] or '—'
+        if key in SANGFOR_DEVICES:
+            norm.append({'key': key, 'note': note})
         else:
-            d['role'], d['conf'], d['vendor'] = classify_device(d, wifi_bssid)
-        classified.append(d)
+            unknown.append(key)
+    return norm, unknown
 
-    switches = [d for d in classified if d['role'] == 'switch']
-    aps = [d for d in classified if d['role'] == 'ap']
-    printers = [d for d in classified if d['role'] == 'printer']
-    servers = [d for d in classified if d['role'] == 'server']
-    clients = [d for d in classified if d['role'] == 'client']
 
-    # 6) 组装拓扑：互联网 → 网关 → (核心/接入交换机) → AP/打印机/服务器/终端
-    nodes = [{'id': 'net', 'tier': 0, 'icon': '☁️', 'name': '互联网', 'role': 'isp', 'ip': '', 'conf': '—'}]
+def _resolve_mode(key, note):
+    """设备实际部署方式：知识表默认 + 工程师期望词覆盖。
+    含「出口」→ 强制出口位由上层判断；此处只区分链路形态：
+    串接/网桥/透明 → inline；旁挂/旁路/镜像 → bypass；否则用知识表默认。"""
+    nl = (note or '').lower()
+    if any(w in nl for w in ('串接', '串联', '网桥', '透明', 'inline', 'bridge')):
+        return 'inline'
+    if any(w in nl for w in ('旁挂', '旁路', '镜像', 'onearm', 'bypass')):
+        return 'bypass'
+    return SANGFOR_DEVICES[key]['mode']
+
+
+def build_real_network(real, extra_subnets=None, snmp=None, planned=None):
+    """真实感知：ping 扫描本机网段（可加工程师手填的其他网段/多网卡网段批量）
+    + ARP 厂商指纹 + 端口探测（9100/631/515/445/22/3389/8443）。
+    snmp={'community','version','ip'}：提供则尝试 SNMP 读交换机（sysDescr 探活 + MAC 地址表），
+    拿到即生成 kind='snmp-real' 的实测物理链路；拿不到保持逻辑推演（kind='access'）并附说明。
+    planned：工程师声明的上架设备清单（见 SANGFOR_DEVICES），逐台在拓扑上建模；
+    未声明时默认建模一台深信服 AF（与原行为一致）。
+    【如实标注】除「规划部署」节点（为施工建议而建模）外，
+    所有节点与主机均为实测数据；关闭 ICMP 的设备可能未被感知。"""
+    base = '.'.join(real['ip'].split('.')[:3])
+    prefix = mask_to_prefix(real['mask'])
+
+    live = ping_sweep(base)
+    arp = read_arp_table()
+    if real['ip'] not in live:
+        live.append(real['ip'])
+
+    # ARP 有记录但首轮 ping 未响应的同网段主机：多半只是响应慢，用长超时重试一次
+    candidates = [ip for ip in arp
+                  if ip.startswith(base + '.') and not ip.endswith('.255')
+                  and ip not in live and ip != real['gateway']]
+    if candidates:
+        with ThreadPoolExecutor(max_workers=16) as ex:
+            retried = list(ex.map(lambda ip: ping_alive(ip, 800), candidates))
+        live.extend(ip for ip, ok in zip(candidates, retried) if ok)
+
+    gw_ok = real['gateway'] in live or real['gateway'] in arp
+    others = sorted((ip for ip in live if ip not in (real['ip'], real['gateway'])),
+                    key=lambda x: [int(p) for p in x.split('.')])
+
+    with ThreadPoolExecutor(max_workers=32) as ex:
+        fps = list(ex.map(fingerprint_host, others))
+
+    printers = [fp for fp in fps if fp['printer_port']]
+    terminals = [fp for fp in fps if not fp['printer_port']]
+
+    def vendor_of(ip):
+        return mac_vendor(arp.get(ip, ''))
+
+    # ---- 规划部署建模（按工程师声明的部署位置真实建模）----
+    # 位置语义（由设备默认 + 工程师期望词共同决定）：
+    #   up     = 出口位：互联网与路由器之间（AF/AD/WOC 出口设备默认；或注明「出口」）
+    #   down   = 串接位：路由器下方（注明「串接/串联/网桥/透明」的设备，如 AC 串联）
+    #   bypass = 旁挂位：主链路侧位（注明「旁挂/旁路/镜像」，不改变主链路）
+    # 链路顺序：互联网 → up 链 → 路由器 → down 链 → 内网终端（终端接在 down 链末端之下）
+    planned_norm, planned_unknown = build_planned_devices(planned)
+    if not planned_norm:
+        planned_norm = [{'key': 'AF', 'note': ''}]
+    planned_ids = []           # 供部署建议使用：[{id,key,note,info,mode,pos}]
+    nodes = [
+        {'id': 'net', 'layer': 0, 'tier': 0, 'icon': '☁️', 'name': '互联网', 'role': 'isp', 'ip': '', 'conf': '—'},
+        {'id': 'gw', 'layer': 99, 'tier': 1, 'icon': '🔗', 'name': '出口网关/路由', 'role': 'gateway',
+         'ip': real['gateway'], 'vendor': vendor_of(real['gateway']) or '—',
+         'mac': arp.get(real['gateway'], ''),
+         'conf': '实测（网关，ping %s）' % ('通' if gw_ok else '未响应')},
+    ]
     links = []
-    nodes.append({'id': 'gw', 'tier': 1, 'icon': '🔗', 'name': '出口网关（实测）', 'role': 'gateway',
-                  'ip': gw_ip, 'vendor': next(d['vendor'] for d in classified if d['role'] == 'gateway'),
-                  'conf': '实测·ARP 网关+ICMP'})
-    uplink_id = 'gw'
 
-    if switches:
-        core = switches[0]
-        nodes.append({'id': 'core', 'tier': 2, 'icon': '🔀', 'name': _dev_label(core) or '交换机',
-                      'role': 'core', 'ip': core['ip'], 'vendor': core['vendor'], 'conf': core['conf']})
-        links.append({'from': 'gw', 'to': 'core', 'label': 'Trunk', 'kind': 'trunk'})
-        uplink_id = 'core'
-        for i, d in enumerate(switches[1:]):
-            nid = 'acc%d' % (i + 1)
-            nodes.append({'id': nid, 'tier': 3, 'icon': '🔀', 'name': _dev_label(d) or ('交换机 %d' % (i + 1)),
-                          'role': 'access', 'ip': d['ip'], 'vendor': d['vendor'], 'conf': d['conf']})
-            links.append({'from': 'core', 'to': nid, 'label': '级联', 'kind': 'trunk'})
-            uplink_id = nid
+    up_devs, down_devs, bypass_devs = [], [], []
+    for pd in planned_norm:
+        nl = (pd['note'] or '').lower()
+        # 工程师期望词优先：出口 → up；串接/串联/网桥/透明 → down；旁挂/旁路/镜像 → bypass；
+        # 未注明时按设备默认形态：inline 类（AF/AD/WOC）默认出口位，其余默认旁挂位
+        if any(w in nl for w in ('出口', '路由器上', '网关上', '互联网')):
+            pos_key = 'up'
+        elif any(w in nl for w in ('串接', '串联', '网桥', '透明')):
+            pos_key = 'down'
+        elif any(w in nl for w in ('旁挂', '旁路', '镜像')):
+            pos_key = 'bypass'
+        else:
+            pos_key = 'up' if SANGFOR_DEVICES[pd['key']]['mode'] == 'inline' else 'bypass'
+        {'up': up_devs, 'down': down_devs, 'bypass': bypass_devs}[pos_key].append(
+            {'key': pd['key'], 'note': pd['note'], 'info': SANGFOR_DEVICES[pd['key']], 'pos': pos_key})
 
-    for i, d in enumerate(aps):
-        nid = 'ap%d' % (i + 1)
-        nm = wifi.get('ssid') if wifi_bssid and norm_mac(d['mac']) == wifi_bssid else None
-        nodes.append({'id': nid, 'tier': 3, 'icon': '📶',
-                      'name': ('AP · %s' % nm) if nm else (_dev_label(d) or ('AP-%02d' % (i + 1))),
-                      'role': 'ap', 'ip': d['ip'], 'vendor': d['vendor'], 'conf': d['conf']})
-        links.append({'from': uplink_id, 'to': nid, 'label': 'PoE/有线', 'kind': 'access'})
-    for i, d in enumerate(printers):
-        nid = 'prt%d' % (i + 1)
-        nodes.append({'id': nid, 'tier': 4, 'icon': '🖨️', 'name': _dev_label(d) or ('打印机 %d' % (i + 1)),
-                      'role': 'printer', 'ip': d['ip'], 'vendor': d['vendor'], 'conf': d['conf']})
-        links.append({'from': uplink_id, 'to': nid, 'label': 'Access', 'kind': 'access'})
-    for i, d in enumerate(servers):
-        nid = 'srv%d' % (i + 1)
-        nodes.append({'id': nid, 'tier': 4, 'icon': '🗄️', 'name': _dev_label(d) or ('服务器 %d' % (i + 1)),
-                      'role': 'server', 'ip': d['ip'], 'vendor': d['vendor'], 'conf': d['conf']})
-        links.append({'from': uplink_id, 'to': nid, 'label': 'Access', 'kind': 'access'})
+    # up 出口链：互联网→up设备们→路由器
+    prev = 'net'
+    seq = 0
+    for d in up_devs:
+        seq += 1
+        dev_id = 'plan%d' % len(planned_ids)
+        nodes.append({'id': dev_id, 'layer': seq, 'tier': seq, 'icon': d['info']['icon'],
+                      'name': '%s（规划部署）' % d['info']['name'], 'role': 'sangfor',
+                      'ip': '管理 IP 待规划', 'vendor': '深信服', 'conf': '规划部署',
+                      'plan_key': d['key'], 'plan_note': d['note'], 'pos': d['pos']})
+        links.append({'from': prev, 'to': dev_id, 'label': '出口链路', 'kind': 'uplink'})
+        prev = dev_id
+        planned_ids.append({'id': dev_id, 'key': d['key'], 'note': d['note'],
+                            'info': d['info'], 'mode': 'inline', 'pos': 'up'})
+    links.append({'from': prev, 'to': 'gw', 'label': '出口链路', 'kind': 'uplink'})
+    gw_layer = seq + 1
+    next(n for n in nodes if n['id'] == 'gw')['layer'] = gw_layer
 
-    if clients:
-        nodes.append({'id': 'pcs', 'tier': 4, 'icon': '💻', 'name': '在线终端 ×%d' % len(clients),
-                      'role': 'clients', 'ip': base + '.0/24', 'conf': '实测·ICMP 存活 %d 台' % len(clients)})
-        links.append({'from': uplink_id, 'to': 'pcs',
-                      'label': real['conn_type'] == 'wifi' and 'Wi-Fi' or 'Access',
-                      'kind': 'wireless' if real['conn_type'] == 'wifi' else 'access'})
+    # down 串接链：路由器→down设备们→内网
+    prev = 'gw'
+    for d in down_devs:
+        gw_layer += 1
+        dev_id = 'plan%d' % len(planned_ids)
+        nodes.append({'id': dev_id, 'layer': gw_layer, 'tier': gw_layer, 'icon': d['info']['icon'],
+                      'name': '%s（规划部署）' % d['info']['name'], 'role': 'sangfor',
+                      'ip': '管理 IP 待规划', 'vendor': '深信服', 'conf': '规划部署',
+                      'plan_key': d['key'], 'plan_note': d['note'], 'pos': d['pos']})
+        links.append({'from': prev, 'to': dev_id, 'label': '规划串接', 'kind': 'plan'})
+        prev = dev_id
+        planned_ids.append({'id': dev_id, 'key': d['key'], 'note': d['note'],
+                            'info': d['info'], 'mode': 'inline', 'pos': 'down'})
 
-    nodes.append({'id': 'me', 'tier': 4, 'icon': '🧑‍🔧', 'name': '工程师本机（实测）', 'role': 'self',
-                  'ip': real['ip'], 'conf': '实测·本机网卡'})
-    parent = next(('ap%d' % (aps.index(d) + 1) for d in aps if wifi_bssid and norm_mac(d['mac']) == wifi_bssid), uplink_id)
-    links.append({'from': parent, 'to': 'me',
-                  'label': wifi.get('ssid') if real['conn_type'] == 'wifi' and wifi.get('ssid') else ('Wi-Fi' if real['conn_type'] == 'wifi' else '有线'),
+    # 旁挂设备：挂在 down 链末端（无 down 设备则路由器）侧位
+    bypass_anchor = prev
+    for d in bypass_devs:
+        dev_id = 'plan%d' % len(planned_ids)
+        nodes.append({'id': dev_id, 'layer': gw_layer, 'tier': gw_layer, 'icon': d['info']['icon'],
+                      'name': '%s（规划部署）' % d['info']['name'], 'role': 'sangfor',
+                      'ip': '管理 IP 待规划', 'vendor': '深信服', 'conf': '规划部署',
+                      'plan_key': d['key'], 'plan_note': d['note'], 'pos': d['pos']})
+        links.append({'from': bypass_anchor, 'to': dev_id, 'label': '旁挂接入', 'kind': 'bypass'})
+        planned_ids.append({'id': dev_id, 'key': d['key'], 'note': d['note'],
+                            'info': d['info'], 'mode': 'bypass', 'pos': 'bypass'})
+
+    # 内网设备逻辑接入点：down 链末端（无 down 设备则路由器）
+    inner_from = prev
+
+    # 出口链路自上而下：互联网→路由器；串接链在路由器下方（互联网→路由器→串接设备…）
+
+
+    n_term = len(terminals)
+    nodes.append({'id': 'pc', 'layer': gw_layer + 2, 'tier': 5, 'icon': '💻',
+                  'name': '在线终端 ×%d' % n_term if n_term else '未发现其他终端',
+                  'role': 'clients', 'ip': '%s.0/%d' % (base, prefix), 'conf': '实测（ping 扫描）'})
+    links.append({'from': inner_from, 'to': 'pc', 'label': '内网接入', 'kind': 'access'})
+
+    for i, fp in enumerate(printers):
+        nodes.append({'id': 'prt%d' % (i + 1), 'layer': gw_layer + 2, 'tier': 5, 'icon': '🖨️',
+                      'name': '打印机 %s' % fp['ip'].rsplit('.', 1)[1], 'role': 'printer',
+                      'ip': fp['ip'], 'vendor': vendor_of(fp['ip']) or '—',
+                      'mac': arp.get(fp['ip'], ''),
+                      'conf': '实测（%s 开放）' % PRINTER_PORT_NAME[fp['printer_port']]})
+        links.append({'from': inner_from, 'to': 'prt%d' % (i + 1), 'label': 'Access', 'kind': 'access'})
+
+    nodes.append({'id': 'me', 'layer': gw_layer + 2, 'tier': 5, 'icon': '🧑‍🔧', 'name': '工程师本机', 'role': 'self',
+                  'ip': real['ip'], 'mac': real['mac'], 'conf': '实测'})
+    links.append({'from': inner_from, 'to': 'me',
+                  'label': 'Wi-Fi' if real['conn_type'] == 'wifi' else '有线',
                   'kind': 'wireless' if real['conn_type'] == 'wifi' else 'access'})
 
-    subnets = [{'cidr': base + '.0/24', 'vlan': '—', 'name': '现场实测网段', 'gateway': gw_ip,
-                'hosts': len(live), 'dhcp': bool(real.get('dhcp'))}]
-    if wifi.get('ssid') and real['conn_type'] == 'wifi':
-        subnets[0]['wifi'] = {'ssid': wifi['ssid'], 'signal': wifi.get('signal', 0)}
+    subnets = [{'cidr': '%s.0/%d' % (base, prefix), 'vlan': '1（默认）',
+                'name': '本机所在办公网段', 'gateway': real['gateway'],
+                'hosts': len(live), 'dhcp': real['dhcp']}]
 
+    # ---- 多网段扩展：工程师手填的其他网段 + 本机多网卡网段，批量并入扫描 ----
+    # 主机清单：普通终端（网关/打印机/本机已在拓扑节点中，避免重复）；扩展网段主机也会并入
     hosts = []
-    for d in clients:
-        hosts.append({'ip': d['ip'], 'type': d['hostname'].split('.')[0][:20] if d['hostname'] else '网络终端',
-                      'vendor': d['vendor'], 'conf': d['conf']})
+    extra_notes = []
+    scanned_extra = []                     # [(prefix,bits)]
+    for text in (extra_subnets or []):
+        parsed = parse_subnet(text)
+        if parsed and parsed not in scanned_extra and parsed != (base, prefix):
+            scanned_extra.append(parsed)
+        elif not parsed:
+            extra_notes.append('网段「%s」格式无法识别，已跳过（示例：192.168.20.0/24）' % text)
+    # 多网卡：自动并入本机其余【物理】网卡的网段；虚拟网卡（VirtualBox/VMware 等宿主私有网段）
+    # 不是客户内网，自动扫描时排除，保证结果真实客观（工程师手动填了才扫，且会标注）
+    for cand in local_nic_subnets():
+        key = (cand['prefix'], cand['bits'])
+        if key == (base, prefix) or key in scanned_extra:
+            continue
+        if cand['virtual']:
+            extra_notes.append('已跳过本机虚拟网卡网段 %s.0/%d（VirtualBox 等宿主私有网段，不属于客户内网）'
+                               % (cand['prefix'], cand['bits']))
+            continue
+        scanned_extra.append(key)
+        extra_notes.append('检测到本机多网卡网段 %s.0/%d，已自动并入扫描' % (cand['prefix'], cand['bits']))
 
-    scn = {'has_ac': len(aps) >= 2, 'has_core': bool(switches), 'multi_subnet': False,
-           'flat': True, 'me_wifi': real['conn_type'] == 'wifi'}
-    return {'nodes': nodes, 'links': links, 'subnets': subnets, 'hosts': hosts, 'scenario': scn,
-            'scan_stats': {'alive': len(live), 'with_mac': len(macs), 'ssdp_hits': len(ssdp)}}
+    remote_hosts_total = 0
+    for gi, (pfx, bits) in enumerate(scanned_extra, start=1):
+        seg_live = [ip for ip in ping_sweep(pfx) if ip != real['ip']]
+        with ThreadPoolExecutor(max_workers=24) as ex:
+            seg_fps = list(ex.map(fingerprint_host, seg_live))
+        seg_prn = [fp for fp in seg_fps if fp['printer_port']]
+        seg_term = [fp for fp in seg_fps if not fp['printer_port']]
+        remote_hosts_total += len(seg_live)
+        subnets.append({'cidr': '%s.0/%d' % (pfx, bits), 'vlan': '—（手填/多网卡网段）',
+                        'name': '扩展扫描网段 %d' % gi, 'gateway': '—',
+                        'hosts': len(seg_live), 'dhcp': '未探测'})
+        # 每个扩展网段生成一个聚合节点挂到核心层下；若该段是本机虚拟网卡段则如实标注
+        nid = 'xnet%d' % gi
+        is_virt_seg = pfx.startswith(('192.168.56.',))   # VirtualBox Host-Only 等知名虚拟段
+        conf_txt = ('工程师指定网段 批量 ping' + ('；注意：此段为本机虚拟网卡网段（宿主私有），非客户内网设备' if is_virt_seg else ''))
+        nodes.append({'id': nid, 'layer': gw_layer + 2, 'tier': 5, 'icon': '🕸️',
+                      'name': ('跨网段终端 ×%d' % len(seg_live)) if seg_live else '跨网段 %s（无响应）' % pfx.rsplit('.', 1)[0],
+                      'role': 'clients', 'ip': '%s.0/%d' % (pfx, bits),
+                      'conf': ('实测（%s）' % conf_txt) if seg_live else '实测（无在线响应）'})
+        links.append({'from': inner_from, 'to': nid, 'label': '跨网段 Access', 'kind': 'access'})
+        for fp in seg_prn:
+            nodes.append({'id': 'xprt%d_%d' % (gi, len(nodes)), 'layer': gw_layer + 2, 'tier': 5, 'icon': '🖨️',
+                          'name': '打印机 %s' % fp['ip'].rsplit('.', 1)[1], 'role': 'printer',
+                          'ip': fp['ip'], 'vendor': vendor_of(fp['ip']) or '—', 'mac': arp.get(fp['ip'], ''),
+                          'conf': '实测（%s 开放）' % PRINTER_PORT_NAME[fp['printer_port']]})
+        for fp in seg_term[:8]:
+            hosts.append({'ip': fp['ip'],
+                          'type': fp['label'] or ('Windows 终端（SMB）' if fp['smb'] else '在线终端'),
+                          'vendor': vendor_of(fp['ip']) or '—', 'mac': arp.get(fp['ip'], ''),
+                          'conf': '实测（扩展网段）'})
+
+    # ---- SNMP：读交换机生成实测物理链路（失败降级为逻辑推演并如实标注） ----
+    snmp_info = {'used': False, 'note': '未提供 SNMP 参数：连线为「逻辑推演」，非实测物理链路。'}
+    if snmp and snmp.get('community'):
+        target_ip = snmp.get('ip') or real['gateway']
+        ver = snmp.get('version') or 'v2c'
+        if ver == 'v3':
+            snmp_info = {'used': False,
+                         'note': 'SNMP v3 需要 USM 加密（超出本工具纯标准库范围），请改用 v2c 或在交换机上临时开 v2c 只读账号。'}
+        else:
+            probe = snmp_probe_switch(target_ip, snmp['community'], ver)
+            if probe.get('ok'):
+                macs = snmp_read_mac_table(target_ip, snmp['community'], ver)
+                if macs.get('ok'):
+                    snmp_info = {'used': True, 'ip': target_ip, 'mac_count': len(macs['macs']),
+                                 'sysdescr': probe.get('sysdescr', ''),
+                                 'note': 'SNMP 实测：%s 读到 %d 条 MAC 地址表记录，交换机下行连线为实测物理链路。'
+                                         % (target_ip, len(macs['macs']))}
+                    # gw→交换机(snmp交换节点)→终端 的物理链路：交换机节点以 SNMP 实测标注
+                    nodes.append({'id': 'sw', 'tier': 2, 'icon': '🔀', 'name': '交换机（SNMP 实测）',
+                                  'role': 'switch', 'ip': target_ip,
+                                  'vendor': vendor_of(arp.get(target_ip, '')) or '—',
+                                  'conf': 'SNMP 实测（%s）' % (probe.get('sysdescr') or 'sysDescr 可达')})
+                    links.append({'from': 'gw', 'to': 'sw', 'label': '物理链路（SNMP）', 'kind': 'snmp-real'})
+                    # 把原「sf→pc 接入」改为经交换机的实测物理链路
+                    for lk in links:
+                        if lk.get('from') == inner_from and lk.get('to') == 'pc':
+                            lk['from'] = 'sw'
+                            lk['label'] = '物理链路（SNMP）'
+                            lk['kind'] = 'snmp-real'
+                else:
+                    snmp_info = {'used': False, 'ip': target_ip,
+                                 'note': 'SNMP 探活成功但 MAC 地址表读取失败（权限/版本/表为空），连线仍为「逻辑推演」。'}
+            else:
+                snmp_info = {'used': False, 'ip': target_ip,
+                             'note': 'SNMP 连接失败（团体字/版本/IP 不对或交换机未开 SNMP），连线仍为「逻辑推演」。'}
+
+    # 主机清单：仅普通终端（网关/打印机/本机已在拓扑节点中，避免重复）
+    for fp in terminals:
+        hosts.append({'ip': fp['ip'],
+                      'type': fp['label'] or ('Windows 终端（SMB）' if fp['smb'] else '在线终端'),
+                      'vendor': vendor_of(fp['ip']) or '—',
+                      'mac': arp.get(fp['ip'], ''), 'conf': '实测'})
+
+    # 拓扑呈现真实探测结果 + 工程师声明的规划部署设备（逐台建模），不做其他经验推测
+
+    scn = {'flat': not scanned_extra, 'multi_subnet': bool(scanned_extra), 'n_hosts': n_term,
+           'n_printers': len(printers), 'gw_ok': gw_ok,
+           'extra_notes': extra_notes, 'snmp': snmp_info,
+           'remote_hosts': remote_hosts_total,
+           'planned': planned_norm, 'planned_unknown': planned_unknown,
+           'scope': ('本机所在网段 %s.0/%d' % (base, prefix)) if not scanned_extra
+                    else ('本机网段 + %d 个扩展网段' % len(scanned_extra)),
+           'has_wireless': real['conn_type'] == 'wifi', 'me_wifi': real['conn_type'] == 'wifi'}
+    return {'nodes': nodes, 'links': links, 'subnets': subnets, 'hosts': hosts,
+            'scenario': scn, 'planned_ids': planned_ids}
 
 
-def build_deployment_advice(real, net):
-    """根据感知到的环境生成深信服设备部署模式建议（规则引擎）。"""
+def build_deployment_advice(real, net, planned_ids=None):
+    """根据实测环境生成深信服设备部署模式建议（规则引擎）。
+    planned_ids：工程师声明的上架设备（已建模），逐台生成针对性建议。"""
     scn = net['scenario']
-    aps = [n for n in net['nodes'] if n['role'] == 'ap']
-    if aps:
-        ap_vendors = '/'.join(sorted({n.get('vendor') or '未知' for n in aps}))
-        ac_note = ('现场实测发现 %d 台 AP（%s）。若为瘦 AP 架构需先确认 AC 位置与 CAPWAP 链路；'
-                   '新增无线设备时保持管理 VLAN 与业务 VLAN 分离规划。' % (len(aps), ap_vendors))
-    else:
-        ac_note = '现场未实测发现无线 AP，如需新增 AC 建议与 AF 同步规划管理地址。'
-    if scn['flat']:
-        mode, alt = '网桥（透明串接）模式', '路由模式'
-        reasons = [
-            '现场为单网段平面网络（网关 %s），终端无需变更网关即可生效' % real['gateway'],
-            '透明串接不改变现有 IP/路由规划，割接窗口最短、回退只需拔线',
-            '如后续需要 NAT/多线路等能力，可原地切换为路由模式',
+    n_hosts, n_prt = scn['n_hosts'], scn['n_printers']
+
+    mode, alt = '网桥（透明串接）模式', '路由模式'
+    planned_ids = planned_ids or []
+    has_dev = bool(planned_ids)
+    reasons = [
+        '实测为单网段平面网络（网段 %s，网关 %s），终端无需变更网关即可生效' % (
+            net['subnets'][0]['cidr'], real['gateway']),
+        '实测在线终端 %d 台%s，业务以出口上网为主，串接无需改动内网路由' % (
+            n_hosts, ('，其中打印机 %d 台' % n_prt) if n_prt else ''),
+        '透明串接不改变现有 IP/路由规划，割接窗口最短，回退只需跳过设备直接对接',
+    ]
+    planning = []
+    if not has_dev or any(p['key'] == 'AF' for p in planned_ids):
+        planning.append('AF 部署位置（拓扑中已用橙色虚线标出）：接在出口路由器 %s 下方（网桥/透明串接模式），内网侧下联交换与终端；路由器位置与 IP 规划均不变' % real['gateway'])
+    planning.append('管理地址：在本网段预留一个固定 IP（建议避开实测已发现的在线设备地址）')
+    planning.append('上线路径：先物理旁挂观察流量，割接窗口内再串接生效')
+    if n_prt:
+        planning.append('打印机放行：放行 %d 台实测打印机的打印端口（9100/631/515），与办公终端同策略' % n_prt)
+    if scn['has_wireless']:
+        planning.append('现场存在无线网络（本机经 Wi-Fi 接入）；如后续上无线安全组件，可与 AF 统一规划')
+
+    # ---- 逐台设备建议：按类型给出部署位置/模式/功能配置要点，并结合工程师填写的期望 ----
+    device_advices = []
+    for p in planned_ids:
+        info = p['info']
+        if p['key'] == 'AF':
+            loc = '互联网与出口路由器 %s 之间（透明串接 / 路由模式）' % real['gateway']
+        elif p['key'] == 'AC':
+            if p.get('pos') == 'down':
+                loc = '串接在出口路由器下方（网桥/透明串接），内网终端接于 AC 之下，行为审计全量生效'
+            else:
+                loc = '旁挂在核心/接入交换机侧（经镜像或引流审计全部上网流量），不改变现有路由'
+        elif p['key'] == 'AD':
+            loc = '互联网多线接入与服务器区之间（链路/服务器负载均衡）'
+        elif p['key'] == 'EDR':
+            loc = '服务器区或办公网段可达位置（旁挂），终端统一安装 Agent'
+        elif p['key'] == 'VDC':
+            loc = '服务器区旁挂，配套 aDesk 云终端交付桌面'
+        elif p['key'] == 'SSL':
+            loc = '出口区旁挂/串接，对外发布远程接入入口'
+        elif p['key'] == 'WOC':
+            loc = '出口链路串接（对端出口需成对部署）'
+        elif p['key'] == 'XAC':
+            loc = '服务器区/云管理网旁挂，按业务编排安全资源'
+        else:
+            loc = '结合组网实际选择接入位置（建议先旁挂观察）'
+        steps = [
+            '部署位置：%s' % loc,
+            '设备定位：%s（%s）' % (info['full'], info['summary']),
+            '上架顺序：先旁挂/观察 → 确认业务正常 → 再按需串接生效',
+            '管理配置：预留固定管理 IP（避开实测在线地址 %s 等已占用地址）' % real['gateway'],
         ]
-        planning = ['AF 接口：LAN 口接核心/接入交换，WAN 口接出口网关',
-                    '管理地址：在办公网段预留一个固定 IP（建议 .253 之前确认未占用）',
-                    'Interface 走线：先桥接旁路观察 24h 流量，再正式串接']
-    else:
-        mode, alt = '旁路部署（旁挂核心交换）', '路由模式串接'
-        reasons = [
-            '现场为多网段环境（检测到 %d 个网段），核心交换机具备旁挂条件' % len(net['subnets']),
-            '旁挂核心不改变现有流量路径，通过策略路由/静态路由引流，业务零中断',
-            '割接风险低：引流异常时删除引流策略即可秒级回退',
-        ]
-        planning = ['AF 旁路口接核心交换机（建议万兆口），划分独立互联 VLAN',
-                    '核心上配置策略路由：办公/访客网段流量转发至 AF 互联地址',
-                    'AF 回程路由指向核心，服务器网段按需 NAT 或策略放行',
-                    '管理网（VLAN 99）单独放行 AF 管理地址']
+        if p['note']:
+            steps.append('工程师期望（已在拓扑规划中参考）：%s' % p['note'])
+        device_advices.append({'id': p['id'], 'key': p['key'], 'name': info['name'],
+                               'full': info['full'], 'icon': info['icon'],
+                               'deploy': info['deploy'], 'steps': steps})
+
     risks = [
-        '实施前必须备份：出口设备与核心交换机配置各导出一份',
-        '确认网关 %s 的会话/ARP 表在割接后正常收敛（观察 30 分钟）' % real['gateway'],
-        '客户内网存在未登记设备，策略放行遵循"先观察后收紧"原则',
+        '实施前必须备份：出口网关与内网交换机配置各导出一份',
+        '确认网关 %s 的 ARP/会话表在割接后正常收敛（观察 30 分钟）' % real['gateway'],
+        '实测内网在线主机 %d 台，策略放行遵循"先观察后收紧"原则' % (n_hosts + n_prt + 1),
     ]
     checklist = ['确认本次上架设备的型号、授权与版本基线', '与客户确认变更窗口和回退责任人',
                  '梳理接口/VLAN 互联表并双方签字确认', '准备 Console 线与带外管理通道',
-                 '割接后按清单逐项验证业务（办公/服务器/访客/无线）']
+                 '实施前完成安全基线加固（改默认口令、开启日志上送、关闭无用服务）',
+                 '割接后按清单逐项验证业务（上网 / 打印 / 内网访问）']
     return {'mode': mode, 'alternative': alt, 'reasons': reasons, 'planning': planning,
-            'risks': risks, 'checklist': checklist, 'wireless_note': ac_note,
-            'me_access': '当前通过 Wi-Fi 接入现场网络，拓扑感知与配置验证均可无线完成；正式串接割接建议临时接有线到待配设备管理口。'
+            'risks': risks, 'checklist': checklist,
+            'device_advices': device_advices, 'deploy_note': net.get('deploy_note', ''),
+            'wireless_note': ('现场实测存在无线网络（本机即经 Wi-Fi 接入）；AC/AP 细节感知需 SNMP/管理权限，'
+                              '本次以出口与终端实测数据为准。' if scn['has_wireless'] else
+                              '当前为有线接入，未感知无线控制器；如现场有无线网络，AC 旁挂方案可与 AF 同步规划。'),
+            'me_access': '当前通过 Wi-Fi 接入现场网络，感知基于无线链路完成；正式串接割接建议临时接有线到待配设备管理口。'
             if scn['me_wifi'] else '当前为有线接入，可直接连通待配设备管理口。'}
 
 
@@ -952,11 +1306,13 @@ class Handler(BaseHTTPRequestHandler):
     def read_json(self):
         length = int(self.headers.get('Content-Length', 0) or 0)
         raw = self.rfile.read(length) if length > 0 else b''
-        try:
-            data = json.loads(raw.decode('utf-8'))
-            return data if isinstance(data, dict) else {}
-        except Exception:
-            return {}
+        for enc in ('utf-8', 'gbk'):       # GBK 回退：兼容非 UTF-8 客户端
+            try:
+                data = json.loads(raw.decode(enc))
+                return data if isinstance(data, dict) else {}
+            except Exception:
+                continue
+        return {}
 
     def get_cookie(self, name):
         cookie = SimpleCookie(self.headers.get('Cookie', ''))
@@ -991,6 +1347,22 @@ class Handler(BaseHTTPRequestHandler):
                 self.redirect('/')
             else:
                 self.send_file('home.html')
+        elif path == '/api/sangfor/devices':
+            # 深信服设备知识表（供部署规划下拉与说明）
+            if not self.current_user():
+                return self.send_json({'ok': False, 'message': '未登录'}, 401)
+            devs = [{'key': k, 'name': v['name'], 'full': v['full'],
+                     'summary': v['summary'], 'deploy': v['deploy']}
+                    for k, v in SANGFOR_DEVICES.items()]
+            return self.send_json({'ok': True, 'devices': devs})
+        elif path == '/api/topology/nics':
+            # 枚举本机全部网卡网段（多网卡批量扫描用）；虚拟网卡(Host-Only等)单独标注不参与
+            if not self.current_user():
+                return self.send_json({'ok': False, 'message': '未登录'}, 401)
+            nics = local_nic_subnets()
+            real = ['%s.0/%d' % (n['prefix'], n['bits']) for n in nics if not n['virtual']]
+            virt = ['%s.0/%d' % (n['prefix'], n['bits']) for n in nics if n['virtual']]
+            return self.send_json({'ok': True, 'subnets': real, 'virtual_subnets': virt})
         elif path == '/api/topology/scan':
             if not self.current_user():
                 return self.send_json({'ok': False, 'message': '未登录'}, 401)
@@ -1003,7 +1375,7 @@ class Handler(BaseHTTPRequestHandler):
             real['prefix'] = mask_to_prefix(real['mask'])
             self.send_json({'ok': True, 'real': real, 'topology': net,
                             'advice': advice, 'modeled': False,
-                            'engine': 'ICMP+ARP+OUI+Port+BSSID'})
+                            'engine': 'ICMP+ARP+OUI+Port'})
         elif path in ('/speedtest.html', '/diagnose.html', '/review.html', '/topology.html'):
             if not self.current_user():
                 self.redirect('/')
@@ -1012,7 +1384,9 @@ class Handler(BaseHTTPRequestHandler):
         elif path == '/api/speedtest/echo':
             if not self.current_user():
                 return self.send_json({'ok': False, 'message': '未登录'}, 401)
-            self.send_json({'t': time.time(), 'ip': self.client_address[0]})
+            lip = read_local_nic() or {}
+            self.send_json({'t': time.time(), 'ip': self.client_address[0],
+                            'local_ip': lip.get('ip', ''), 'host': socket.gethostname()})
         elif path == '/api/speedtest/geo':
             if not self.current_user():
                 return self.send_json({'ok': False, 'message': '未登录'}, 401)
@@ -1023,6 +1397,22 @@ class Handler(BaseHTTPRequestHandler):
             self.handle_speed_upnodes()
         elif path == '/peer/info':
             self.handle_peer_info()
+        elif path == '/api/speedtest/hops':
+            if not self.current_user():
+                return self.send_json({'ok': False, 'message': '未登录'}, 401)
+            self.handle_speed_hops(urllib.parse.urlparse(self.path).query)
+        elif path == '/api/speedtest/link':
+            if not self.current_user():
+                return self.send_json({'ok': False, 'message': '未登录'}, 401)
+            self.handle_speed_link()
+        elif path == '/api/speedtest/cpu':
+            if not self.current_user():
+                return self.send_json({'ok': False, 'message': '未登录'}, 401)
+            self.handle_speed_cpu()
+        elif path == '/api/speedtest/icmp':
+            if not self.current_user():
+                return self.send_json({'ok': False, 'message': '未登录'}, 401)
+            self.handle_speed_icmp(urllib.parse.urlparse(self.path).query)
         elif path == '/peer/down':
             self.handle_peer_down(urllib.parse.urlparse(self.path).query)
         elif path == '/api/speedtest/down':
@@ -1056,10 +1446,43 @@ class Handler(BaseHTTPRequestHandler):
         real = os.path.realpath(os.path.join(ROOT, name))
         if not real.startswith(ROOT) or not os.path.isfile(real):
             return self.send_error(404)
+        size = os.path.getsize(real)
+        rng = self.headers.get('Range')
+        # 视频拖动进度条需要 Range 分段响应
+        if rng and rng.startswith('bytes='):
+            try:
+                start_s, end_s = rng[6:].split('-', 1)
+                start = int(start_s)
+                end = int(end_s) if end_s else size - 1
+                end = min(end, size - 1)
+                if start > end or start >= size:
+                    raise ValueError
+            except ValueError:
+                self.send_response(416)
+                self.send_header('Content-Range', 'bytes */%d' % size)
+                self.end_headers()
+                return
+            self.send_response(206)
+            self.send_header('Content-Type', CONTENT_TYPES[ext])
+            self.send_header('Content-Range', 'bytes %d-%d/%d' % (start, end, size))
+            self.send_header('Accept-Ranges', 'bytes')
+            self.send_header('Content-Length', str(end - start + 1))
+            self.end_headers()
+            with open(real, 'rb') as f:
+                f.seek(start)
+                remaining = end - start + 1
+                while remaining > 0:
+                    block = f.read(min(65536, remaining))
+                    if not block:
+                        break
+                    self.wfile.write(block)
+                    remaining -= len(block)
+            return
         with open(real, 'rb') as f:
             body = f.read()
         self.send_response(200)
         self.send_header('Content-Type', CONTENT_TYPES[ext])
+        self.send_header('Accept-Ranges', 'bytes')
         self.send_header('Content-Length', str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -1130,6 +1553,153 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, HEAD, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', '*')
 
+    def handle_speed_hops(self, query):
+        """逐跳时延（Windows 版 mtr）：tracert 拿路径，再对每跳并发 ping 采样统计。"""
+        q = urllib.parse.parse_qs(query)
+        host = str(q.get('host', [''])[0])[:64]
+        if not re.match(r'^[A-Za-z0-9.\-]+$', host):
+            self.send_json({'ok': False, 'message': '无效地址'}, 400)
+            return
+        # 1) tracert 拿路径（不解析主机名，加快）；探测超时/异常均优雅返回而非崩溃
+        try:
+            raw = subprocess.run(['tracert', '-d', '-h', '16', '-w', '800', host],
+                                 capture_output=True, timeout=60).stdout.decode('gbk', 'replace')
+        except Exception:
+            self.send_json({'ok': False, 'message': '路径探测超时'})
+            return
+        hops = []
+        seen_hops = set()
+        for ln in raw.splitlines():
+            # 简洁解析：行首跳号 + 行内任意位置的 IPv4（避免嵌套量词的回溯灾难）
+            m = re.match(r'\s*(\d{1,2})\s', ln)
+            if not m:
+                continue
+            n = int(m.group(1))
+            if n in seen_hops:
+                continue
+            ips = re.findall(r'(\d{1,3}(?:\.\d{1,3}){3})', ln)
+            seen_hops.add(n)
+            # 无 IP 的超时跳（* * * 行）也保留，保证跳号连续完整
+            hops.append({'hop': n, 'ip': ips[-1] if ips else None})
+        if not hops:
+            self.send_json({'ok': False, 'message': '路径探测失败（tracert 无输出）'})
+            return
+        # 2) 逐跳并发 ping 采样（每跳 3 次）；单次 ping 异常按丢包计，不影响整体
+        def sample(h):
+            if not h['ip']:
+                h['ms'] = None
+                h['loss'] = 100
+                return h
+            lat, loss = [], 0
+            for _ in range(3):
+                try:
+                    r = subprocess.run(['ping', '-n', '1', '-w', '800', h['ip']],
+                                       capture_output=True, timeout=6)
+                    t = r.stdout.decode('gbk', 'replace')
+                    mm = re.search(r'[=<>]\s*(\d+)ms|时间[=<>]\s*(\d+)ms', t)
+                    if mm:
+                        lat.append(int(mm.group(1) or mm.group(2)))
+                    else:
+                        loss += 1
+                except Exception:
+                    loss += 1
+            h['ms'] = round(sum(lat) / len(lat), 1) if lat else None
+            h['loss'] = round(loss / 3 * 100)
+            return h
+        with ThreadPoolExecutor(max_workers=min(12, len(hops))) as ex:
+            hops = list(ex.map(sample, hops))
+        self.send_json({'ok': True, 'hops': hops})
+
+    def handle_speed_link(self):
+        """链路协商信息：网卡速率/双工（PowerShell Get-NetAdapter，失败静默）。"""
+        info = {}
+        try:
+            adapters = []
+            # 首选 CIM（兼容老系统与受限策略）；FullDuplex 属性部分网卡不提供
+            r = subprocess.run(
+                ['powershell', '-NoProfile', '-Command',
+                 'Get-CimInstance Win32_NetworkAdapter | Where-Object NetEnabled -eq $true | '
+                 'ForEach-Object { $_.Name + "|" + ($_.Speed / 1e6) + " Mbps|" }'],
+                capture_output=True, timeout=12)
+            for ln in [x.strip() for x in r.stdout.decode('utf-8', 'replace').splitlines() if x.strip()]:
+                parts = ln.split('|')
+                if len(parts) >= 2:
+                    try:
+                        mb = float(parts[1].replace('Mbps', '').strip())
+                        adapters.append({'name': parts[0][:30],
+                                         'speed': ('%g Gbps' % (mb / 1000)) if mb >= 1000 else ('%g Mbps' % mb),
+                                         'duplex': '—'})
+                    except ValueError:
+                        pass
+            if not adapters:
+                r2 = subprocess.run(
+                    ['powershell', '-NoProfile', '-Command',
+                     'Get-NetAdapter | Where-Object Status -eq "Up" | '
+                     'ForEach-Object { $_.Name + "|" + $_.LinkSpeed + "|" + $_.FullDuplex }'],
+                    capture_output=True, timeout=10)
+                for ln in [x.strip() for x in r2.stdout.decode('utf-8', 'replace').splitlines() if x.strip()]:
+                    parts = ln.split('|')
+                    if len(parts) >= 3:
+                        adapters.append({'name': parts[0][:30], 'speed': parts[1][:16],
+                                         'duplex': '全双工' if parts[2].lower() in ('true', 'full') else '半双工'})
+            if adapters:
+                info = {'ok': True, 'adapters': adapters}
+        except Exception:
+            pass
+        if not info:
+            info = {'ok': False, 'adapters': []}
+        info['host'] = socket.gethostname()
+        self.send_json(info)
+
+    def handle_speed_cpu(self):
+        """本机 CPU/内存占用（typeperf 单次采样 + wmic 内存，零依赖）。"""
+        cpu = mem = None
+        try:
+            r = subprocess.run(['typeperf', '\\Processor(_Total)\\% Processor Time',
+                                '-sc', '1'], capture_output=True, timeout=8)
+            m = re.findall(r'"([\d.]+)"', r.stdout.decode('gbk', 'replace'))
+            if m:
+                cpu = round(float(m[-1]))
+        except Exception:
+            pass
+        try:
+            r = subprocess.run(
+                ['powershell', '-NoProfile', '-Command',
+                 '$os = Get-CimInstance Win32_OperatingSystem; '
+                 '[math]::Round(($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / $os.TotalVisibleMemorySize * 100)'],
+                capture_output=True, timeout=15)
+            v = r.stdout.decode('utf-8', 'replace').strip()
+            if v.isdigit():
+                mem = int(v)
+        except Exception:
+            pass
+        self.send_json({'ok': True, 'cpu': cpu, 'mem': mem})
+
+    def handle_speed_icmp(self, query):
+        """ICMP 延迟代理：对不支持 HTTP 测速的对端（网关/网络设备）测真实延迟。
+        返回 ms 列表（最多 10 样本），复用系统 ping。"""
+        q = urllib.parse.parse_qs(query)
+        host = str(q.get('host', [''])[0])[:64]
+        try:
+            n = min(max(int(q.get('n', ['4'])[0]), 1), 10)
+        except ValueError:
+            n = 4
+        if not re.match(r'^[A-Za-z0-9.\-]+$', host):
+            self.send_json({'ok': False, 'message': '无效地址'}, 400)
+            return
+        ms = []
+        try:
+            for _ in range(n):
+                r = subprocess.run(['ping', '-n', '1', '-w', '1000', host],
+                                   capture_output=True, timeout=3)
+                text = r.stdout.decode('gbk', 'replace')
+                m = re.search(r'[=<>]\s*(\d+)ms|时间[=<>]\s*(\d+)ms', text)
+                if m:
+                    ms.append(int(m.group(1) or m.group(2)))
+        except Exception:
+            pass
+        self.send_json({'ok': True, 'host': host, 'ms': ms})
+
     def handle_peer_info(self):
         body = json.dumps({'ok': True, 'host': socket.gethostname(),
                            'system': sys.platform, 'time': time.time()}).encode()
@@ -1195,6 +1765,23 @@ class Handler(BaseHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         if path == '/peer/ping':
             return self.handle_peer_ping()
+        if path == '/' or path == '/login.html':
+            return self.send_response(200)
+        if path == '/home.html':
+            return self.send_response(200 if self.current_user() else 302)
+        if path in ('/speedtest.html', '/diagnose.html', '/review.html', '/topology.html'):
+            return self.send_response(200 if self.current_user() else 302)
+        # 静态资源存在性探测（下载前的可用性检查）
+        name = path.lstrip('/')
+        ext = os.path.splitext(name)[1].lower()
+        if ext in CONTENT_TYPES:
+            real = os.path.realpath(os.path.join(ROOT, name))
+            if real.startswith(ROOT) and os.path.isfile(real):
+                self.send_response(200)
+                self.send_header('Content-Type', CONTENT_TYPES[ext])
+                self.send_header('Content-Length', str(os.path.getsize(real)))
+                self.end_headers()
+                return
         self.send_error(404)
 
     def do_OPTIONS(self):
@@ -1212,6 +1799,29 @@ class Handler(BaseHTTPRequestHandler):
         data = self.read_json()
         username = str(data.get('username', '')).strip()
         password = str(data.get('password', ''))
+
+        if path == '/api/topology/scan':
+            # 感知扫描（POST 版）：其他网段 + SNMP 参数 + 工程师声明的上架设备与部署期望
+            if not self.current_user():
+                return self.send_json({'ok': False, 'message': '未登录'}, 401)
+            real = read_local_nic()
+            if not real or not real.get('gateway'):
+                return self.send_json(
+                    {'ok': False, 'message': '未能读取本机网卡信息（未联网或非 Windows 环境）'}, 503)
+            extra = data.get('extra_subnets') or []
+            if not isinstance(extra, list):
+                extra = []
+            snmp = data.get('snmp') if isinstance(data.get('snmp'), dict) else None
+            planned = data.get('planned_devices') if isinstance(data.get('planned_devices'), list) else []
+            deploy_note = str(data.get('deploy_note', '')).strip()
+            net = build_real_network(real, extra_subnets=[str(x) for x in extra[:8]], snmp=snmp,
+                                     planned=planned)
+            net['deploy_note'] = deploy_note
+            advice = build_deployment_advice(real, net, planned_ids=net.get('planned_ids'))
+            real['prefix'] = mask_to_prefix(real['mask'])
+            self.send_json({'ok': True, 'real': real, 'topology': net,
+                            'advice': advice, 'modeled': False,
+                            'engine': 'ICMP+ARP+OUI+Port+SNMP(optional)+Planned'})
 
         if path == '/api/register':
             if not re.fullmatch(r'\w{2,20}', username, re.UNICODE):

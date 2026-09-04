@@ -3,3 +3,13 @@ __pycache__/
 data.db
 fastgpt.config
 .zcode/
+node_modules/
+package-lock.json
+package.json
+ppt_assets/
+docs/videos/record.py
+docs/videos/cut.py
+docs/videos/check_demo.py
+server_run.log
+verify_*.png
+_check/

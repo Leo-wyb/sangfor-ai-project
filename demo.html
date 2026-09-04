@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CyberNWT · 交付现场智能作战终端 — 演示</title>
+<style>
+  :root{
+    /* 与产品一致的黑白灰金属线条风 */
+    --bg:#0A0A0A;
+    --grid-line:rgba(255,255,255,.05);
+    --panel:rgba(24,30,38,.86);
+    --panel-solid:#14181d;
+    --panel-hover:rgba(38,47,58,.92);
+    --panel-border:rgba(205,214,224,.16);
+    --border:rgba(205,214,224,.14);
+    --border-strong:rgba(255,255,255,.38);
+    --text:#EDEDED;
+    --text-2:#9aa4ae;
+    --text-3:#6b7480;
+    --accent:#FFFFFF;
+    --accent-strong:rgba(255,255,255,.8);
+    --accent-contrast:#0A0A0A;
+    --mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --sans:"Microsoft YaHei","PingFang SC","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans); color:var(--text); background:var(--bg);
+    line-height:1.6; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+  }
+  /* 背景层：液态金属流体 + 星尘（与产品同源），夜间呈现深灰金属 */
+  #fluid,#stage{position:fixed; inset:0; z-index:0; display:block; width:100vw; height:100vh}
+  body::after{ /* 暗角 + 细网格 + 顶部微光 */
+    content:""; position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+      radial-gradient(1100px 600px at 50% -8%, rgba(255,255,255,.055), transparent 62%),
+      linear-gradient(180deg, rgba(10,10,10,.25), rgba(10,10,10,.88));
+    background-size:56px 56px, 56px 56px, auto, auto;
+  }
+  .wrap{position:relative; z-index:2; max-width:1180px; margin:0 auto; padding:0 24px}
+
+  /* 顶栏 */
+  header.nav{position:sticky; top:0; z-index:30; backdrop-filter:blur(14px);
+    background:rgba(10,10,10,.55); border-bottom:1px solid var(--border)}
+  .nav-in{display:flex; align-items:center; gap:18px; height:60px}
+  .brand{display:flex; align-items:center; gap:10px; font-family:var(--mono); font-weight:700; letter-spacing:1px; font-size:15px;
+    margin-left:-16px}
+  .brand .sf{width:22px;height:22px;flex:none; filter:brightness(0) invert(1) opacity(.92)}
+  .brand .sf-name{color:var(--text-2); font-weight:600; letter-spacing:2px; font-family:var(--sans)}
+  .brand .divider{width:1px; height:16px; background:var(--border-strong); flex:none; opacity:.7}
+  .brand .mark{width:24px;height:24px;flex:none;object-fit:contain;
+    filter:brightness(0) invert(1) opacity(.95)}
+  .brand .prod{color:var(--text)}
+  .nav-links{display:flex; align-items:center; gap:4px; margin-left:auto; margin-right:14px; flex-wrap:nowrap}
+  .nav-links a{color:var(--text-2); text-decoration:none; font-size:13.5px; padding:6px 13px; border-radius:8px; transition:.2s; white-space:nowrap}
+  .nav-links a:hover{color:var(--text); background:rgba(255,255,255,.07)}
+  .nav-cta{flex:none; display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+    font-size:13.5px; font-weight:600; letter-spacing:.5px; padding:8px 18px; border-radius:10px;
+    color:var(--accent-contrast); background:var(--accent); border:1px solid var(--accent);
+    transition:.22s; white-space:nowrap}
+  .nav-cta:hover{transform:translateY(-1px); box-shadow:0 8px 26px rgba(255,255,255,.14)}
+  .nav-cta svg{width:14px;height:14px;flex:none}
+
+  /* 通用区块 */
+  section{padding:78px 0; position:relative}
+  .eyebrow{font-family:var(--mono); color:var(--accent-strong); font-size:12.5px; letter-spacing:3px; text-transform:uppercase; opacity:.85}
+  h2.title{font-size:32px; font-weight:800; margin:10px 0 6px; letter-spacing:.5px}
+  .sub{color:var(--text-2); max-width:680px; font-size:15px}
+  .sec-head{margin-bottom:36px}
+  .chip{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px;
+    padding:3px 9px; border-radius:999px; border:1px solid var(--border-strong); color:var(--text-2); background:rgba(255,255,255,.05)}
+  .chip.solid{color:var(--accent-contrast); background:var(--accent); border-color:var(--accent); font-weight:700}
+
+  /* Hero */
+  .hero{padding:96px 0 70px; text-align:center}
+  .hero .badges{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:26px}
+  .hero h1{font-size:clamp(44px,8vw,86px); font-weight:900; line-height:1.02; letter-spacing:1px;
+    background:linear-gradient(120deg,#ffffff 15%,#c9d2da 50%,#8f9aa5 80%);
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero .tag{font-family:var(--mono); color:var(--text-2); letter-spacing:6px; font-size:14px; margin-top:8px}
+  .hero p.lead{max-width:720px; margin:22px auto 0; color:var(--text-2); font-size:17px}
+  .hero p.lead b{color:var(--text)}
+  .hero .cta{display:flex; gap:14px; justify-content:center; margin-top:34px; flex-wrap:wrap}
+  .btn{display:inline-flex; align-items:center; gap:9px; padding:13px 24px; border-radius:12px; font-size:15px;
+    text-decoration:none; font-weight:600; transition:.22s; cursor:pointer; border:1px solid transparent}
+  .btn.primary{background:var(--accent); color:var(--accent-contrast); border-color:var(--accent)}
+  .btn.primary:hover{transform:translateY(-2px); box-shadow:0 10px 34px rgba(255,255,255,.16)}
+  .btn.ghost{border-color:var(--border-strong); color:var(--text); background:rgba(255,255,255,.04)}
+  .btn.ghost:hover{background:rgba(255,255,255,.10)}
+
+  /* 跑马灯 */
+  .ticker{border-block:1px solid var(--border); overflow:hidden; padding:14px 0; margin-top:8px;
+    background:rgba(255,255,255,.03)}
+  .ticker .row{display:flex; gap:48px; white-space:nowrap; width:max-content; animation:scroll 26s linear infinite; font-family:var(--mono); font-size:13px; color:var(--text-2); text-shadow:0 1px 6px rgba(0,0,0,.85)}
+  .ticker .row span b{color:#ffffff; font-weight:700}
+  @keyframes scroll{to{transform:translateX(-50%)}}
+
+  /* 数据条 */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:18px}
+  .stat{background:var(--panel); border:1px solid var(--panel-border); border-radius:16px; padding:26px 22px; text-align:center;
+    position:relative; overflow:hidden}
+  .stat::before{content:""; position:absolute; inset:0; background:radial-gradient(120px 80px at 50% 0%, rgba(255,255,255,.06), transparent 70%)}
+  .stat .num{font-family:var(--mono); font-size:46px; font-weight:800; color:var(--text); line-height:1}
+  .stat .num small{font-size:20px; color:var(--text-2)}
+  .stat .lab{color:var(--text-2); margin-top:10px; font-size:14px}
+
+  /* 功能卡 */
+  .grid{display:grid; gap:20px}
+  .grid.feat{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--panel); border:1px solid var(--panel-border); border-radius:18px; padding:26px; position:relative;
+    transition:transform .25s, border-color .25s, box-shadow .25s; overflow:hidden}
+  .card:hover{transform:translateY(-6px); border-color:var(--border-strong); box-shadow:0 18px 50px rgba(0,0,0,.55)}
+  .card .ico{width:54px;height:54px;border-radius:14px; display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.06); border:1px solid var(--border-strong); margin-bottom:16px}
+  .card .ico svg{width:28px;height:28px;fill:none;stroke:var(--text);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .card h3{font-size:19px; font-weight:700; display:flex; align-items:center; gap:10px}
+  .card h3 .ftag{font-family:var(--mono); font-size:10.5px; color:var(--text-3); border:1px solid var(--border); padding:2px 7px; border-radius:6px; letter-spacing:1px}
+  .card p{color:var(--text-2); font-size:14px; margin-top:10px}
+  .card .adv{margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); font-size:13px; color:var(--text)}
+  .card .adv b{color:var(--text); border-bottom:1px solid var(--border-strong)}
+  .card .corner{position:absolute; right:-30px; bottom:-30px; width:120px; height:120px; opacity:.08;
+    background:radial-gradient(circle,#ffffff,transparent 70%); transform:rotate(25deg)}
+
+  /* 真机实录区 */
+  .player{background:var(--panel-solid); border:1px solid var(--panel-border); border-radius:18px; overflow:hidden; position:relative;
+    transition:border-color .25s}
+  .player .ico{width:54px;height:54px;border-radius:14px; display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.06); border:1px solid var(--border-strong)}
+  .player .ico svg{width:28px;height:28px;fill:none;stroke:var(--text);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .player:hover{border-color:var(--border-strong)}
+  .player .screen{position:relative; aspect-ratio:16/10; background:#0d1013}
+  .player .screen video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; background:#0d1013}
+  .player .bar{display:flex; align-items:center; gap:14px; padding:13px 18px; border-top:1px solid var(--border)}
+  .player .bar .t{font-family:var(--mono); font-size:12.5px; color:var(--text)}
+  .player .bar .desc{font-size:12.5px; color:var(--text-3); margin-left:auto; text-align:right}
+  .player .chiprow{display:flex; gap:8px; padding:0 18px 14px}
+  .reel-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px}
+  .reel-grid .player:nth-child(4){grid-column:1/2}
+
+  /* 实测数据 */
+  .factrow{display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:22px}
+  .fact{background:var(--panel); border:1px solid var(--panel-border); border-radius:14px; padding:18px 20px}
+  .fact .fv{font-family:var(--mono); font-size:26px; font-weight:700; color:var(--text)}
+  .fact .fv small{font-size:14px; color:var(--text-2)}
+  .fact .fk{font-size:12.5px; color:var(--text-3); margin-top:4px}
+
+  /* 优势 */
+  .grid.advg{grid-template-columns:repeat(3,1fr)}
+  .advc{background:var(--panel); border:1px solid var(--panel-border); border-radius:16px; padding:22px; display:flex; gap:14px; align-items:flex-start}
+  .advc .n{font-family:var(--mono); font-size:13px; color:var(--text); border:1px solid var(--border-strong); border-radius:8px; padding:4px 8px; flex:none}
+  .advc h4{font-size:16px; font-weight:700}
+  .advc p{color:var(--text-2); font-size:13.5px; margin-top:6px}
+
+  /* 技术底座 */
+  .tech{display:grid; grid-template-columns:1.2fr 1fr; gap:22px}
+  .codecard{background:#0d1013; border:1px solid var(--panel-border); border-radius:14px; padding:18px 20px; font-family:var(--mono); font-size:13px; color:#c8d2dc; overflow:auto}
+  .codecard .c{color:#6b7480}
+  .codecard .k{color:#e8ecef}
+  .codecard .s{color:#9aa4ae}
+  .codecard .b{color:#ffffff; font-weight:700}
+  .pillrow{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+  .pill{font-size:12.5px; padding:7px 13px; border-radius:999px; border:1px solid var(--border); color:var(--text-2); background:rgba(255,255,255,.03)}
+
+  /* 收尾 */
+  .closing{text-align:center; padding:90px 0}
+  .closing h2{font-size:38px; font-weight:900;
+    background:linear-gradient(120deg,#ffffff,#c9d2da,#8f9aa5); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .closing p{color:var(--text-2); margin-top:14px}
+  .disclaim{margin-top:30px; font-size:12.5px; color:var(--text-3); font-family:var(--mono)}
+
+  /* 联系我们 */
+  #contact{padding:60px 0 70px}
+  .contact-card{border:1px solid var(--panel-border); border-radius:20px; padding:42px 44px;
+    background:rgba(24,30,38,.5); position:relative; overflow:hidden; text-align:center}
+  .contact-card h2{font-size:30px; font-weight:800; letter-spacing:.5px}
+  .contact-card .ctag{color:var(--text-2); margin-top:8px; max-width:560px; margin-left:auto; margin-right:auto}
+  .contact-rows{display:flex; gap:26px; justify-content:center; flex-wrap:wrap; margin-top:28px}
+  .citem{display:flex; align-items:center; gap:10px; border:1px solid var(--border-strong);
+    border-radius:14px; padding:13px 20px; font-size:14.5px; color:var(--text); text-decoration:none; transition:.2s}
+  .citem svg{width:18px;height:18px;color:var(--text); flex:none}
+  .citem span{color:var(--text-2); font-size:12.5px; letter-spacing:1px; display:block; margin-bottom:2px}
+  .citem b{font-weight:600}
+  .citem:hover{transform:translateY(-3px); box-shadow:0 10px 30px rgba(0,0,0,.4); border-color:var(--accent)}
+  footer{border-top:1px solid var(--border); padding:26px 0; color:var(--text-3); font-size:13px; text-align:center}
+
+  /* 滚动揭示 */
+  .reveal{opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .7s ease}
+  .reveal.in{opacity:1; transform:none}
+
+  @media(max-width:880px){
+    .grid.feat,.grid.advg,.tech,.reel-grid,.factrow{grid-template-columns:1fr}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .nav-links{display:none}
+    .nav-cta{margin-left:auto}
+  }
+</style>
+</head>
+<body>
+<canvas id="fluid" class="fx"></canvas>
+<canvas id="stage" class="fx"></canvas>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <div class="brand">
+      <img class="sf" src="sangfor-mark.svg" alt="深信服">
+      <span class="sf-name">深信服</span>
+      <span class="divider"></span>
+      <img class="mark" src="logo-mark.png" alt="CyberNWT">
+      <span class="prod">CyberNWT</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#feat">产品能力</a>
+      <a href="#demo">真机实录</a>
+      <a href="#adv">核心优势</a>
+      <a href="#tech">技术底座</a>
+      <a href="#contact">联系我们</a>
+    </nav>
+    <a class="nav-cta" href="download/CyberNWT.zip" download="CyberNWT.zip">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10m0 0 4-4m-4 4-4-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      立即体验
+    </a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="badges">
+      <span class="chip">零第三方依赖</span>
+      <span class="chip">AI 驱动</span>
+      <span class="chip solid">实录演示 · 非概念动效</span>
+    </div>
+    <h1>CyberNWT</h1>
+    <div class="tag">DELIVERY&nbsp;FIELD&nbsp;INTELLIGENCE&nbsp;TERMINAL</div>
+    <p class="lead">把交付现场装进口袋——<b>测速 · 感知 · 记录 · 诊断 · 复盘</b>，一个终端全搞定。<br/>深信服交付工程师的随身作战平台。</p>
+    <div class="cta">
+      <a class="btn primary" href="#demo">▸ 看真机实录</a>
+      <a class="btn ghost" href="#feat">▸ 看产品能力</a>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="row">
+    <span><b>实测</b> 网关 / 网段 / 接入方式</span><span><b>打印机</b> 自动识别标记</span>
+    <span><b>深信服</b> 设备智能建模部署</span><span><b>AI</b> 故障排查 + 结构化复盘</span><span><b>本地</b> 运行 · 数据不出网</span>
+    <span><b>实测</b> 网关 / 网段 / 接入方式</span><span><b>打印机</b> 自动识别标记</span>
+    <span><b>深信服</b> 设备智能建模部署</span><span><b>AI</b> 故障排查 + 结构化复盘</span><span><b>本地</b> 运行 · 数据不出网</span>
+  </div>
+</div>
+
+<!-- STATS -->
+<section>
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat reveal"><div class="num" data-to="5">0</div><div class="lab">大核心交付能力</div></div>
+      <div class="stat reveal"><div class="num" data-to="100">0<small>%</small></div><div class="lab">本地运行 · 数据不出网</div></div>
+      <div class="stat reveal"><div class="num" data-to="5">0</div><div class="lab">段真机实录 · 本页可播</div></div>
+      <div class="stat reveal"><div class="num" data-to="0">0</div><div class="lab">第三方依赖（纯标准库）</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="feat">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Core Capabilities</div>
+      <h2 class="title">五大能力，覆盖交付全流程</h2>
+      <p class="sub">从网络透视到知识沉淀，每个环节都为“现场交付”而生。</p>
+    </div>
+    <div class="grid feat">
+      <!-- 1 -->
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg></div>
+        <h3>灵犀测速 <span class="ftag">SPEEDLENS</span></h3>
+        <p>一键全链路测速：握手、延迟、突发上下行一次测完，全程实时速率曲线 + 全链路透视 + 分段时延逐跳采样。</p>
+        <div class="adv">优势：<b>AI 智能诊断根因</b> + 全链路透视，快速定位网络瓶颈。</div>
+        <div class="corner"></div>
+      </div>
+      <!-- 2 -->
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg></div>
+        <h3>内网感知 <span class="ftag">NETSENSE</span></h3>
+        <p>接入客户内网即感知：实测本机接入方式（Wi-Fi / 有线）、网关与网段，真实 ping 扫描在线设备，自动生成拓扑、网段 / VLAN 表、设备清单。</p>
+        <div class="adv">优势：<b>打印机自动标记</b> + <b>深信服设备建模给出部署建议</b>，支持 Mermaid / JSON / PNG 导出。</div>
+        <div class="corner"></div>
+      </div>
+      <!-- 3 -->
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></div>
+        <h3>随心记录 <span class="ftag">悬浮白板</span></h3>
+        <p>全站右下角悬浮球，任意页面一键唤起：自由绘制、点击即打字，还能把当前页面截图插入画板做标注。</p>
+        <div class="adv">优势：<b>内容自动保存本地</b>，一键导出 PNG，实施灵感不丢失。</div>
+        <div class="corner"></div>
+      </div>
+      <!-- 4 -->
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></svg></div>
+        <h3>故障诊断助手 <span class="ftag">AI ASSISTANT</span></h3>
+        <p>对话式排查深信服设备实施故障：整机上架、割接切换、VPN 组网、链路质量、无线漫游……深度思考后输出结构化排查清单。</p>
+        <div class="adv">优势：<b>深信服场景专属</b> + 结构化排查路径，可直接粘贴日志分析。</div>
+        <div class="corner"></div>
+      </div>
+      <!-- 5 -->
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div>
+        <h3>案例复盘 <span class="ftag">AI REPORT</span></h3>
+        <p>把项目过程讲给灵犀听，AI 自动生成结构化复盘报告：过程时间线、关键问题与根因、方法论提炼、风险与改进项。</p>
+        <div class="adv">优势：<b>一键生成</b>，可编辑并导出 Word / PDF，团队可复用。</div>
+        <div class="corner"></div>
+      </div>
+      <!-- 6 汇总 -->
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></div>
+        <h3>一个终端，贯穿交付 <span class="ftag">ALL-IN-ONE</span></h3>
+        <p>测速看清网络，感知看清现场，记录沉淀灵感，诊断扫清障碍，复盘萃取经验——五环相扣，形成交付闭环。</p>
+        <div class="adv">优势：<b>全域悬浮白板</b>随时穿插任意环节，知识不中断。</div>
+        <div class="corner"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 真机实录 -->
+<section id="demo">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Live Recordings</div>
+      <h2 class="title">真机实录，眼见为实</h2>
+      <p class="sub">以下五段视频均为 CyberNWT 产品在真机上实际操作的屏幕录制，未使用任何概念动效——点击画面即可播放。</p>
+    </div>
+
+    <!-- 实录数据（视频里拍到的真实数字） -->
+    <div class="factrow reveal" style="margin-top:0; margin-bottom:22px">
+      <div class="fact"><div class="fv">362 <small>Mbps</small></div><div class="fk">实录下行带宽 · 阿里云 + 华为云 + 腾讯云源和分流</div></div>
+      <div class="fact"><div class="fv">140 <small>ms</small></div><div class="fk">实录延迟（中位）· 10 样本 · 抖动 5.1 ms</div></div>
+      <div class="fact"><div class="fv">192.168.10.0/24</div><div class="fk">实录网段 · 网关 192.168.10.254 实测 ping 通</div></div>
+    </div>
+
+    <!-- 分功能实录 -->
+    <div class="reel-grid">
+      <div class="player reveal" id="pl-speed">
+        <div class="screen">
+          <video controls preload="metadata" playsinline poster="docs/videos/posters/speed.jpg" src="docs/videos/speed.mp4"></video>
+        </div>
+        <div class="bar"><span class="t">灵犀测速</span><span class="desc">公网多源测速 · 实时速率曲线</span></div>
+        <div class="chiprow"><span class="chip">约 27 秒</span><span class="chip">实测 396 Mbps 峰值</span></div>
+      </div>
+
+      <div class="player reveal" id="pl-topology">
+        <div class="screen">
+          <video controls preload="metadata" playsinline poster="docs/videos/posters/topology.jpg" src="docs/videos/topology.mp4"></video>
+        </div>
+        <div class="bar"><span class="t">内网感知</span><span class="desc">五阶段真扫描 · 拓扑 + 部署建议</span></div>
+        <div class="chiprow"><span class="chip">约 36 秒</span><span class="chip">打印机自动识别</span></div>
+      </div>
+
+      <div class="player reveal" id="pl-whiteboard">
+        <div class="screen">
+          <video controls preload="metadata" playsinline poster="docs/videos/posters/whiteboard.jpg" src="docs/videos/whiteboard.mp4"></video>
+        </div>
+        <div class="bar"><span class="t">随心记录</span><span class="desc">悬浮球唤起白板 · 自由绘制</span></div>
+        <div class="chiprow"><span class="chip">约 30 秒</span><span class="chip">任意页面可用</span></div>
+      </div>
+
+      <div class="player reveal" id="pl-diagnose">
+        <div class="screen">
+          <video controls preload="metadata" playsinline poster="docs/videos/posters/diagnose.jpg" src="docs/videos/diagnose.mp4"></video>
+        </div>
+        <div class="bar"><span class="t">故障诊断助手</span><span class="desc">深度思考 · 结构化排查清单</span></div>
+        <div class="chiprow"><span class="chip">约 21 秒</span><span class="chip">流式输出</span></div>
+      </div>
+      <div class="player reveal" id="pl-review">
+        <div class="screen">
+          <video controls preload="metadata" playsinline poster="docs/videos/posters/review.jpg" src="docs/videos/review.mp4"></video>
+        </div>
+        <div class="bar"><span class="t">案例复盘</span><span class="desc">时间线 + 根因表 + 方法论</span></div>
+        <div class="chiprow"><span class="chip">约 68 秒</span><span class="chip">AI 生成报告</span></div>
+      </div>
+
+      <div class="player reveal" style="display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:14px; padding:30px 28px; background:linear-gradient(140deg, rgba(255,255,255,.10), rgba(255,255,255,.03))">
+        <div class="ico" style="margin:0"><svg viewBox="0 0 24 24"><path d="M12 3v10m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></div>
+        <h3 style="font-size:19px; font-weight:700">上真机，跑一遍</h3>
+        <p style="color:var(--text-2); font-size:13.5px">下载完整产品包，解压后一条 <b style="color:var(--text); border-bottom:1px solid var(--border-strong)">python server.py</b> 即可复现以上全部实录。</p>
+        <a class="btn primary" style="padding:10px 20px; font-size:14px" href="download/CyberNWT.zip" download="CyberNWT.zip">↓ 下载 CyberNWT.zip</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ADVANTAGES -->
+<section id="adv">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Why CyberNWT</div>
+      <h2 class="title">为什么是我们</h2>
+      <p class="sub">不是又一个工具箱，而是为“交付现场”重新设计的作战终端。</p>
+    </div>
+    <div class="grid advg">
+      <div class="advc reveal"><div class="n">01</div><div><h4>免安装 · 即装即跑</h4><p>纯 Python 标准库（HTTP + SQLite），一条 <b style="color:var(--text)">python server.py</b> 启动，无需部署环境、不需联网拉包。</p></div></div>
+      <div class="advc reveal"><div class="n">02</div><div><h4>实测 + 建模 双引擎</h4><p>真实 ping / ARP / 端口指纹感知现场网络，同时对深信服设备智能建模、给出施工部署建议，虚实分明。</p></div></div>
+      <div class="advc reveal"><div class="n">03</div><div><h4>AI 可真可演</h4><p>演示模式内置规则模板直接开演；接入 FastGPT 即切换为真实大模型，平滑升级。</p></div></div>
+      <div class="advc reveal"><div class="n">04</div><div><h4>数据不出网</h4><p>服务端仅绑定本机 127.0.0.1，密码 PBKDF2-SHA256（12 万次迭代 + 随机盐）加密，演示级安全。</p></div></div>
+      <div class="advc reveal"><div class="n">05</div><div><h4>全域悬浮记录</h4><p>任意页面一键唤起白板，捕捉实施灵感与截图标注，内容自动存本地。</p></div></div>
+      <div class="advc reveal"><div class="n">06</div><div><h4>智能诊断解读</h4><p>测速结束即给出结果解读与瓶颈分析，无需专业知识也能看懂现场网络状况。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH -->
+<section id="tech">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Tech Base</div>
+      <h2 class="title">轻量而扎实的技术底座</h2>
+    </div>
+    <div class="tech">
+      <div class="codecard reveal">
+        <div><span class="c"># 一条命令，交付现场终端即起</span></div>
+        <div><span class="b">python</span> server.py <span class="c"># 默认 127.0.0.1:8642</span></div>
+        <div><span class="b">python</span> server.py <span class="s">9000</span> <span class="c"># 自定义端口</span></div>
+        <br/>
+        <div><span class="c"># 架构一览</span></div>
+        <div><span class="k">前端</span>  纯静态 HTML + JS（零 CDN）</div>
+        <div><span class="k">后端</span>  Python 标准库 http.server + SQLite</div>
+        <div><span class="k">AI</span>    演示模式规则引擎 / FastGPT 可接</div>
+        <div><span class="k">安全</span>  PBKDF2-SHA256 · HttpOnly 会话 · 仅本机</div>
+      </div>
+      <div class="reveal">
+        <div class="pillrow">
+          <span class="pill">零第三方依赖</span><span class="pill">单文件后端</span><span class="pill">SQLite 存储</span>
+          <span class="pill">登录 / 会话</span><span class="pill">测速 API</span><span class="pill">AI 代理</span>
+          <span class="pill">ICMP / ARP / 端口指纹探针</span><span class="pill">Mermaid 导出</span><span class="pill">PNG 导出</span>
+          <span class="pill">悬浮白板</span><span class="pill">深信服建模</span><span class="pill">打印机识别</span>
+        </div>
+        <p class="sub" style="margin-top:16px">产品以真实探测为准，确保台上讲的每一句能力，现场都能复现——这是 CyberNWT 敢上台演示的底气。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 联系我们 -->
+<section id="contact">
+  <div class="wrap">
+    <div class="contact-card reveal">
+      <h2>联系我们</h2>
+      <p class="ctag">产品体验与商务咨询，欢迎随时来信，我们将尽快回复。</p>
+      <div class="contact-rows">
+        <a class="citem" href="mailto:18218924976@163.com">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m3 7 9 6 9-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <div><span>邮箱联系</span><b>18218924976@163.com</b></div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section class="closing" style="padding-top:30px">
+  <div class="wrap reveal">
+    <h2>让每一次交付，都有智能同行</h2>
+    <p>CyberNWT · 深信服交付现场智能作战终端</p>
+    <div class="cta" style="justify-content:center;margin-top:24px">
+      <a class="btn primary" href="#top">▴ 回到顶部</a>
+    </div>
+    <div class="disclaim">本页视频均为产品真机屏幕实录；不同网络环境下实测数值会有差异，功能以 CyberNWT 实际运行版本为准。</div>
+  </div>
+</section>
+
+<footer>CyberNWT · 演示 Demo · 交付现场智能作战终端</footer>
+
+<script src="bg-live.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 视频：同一时间只播一个 ---------- */
+  var videos = Array.prototype.slice.call(document.querySelectorAll('.player video'));
+  videos.forEach(function(v){
+    v.addEventListener('play', function(){
+      videos.forEach(function(o){ if(o !== v && !o.paused) o.pause(); });
+    });
+  });
+
+  /* ---------- 数字滚动 ---------- */
+  function countUp(el){
+    var to=parseInt(el.getAttribute('data-to'),10), dur=1200, st=null;
+    function step(ts){ if(!st)st=ts; var k=Math.min(1,(ts-st)/dur);
+      k=1-Math.pow(1-k,3); el.firstChild ? el.childNodes[0].nodeValue=Math.round(to*k) : el.textContent=Math.round(to*k);
+      if(k<1) requestAnimationFrame(step); else el.childNodes[0].nodeValue=to;
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- 滚动揭示 ---------- */
+  var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){
+      e.target.classList.add('in');
+      if(e.target.querySelector('[data-to]')) countUp(e.target.querySelector('[data-to]'));
+      if(e.target.hasAttribute('data-to')) countUp(e.target);
+      io.unobserve(e.target);
+  }}); }, {threshold:0.18});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+})();
+</script>
+</body>
+</html>
