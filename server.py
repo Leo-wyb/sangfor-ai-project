@@ -198,6 +198,7 @@ CONTENT_TYPES = {
     '.ico': 'image/x-icon',
     '.woff2': 'font/woff2',
     '.zip': 'application/zip',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.mp4': 'video/mp4',
     '.webm': 'video/webm',
 }
@@ -1328,7 +1329,7 @@ class Handler(BaseHTTPRequestHandler):
     # ---- 路由 ----
 
     def do_GET(self):
-        path = urllib.parse.urlparse(self.path).path
+        path = urllib.parse.unquote(urllib.parse.urlparse(self.path).path)
         if path == '/api/me':
             user = self.current_user()
             if user:

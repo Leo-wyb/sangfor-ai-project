@@ -22,6 +22,7 @@ RES_FILES = [
     "whiteboard.js", "bg-live.js", "html2canvas.min.js",
     "logo.png", "logo-mark.png", "sangfor-mark.svg",
     os.path.join("kb", "sangfor_kb.md"),
+    os.path.join("download", "CyberNWT-产品文档.docx"),   # 产品文档（zip 内放 app/docs 下）
 ]
 
 # 启动脚本：纯 ASCII，任何代码页下都不会乱码
@@ -69,12 +70,16 @@ pause >nul
 """
 
 # 使用说明：UTF-8 BOM，记事本直接可读
-README = """CyberNWT 本地产品包
+README = r"""CyberNWT 本地产品包
 =================================
 
 一、这是什么
 一个可直接运行的完整产品包（登录页 + 功能页 + server.py），
-包含：灵犀测速 / 内网感知 / AI 诊断 / 案例复盘 / 悬浮白板。解压即用。
+包含：灵犀测速 / 内网感知 / AI 诊断 / 案例复盘 / 悬浮白板，
+并附《CyberNWT-产品文档.docx》（app\docs 目录）。解压即用。
+
+本版亮点：内网感知为 ICMP+ARP+OUI+端口真实探针引擎；测速支持逐跳
+时延分析、链路协商信息与公网出口探测；复盘报告可导出 Word / PDF。
 
 二、如何启动
 1. 解压本压缩包到任意目录
@@ -104,7 +109,10 @@ with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         src = os.path.join(ROOT, rel)
         if not os.path.isfile(src):
             raise SystemExit("缺少文件: %s" % src)
-        z.write(src, os.path.join("CyberNWT", "app", rel))
+        arc = os.path.join("CyberNWT", "app", rel)
+        if rel.startswith("download"):
+            arc = os.path.join("CyberNWT", "app", "docs", os.path.basename(rel))
+        z.write(src, arc)
 
 size = os.path.getsize(OUT)
 print("打包完成: %s (%.1f KB)" % (OUT, size / 1024))

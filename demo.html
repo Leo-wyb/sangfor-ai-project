@@ -219,6 +219,11 @@
       <a href="#tech">技术底座</a>
       <a href="#contact">联系我们</a>
     </nav>
+    <a class="nav-cta" href="download/CyberNWT-产品文档.docx" download="CyberNWT-产品文档.docx"
+       style="background:transparent; color:var(--text); border:1px solid var(--border-strong)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 13h6M9 17h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      产品文档
+    </a>
     <a class="nav-cta" href="download/CyberNWT.zip" download="CyberNWT.zip">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10m0 0 4-4m-4 4-4-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       立即体验
@@ -387,8 +392,11 @@
       <div class="player reveal" style="display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:14px; padding:30px 28px; background:linear-gradient(140deg, rgba(255,255,255,.10), rgba(255,255,255,.03))">
         <div class="ico" style="margin:0"><svg viewBox="0 0 24 24"><path d="M12 3v10m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></div>
         <h3 style="font-size:19px; font-weight:700">上真机，跑一遍</h3>
-        <p style="color:var(--text-2); font-size:13.5px">下载完整产品包，解压后一条 <b style="color:var(--text); border-bottom:1px solid var(--border-strong)">python server.py</b> 即可复现以上全部实录。</p>
-        <a class="btn primary" style="padding:10px 20px; font-size:14px" href="download/CyberNWT.zip" download="CyberNWT.zip">↓ 下载 CyberNWT.zip</a>
+        <p style="color:var(--text-2); font-size:13.5px">下载完整产品包，解压后一条 <b style="color:var(--text); border-bottom:1px solid var(--border-strong)">python server.py</b> 即可复现以上全部实录。包内附 <b style="color:var(--text)">产品文档</b>（功能详解 / 架构 / 部署指南），想先了解再上手？直接下载 Word 版。</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap">
+          <a class="btn primary" style="padding:10px 20px; font-size:14px" href="download/CyberNWT.zip" download="CyberNWT.zip">↓ 下载 CyberNWT.zip</a>
+          <a class="btn" style="padding:10px 20px; font-size:14px; background:transparent; color:var(--text); border:1px solid var(--border-strong)" href="download/CyberNWT-产品文档.docx" download="CyberNWT-产品文档.docx">↓ 产品文档 (Word)</a>
+        </div>
       </div>
     </div>
   </div>
@@ -404,7 +412,7 @@
     </div>
     <div class="grid advg">
       <div class="advc reveal"><div class="n">01</div><div><h4>免安装 · 即装即跑</h4><p>纯 Python 标准库（HTTP + SQLite），一条 <b style="color:var(--text)">python server.py</b> 启动，无需部署环境、不需联网拉包。</p></div></div>
-      <div class="advc reveal"><div class="n">02</div><div><h4>实测 + 建模 双引擎</h4><p>真实 ping / ARP / 端口指纹感知现场网络，同时对深信服设备智能建模、给出施工部署建议，虚实分明。</p></div></div>
+      <div class="advc reveal"><div class="n">02</div><div><h4>实测 + 建模 双引擎</h4><p>ICMP / ARP / OUI / 端口指纹真实探针感知现场网络，支持声明深信服设备生成规划节点并给出施工部署建议，实测与规划虚实分明。</p></div></div>
       <div class="advc reveal"><div class="n">03</div><div><h4>AI 可真可演</h4><p>演示模式内置规则模板直接开演；接入 FastGPT 即切换为真实大模型，平滑升级。</p></div></div>
       <div class="advc reveal"><div class="n">04</div><div><h4>数据不出网</h4><p>服务端仅绑定本机 127.0.0.1，密码 PBKDF2-SHA256（12 万次迭代 + 随机盐）加密，演示级安全。</p></div></div>
       <div class="advc reveal"><div class="n">05</div><div><h4>全域悬浮记录</h4><p>任意页面一键唤起白板，捕捉实施灵感与截图标注，内容自动存本地。</p></div></div>
