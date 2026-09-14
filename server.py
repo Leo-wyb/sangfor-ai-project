@@ -634,18 +634,36 @@ def recognize_topology_image(b64):
     good = []
     t0 = time.time()
     # 三路并发（均衡 / 均衡 / 专盯终端连线）：并行不增加等待时间，
-    # 三路做共识合并——两路及以上都画出的连线才补入，单路幻觉线不放行
+    # 三路做共识合并——两路及以上都画出的连线才补入，单路幻觉线不放行。
+    # 手动 daemon 线程（ThreadPoolExecutor 的常驻线程会让 Ctrl+C 退出时卡住等待）
     prompts = (prompt_main, prompt_main, prompt_link)
-    with ThreadPoolExecutor(max_workers=3) as ex:
-        for content, err in ex.map(lambda i: _vision_call_once(vision, b64, prompts[i]), range(3)):
-            if not content:
-                last_err = err or last_err
-                continue
-            data, perr = _parse_topology_json(content)
-            if perr:
-                last_err = perr
-                continue
-            good.append(data)
+    results = [None] * 3
+
+    def _run(i):
+        results[i] = _vision_call_once(vision, b64, prompts[i])
+
+    threads = []
+    for i in range(3):
+        th = threading.Thread(target=_run, args=(i,), daemon=True)
+        th.start()
+        threads.append(th)
+    # 软截止 50s：实测单轮 23-39s，正常从不触发；网关偶发长尾时不再拖满 240s，
+    # 到点用已完成路的结果继续（单路也能出图），未完成的 daemon 线程静默放弃
+    deadline = t0 + 50
+    for th in threads:
+        th.join(max(0.0, deadline - time.time()))
+    for res in results:
+        if not res:
+            continue   # 软截止仍未完成的路：静默放弃
+        content, err = res
+        if not content:
+            last_err = err or last_err
+            continue
+        data, perr = _parse_topology_json(content)
+        if perr:
+            last_err = perr
+            continue
+        good.append(data)
     if good:
         merged = good[0] if len(good) == 1 else _merge_topo_passes(good)
         globals()['_vision_model_ok'] = vision   # 记住上次成功的视觉模型，下次优先用

@@ -3537,15 +3537,21 @@
     if (scanCard) window.scrollTo(0, scanCard.getBoundingClientRect().top + window.pageYOffset - 70);
     var sp = document.getElementById('sp-phase');
     if (sp) sp.textContent = '图像识别';
+    /* AI 识别没有阶段回调：进度条按耗时渐近推进，节奏按实测识别耗时（25-35s，
+       网关排队为主）校准；等待中轮换阶段文案，避免长时间静止的「卡住」观感。
+       识别真正返回前只爬到 85% 一线，绝不提前呈现「跑满」的完成态 */
+    var AI_STEPS = [[0, '图像识别'], [9, '读取设备标注'], [18, '还原连接关系'], [27, '多路共识核对']];
     window.__scanStart = performance.now();   // 导入路径之前没设起始时间，秒表/进度条一直不动
     var secTimer = setInterval(function () {
       var el = (performance.now() - window.__scanStart) / 1000;
       var s = document.getElementById('sp-sec');
       if (s) s.textContent = Math.round(el) + 's';
-      /* AI 识别没有阶段回调：进度条按耗时渐近推进，但在识别真正返回前
-         只爬到 85% 一线（约 60s 才到 79%），绝不提前呈现"跑满"的完成态 */
+      var txt = document.getElementById('sp-phase');
+      if (txt) for (var i = AI_STEPS.length - 1; i >= 0; i--) {
+        if (el >= AI_STEPS[i][0]) { txt.textContent = AI_STEPS[i][1]; break; }
+      }
       var fill = document.getElementById('sp-barfill');
-      if (fill) fill.style.width = Math.min(85, 4 + 81 * (1 - Math.exp(-el / 18))).toFixed(1) + '%';
+      if (fill) fill.style.width = Math.min(85, 4 + 81 * (1 - Math.exp(-el / 10))).toFixed(1) + '%';
     }, 400);
     fetch('/api/topology/ai-model', {
       method: 'POST', cache: 'no-store',
