@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" type="image/png" href="logo.png" />
 <title>内网感知 · CyberNWT</title>
-<meta name="theme-color" content="#0A0A0A" />
+<meta name="theme-color" content="#FAFAFA" />
 <script>
-// 首屏前确定主题，避免闪烁：localStorage 优先，否则跟随系统
+// 首屏前确定主题，避免闪烁：仅采用用户显式保存的选择，未选择过则默认白天模式
 (function () {
   var t = null;
   try { t = localStorage.getItem('cyber-theme'); } catch (e) {}
   if (t !== 'light' && t !== 'dark') {
-    t = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    t = 'light';
   }
   document.documentElement.setAttribute('data-theme', t);
 })();
@@ -685,7 +685,7 @@
       <em style="--c:#ffb066" class="dash"><i></i>橙色虚线 = 深信服规划部署</em>
       <em style="--c:#5aa7e8" class="dash"><i></i>青色描边 = 手动录入设备</em>
     </div>
-    <div class="topo-svg-wrap topo-dark" id="topo-wrap">
+    <div class="topo-svg-wrap topo-light" id="topo-wrap">
       <div class="empty-tip" id="topo-empty">
         <p>① 尚未感知 —— 接入客户内网后点击右上角「开始感知」。<br />支持 Wi-Fi 接入感知，无需额外接网线；感知基于 ICMP ping + ARP + 端口指纹，禁 ping 设备可能未列出。</p>
         <p>② 支持导入已有拓扑 —— 点击右上角「已有拓扑」，.topo 文件或图片均可；图片可作底图描点，也可自动建模为原生拓扑。</p>
@@ -830,16 +830,8 @@
     setTheme(next);
     try { localStorage.setItem('cyber-theme', next); } catch (e) {}
   });
-  // 用户未手动选择过主题时，跟随系统变化
-  var schemeMq = matchMedia('(prefers-color-scheme: light)');
-  (schemeMq.addEventListener ? schemeMq.addEventListener.bind(schemeMq, 'change')
-                             : schemeMq.addListener.bind(schemeMq))(function (e) {
-    var saved = null;
-    try { saved = localStorage.getItem('cyber-theme'); } catch (err) {}
-    if (saved !== 'light' && saved !== 'dark') {
-      setTheme(e.matches ? 'light' : 'dark');
-    }
-  });
+  /* 主题只随用户显式切换变化，不再跟随系统深浅色：
+     默认白天模式，避免他人电脑因系统深色偏好打开即夜间 */
 
   fetch('/api/me').then(function (r) {
     if (r.status === 401) { location.href = 'login.html'; return null; }
@@ -4307,13 +4299,13 @@
     });
   })();
 
-  /* 画布背景切换：月亮 = 黑幕（默认），太阳 = 纯白幕；选择记忆在 localStorage */
+  /* 画布背景切换：太阳 = 纯白幕（默认），月亮 = 黑幕；选择记忆在 localStorage */
   var bgBtn = document.getElementById('tb-bg');
   /* 读取保存的幕面明暗偏好并应用（清空屏幕 / 移除底图等需要"交还偏好"的时机用） */
   function applySavedTopoBg(wrapEl) {
     var el = wrapEl || document.getElementById('topo-wrap');
-    var saved = 'dark';
-    try { saved = localStorage.getItem('cybernwt.topo.bg') || 'dark'; } catch (e) {}
+    var saved = 'light';
+    try { saved = localStorage.getItem('cybernwt.topo.bg') || 'light'; } catch (e) {}
     el.classList.toggle('topo-light', saved === 'light');
     el.classList.toggle('topo-dark', saved !== 'light');
   }
@@ -4329,8 +4321,8 @@
     applyTopoBg(document.getElementById('topo-wrap').classList.contains('topo-light') ? 'dark' : 'light', true);
   });
   (function () {
-    var saved = 'dark';
-    try { saved = localStorage.getItem('cybernwt.topo.bg') || 'dark'; } catch (e) {}
+    var saved = 'light';
+    try { saved = localStorage.getItem('cybernwt.topo.bg') || 'light'; } catch (e) {}
     applyTopoBg(saved, false);
   })();
 
