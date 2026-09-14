@@ -12,10 +12,11 @@
     README.txt            ← 使用说明（UTF-8 BOM，记事本双击即读）
 
 设计原则（踩过的坑）：
-- 快照式打包：demo 页依赖的 docs/videos、首页“下载”按钮依赖的 download/ 文件
-  全部随包携带，保证解压后所有功能可用；
-- 两遍打包：先出不含自嵌入 zip 的包，再把该包嵌入 app/download/CyberNWT.zip，
-  这样包内产品的“下载 CyberNWT.zip”按钮也能正常工作；
+- 快照式打包：demo 页依赖的 docs/videos、产品文档等资源全部随包携带，
+  保证解压后所有功能可用（演示视频为本地播放，不依赖网络）；
+- 不再自嵌入 zip：包内 demo 页的「下载 CyberNWT.zip」按钮在打包时改写为
+  GitHub Release 公网直链（产品体积减半；能打开本包的人本就已有产品，
+  home 页不设下载入口）；
 - 密钥文件 fastgpt.config 与用户数据 data.db 永不入包（安全边界）。
 """
 import os
@@ -31,6 +32,7 @@ README_SRC = os.path.join(PARENT, "README.txt")
 OUT_DIR = os.path.join(ROOT, "download")
 OUT = os.path.join(OUT_DIR, "CyberNWT.zip")
 STAGE = os.path.join(OUT_DIR, "_stage")
+RELEASE_ZIP_URL = "https://github.com/Leo-wyb/sangfor-ai-project/releases/download/v1.0/CyberNWT.zip"
 
 # 不入包的目录（任意深度按目录名匹配）
 EXCLUDE_DIRS = {
@@ -162,7 +164,19 @@ def stage_copy():
     print("[stage] 已加入 CyberNWT.exe 与 runtime/（自带运行环境）")
 
 
-def write_zip(readme_bytes, self_zip_bytes=None):
+def patch_staged_pages():
+    """包内 demo 页的下载按钮改写为 Release 公网直链（包里不再自嵌 zip 副本）。"""
+    demo = os.path.join(STAGE, "CyberNWT", "app", "demo.html")
+    with open(demo, "r", encoding="utf-8") as f:
+        html = f.read()
+    n = html.count('download/CyberNWT.zip')
+    html = html.replace('download/CyberNWT.zip', RELEASE_ZIP_URL)
+    with open(demo, "w", encoding="utf-8", newline="") as f:
+        f.write(html)
+    print("[stage] demo 页下载按钮已指向公网直链：%d 处" % n)
+
+
+def write_zip(readme_bytes):
     if os.path.exists(OUT):
         os.remove(OUT)
     base = os.path.join(STAGE, "CyberNWT")
@@ -174,16 +188,12 @@ def write_zip(readme_bytes, self_zip_bytes=None):
                 full = os.path.join(cur, f)
                 arc = os.path.relpath(full, STAGE).replace("\\", "/")
                 z.write(full, arc)
-        if self_zip_bytes:
-            z.writestr("CyberNWT/app/download/CyberNWT.zip", self_zip_bytes)
 
 
 readme_bytes = load_readme_bytes()
 stage_copy()
-write_zip(readme_bytes)  # 第一遍：不含自嵌入 zip
-with open(OUT, "rb") as f:
-    prev = f.read()
-write_zip(readme_bytes, self_zip_bytes=prev)  # 第二遍：把第一遍的包嵌入 app/download/
+patch_staged_pages()
+write_zip(readme_bytes)
 shutil.rmtree(STAGE)            # 清理暂存副本
 
 size = os.path.getsize(OUT)
