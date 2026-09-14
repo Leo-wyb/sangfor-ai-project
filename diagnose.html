@@ -305,10 +305,21 @@
   .thumb .rm { position: absolute; top: -6px; right: -6px; width: 17px; height: 17px; border-radius: 50%;
     border: none; cursor: pointer; font-size: 11px; line-height: 17px; padding: 0; text-align: center;
     background: var(--red); color: #fff; }
+  .thumb.doc { display: flex; align-items: center; gap: 6px; max-width: 260px; height: 54px; padding: 0 26px 0 12px;
+    border-radius: 9px; font-size: 12px; color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
+    background: color-mix(in srgb, var(--blue) 10%, transparent); }
+  .thumb.doc .fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .thumb.doc .rm { top: -6px; right: -6px; }
+  .attach-toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 9999;
+    max-width: 70vw; padding: 10px 18px; border-radius: 10px; font-size: 13px;
+    background: rgba(20, 26, 38, .92); color: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .attach-toast.on { opacity: 1; }
   .msg.me .bub img.pic { display: block; max-width: 250px; max-height: 190px; border-radius: 9px;
     margin-top: 8px; object-fit: contain; }
 
-  footer { margin-top: auto; text-align: center; padding: 10px 0 14px; font-size: 12px; color: color-mix(in srgb, var(--text-2) 60%, transparent); }
+  footer { position: relative; z-index: 1; margin-top: auto; text-align: center; padding: 10px 0 14px; font-size: 13px; color: var(--text-2); }
   @media (max-width: 900px) { main { grid-template-columns: 1fr; } .side { position: static; } }
 </style>
 </head>
@@ -320,7 +331,7 @@
   <nav>
     <a href="home.html">首页</a>
     <a href="download/CyberNWT.zip" download="CyberNWT.zip">下载功能</a>
-      <a href="download/CyberNWT-产品文档.docx" download="CyberNWT-产品文档.docx">产品文档</a>
+      <a href="javascript:void(0)" data-cm-open>使用手册</a>
     <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
     <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
   </nav>
@@ -367,17 +378,19 @@
       <div class="thumbs" id="thumbs"></div>
       <div class="inbox">
         <button class="attach" id="attach-btn" type="button"
-                title="上传图片（告警页面 / 日志截图 / 拓扑图 / 面板指示灯），最多 3 张；也可直接 Ctrl+V 粘贴截图">📎</button>
-        <textarea id="inp" rows="1" placeholder="请描述故障现象、拓扑与环境或者直接粘贴日志 /show 输出：(Ctrl+Enter 发送)"></textarea>
+                title="上传图片 / 文档（txt·log·docx·pdf 等）/ 视频（<8MB 自动抽取关键帧）；图片与视频画面合计最多 3 张，文档最多 2 个；也可直接 Ctrl+V 粘贴截图">📎</button>
+        <textarea id="inp" rows="1" placeholder="描述故障现象或粘贴日志，📎 可附图片 / 文档 / 视频（Ctrl+Enter 发送）"></textarea>
         <button class="send" id="send-btn">发 送</button>
       </div>
-      <input type="file" id="file-inp" accept="image/*" multiple hidden>
+      <input type="file" id="file-inp"
+             accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v,.mp4,.webm,.mov,.m4v,.txt,.log,.md,.csv,.tsv,.json,.xml,.yaml,.yml,.ini,.conf,.cfg,.py,.js,.css,.sql,.bat,.sh,.ps1,.html,.htm,.docx,.pdf" multiple hidden>
     </div>
   </section>
 </main>
 
-<footer>CyberNWT · 演示环境</footer>
+<footer style="text-align:center;padding:22px 0 30px;font-size:12.5px;color:var(--text-2,#8b93a1);">CyberNWT · 演示环境 · <a href="javascript:void(0)" data-cm-open style="color:inherit;text-decoration:underline dotted rgba(128,128,128,.45);text-underline-offset:3px;">功能指引</a></footer>
 <script src="whiteboard.js" defer></script>
+<script src="manual.js" defer></script>
 <script src="bg-live.js"></script>
 <script>
 (function () {
@@ -527,7 +540,7 @@
   function welcome() {
     history = [];
     msgs.innerHTML = '';
-    bubble('ai', '你好，我是**灵犀诊断助手**，专注深信服设备实施过程中的故障定位：整机上架、割接切换、VPN 组网、链路质量、无线 roaming 等场景都可以问我。\n\n把**故障现象 + 设备型号 + 最近变更**告诉我，或直接粘贴日志、**点 📎 上传截图**（告警页面 / 面板指示灯 / 拓扑图 / 日志照片），我会给出结构化的排查路径。也可以点左侧场景快捷入口快速提问。');
+    bubble('ai', '你好，我是**灵犀诊断助手**，专注深信服设备实施过程中的故障定位：整机上架、割接切换、VPN 组网、链路质量、无线 roaming 等场景都可以问我。\n\n把**故障现象 + 设备型号 + 最近变更**告诉我，或直接粘贴日志、**点 📎 上传附件**：图片（告警页面 / 面板指示灯 / 拓扑图）、日志与配置文档（txt / log / docx / pdf 等）、<8MB 的现场视频（自动抽取关键帧），我会给出结构化的排查路径。也可以点左侧场景快捷入口快速提问。');
   }
 
   /* 根据问题内容生成思考步骤：等待大模型期间逐条展示，让工程师看到进展 */
@@ -647,17 +660,27 @@
     });
   }
 
-  function send(text, imgs) {
+  function send(text, imgs, docs) {
     imgs = (imgs || []).slice();
-    if (busy || (!String(text || '').trim() && !imgs.length)) return false;
+    docs = (docs || []).slice();
+    if (busy || (!String(text || '').trim() && !imgs.length && !docs.length)) return false;
     busy = true;
     $('#send-btn').disabled = true;
     var shown = String(text || '').trim() ||
-      '请结合我上传的图片（告警页面 / 日志截图 / 拓扑 / 面板指示灯）分析可能的原因，并给出排查建议。';
-    bubble('user', shown, imgs);
+      '请结合我上传的附件（截图 / 日志 / 文档 / 视频画面）分析可能的原因，并给出排查建议。';
+    var attachNote = [];
+    if (pendingVids.length) attachNote.push('已从视频 ' + pendingVids.join('、') + ' 抽取关键帧');
+    if (docs.length) attachNote.push('附文档：' + docs.map(function (d) { return d.name; }).join('、'));
+    bubble('user', shown + (attachNote.length ? '\n\n📎 ' + attachNote.join('；') : ''), imgs);
+    var fullText = shown +
+      (pendingVids.length ? '\n（已从视频 ' + pendingVids.join('、') + ' 抽取关键帧作为画面依据）' : '');
+    var hasAttach = imgs.length || docs.length;
     var content = shown;
-    if (imgs.length) {
-      content = [{ type: 'text', text: shown }];
+    if (hasAttach) {
+      content = [{ type: 'text', text: fullText }];
+      docs.forEach(function (d) {
+        content.push({ type: 'text', text: '【附件·' + d.name + '】\n' + d.text });
+      });
       imgs.forEach(function (u) { content.push({ type: 'image_url', image_url: { url: u } }); });
     }
     history.push({ role: 'user', content: content });
@@ -721,25 +744,85 @@
       }
       return m;
     });
+    /* 流式请求：后台边生成边接收；思考步骤按原有节奏完整走完后再浮现答案，
+       保证用户能看到有序的思考过程（生成比步骤快时适当等待，总时长约 10 秒） */
+    var thinkDone = false;
+    function finishThinkOnce() {
+      if (thinkDone) return;
+      thinkDone = true;
+      finishThink();
+    }
     fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scene: 'diagnose', messages: reqMsgs })
-    }).then(function (r) { return r.json(); }).then(function (data) {
-      if (!data.ok) throw new Error(data.message || '服务异常');
-      // 思考面板至少展示 1.5 秒，避免演示模式下转瞬即逝
-      var wait = Math.max(0, 1500 - (Date.now() - t0));
-      setTimeout(function () {
-        finishThink();
-        typewrite(ans, data.reply, function () {
-          history.push({ role: 'assistant', content: data.reply });
-          busy = false;
-          $('#send-btn').disabled = false;
-          addExtras(ans, data.reply);
+      body: JSON.stringify({ scene: 'diagnose', messages: reqMsgs, stream: true })
+    }).then(function (r) {
+      if (!r.ok || !r.body) throw new Error('服务异常');
+      var reader = r.body.getReader();
+      var dec = new TextDecoder('utf-8');
+      var buf = '', got = '', info = null, full = '', revealed = false;
+      function handleFrame(frame) {
+        var ev = '', ds = '';
+        frame.split('\n').forEach(function (ln) {
+          if (ln.indexOf('event:') === 0) ev = ln.slice(6).trim();
+          else if (ln.indexOf('data:') === 0) ds += ln.slice(5).trim();
         });
-      }, wait);
+        if (!ds) return;
+        var obj;
+        try { obj = JSON.parse(ds); } catch (e) { return; }
+        if (ev === 'delta' && obj.t) {
+          got += obj.t;   // 先缓冲，思考步骤走完后再浮现
+        } else if (ev === 'done') {
+          info = obj;
+        }
+      }
+      function fin() {
+        if (!full) return;
+        history.push({ role: 'assistant', content: full });
+        busy = false;
+        $('#send-btn').disabled = false;
+        addExtras(ans, full);
+      }
+      function reveal() {
+        if (revealed) return;
+        revealed = true;
+        full = (info && info.reply) || got;
+        finishThinkOnce();
+        if (!full) {
+          ans.innerHTML = md('**出错了：**未收到回复内容，请重试。');
+          busy = false; $('#send-btn').disabled = false;
+          return;
+        }
+        if (info && info.source === 'demo') { typewrite(ans, full, fin); return; }
+        ans.innerHTML = md(full);
+        msgs.scrollTop = msgs.scrollHeight;
+        fin();
+      }
+      function finish() {
+        /* 生成结束：思考步骤未走完时等它走完再浮现；演示模式维持 1.5 秒 */
+        var hold = (info && info.source === 'demo') ? 1500 : steps.length * 1500 + 500;
+        setTimeout(reveal, Math.max(0, hold - (Date.now() - t0)));
+      }
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) { finish(); return; }
+          buf += dec.decode(res.value, { stream: true });
+          var i;
+          while ((i = buf.indexOf('\n\n')) >= 0) {
+            handleFrame(buf.slice(0, i));
+            buf = buf.slice(i + 2);
+          }
+          return pump();
+        });
+      }
+      pump().catch(function (e) {
+        finishThinkOnce();
+        ans.innerHTML = md('**出错了：**' + (e.message || e) + '\n请确认服务已启动并处于登录状态。');
+        busy = false;
+        $('#send-btn').disabled = false;
+      });
     }).catch(function (e) {
-      finishThink();
+      finishThinkOnce();
       ans.innerHTML = md('**出错了：**' + (e.message || e) + '\n请确认服务已启动并处于登录状态。');
       busy = false;
       $('#send-btn').disabled = false;
@@ -748,8 +831,28 @@
   }
 
   var inp = $('#inp');
-  /* ---- 图片上传：按钮选择 + Ctrl+V 粘贴截图，压缩后暂存，随下一条消息发出 ---- */
-  var pendingImgs = [];
+  /* ---- 附件上传：图片 / 文档 / 视频，按钮选择 + Ctrl+V 粘贴截图，随下一条消息发出 ----
+     图片压缩后直接以图片发出（与视频关键帧合计 ≤3 张）；
+     文本文档在浏览器读为文字，docx / pdf 交由后端 /api/doc/extract 解析；
+     视频（≤2MB）在浏览器抽 3 个关键帧转成图片——大模型接口不收视频，画面靠关键帧传达 */
+  var pendingImgs = [];   // dataURL
+  var pendingDocs = [];   // { name, text }
+  var pendingVids = [];   // 已抽帧的视频文件名
+  var MAX_VIDEO = 8 * 1024 * 1024;    // 视频体积上限 8MB（要求 <8MB）
+  var MAX_DOC = 5 * 1024 * 1024;      // 文档体积上限（解析后仅取前 6000 字）
+  var DOC_CHARS = 6000;
+  var MAX_MEDIA = 3;
+  var TEXT_EXT = /\.(txt|log|md|markdown|csv|tsv|json|xml|yaml|yml|ini|conf|cfg|py|js|css|sql|bat|sh|ps1|html?|pcb)$/i;
+
+  function toast(msg) {
+    var t = document.querySelector('.attach-toast') || document.createElement('div');
+    t.className = 'attach-toast';
+    t.textContent = msg;
+    if (!t.parentNode) document.body.appendChild(t);
+    requestAnimationFrame(function () { t.classList.add('on'); });
+    clearTimeout(toast._tm);
+    toast._tm = setTimeout(function () { t.classList.remove('on'); }, 2600);
+  }
 
   function compressImg(file) {
     return new Promise(function (resolve) {
@@ -772,19 +875,161 @@
     });
   }
 
-  function addImgs(files) {
-    var list = Array.prototype.slice.call(files || [])
-      .filter(function (f) { return f && /^image\//.test(f.type); });
-    list.slice(0, 3 - pendingImgs.length).forEach(function (f) {
-      compressImg(f).then(function (url) {
-        if (url) { pendingImgs.push(url); renderThumbs(); }
-      });
+  /* 视频 → 关键帧：在 12% / 50% / 88% 处各取一帧，压缩为 ≤1280px 的 JPEG dataURL */
+  function extractVideoFrames(file) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var v = document.createElement('video');
+      v.muted = true;
+      v.preload = 'auto';
+      var done = false;
+      var timer = setTimeout(function () { finish([]); }, 10000);   // 解码超时护栏
+      function finish(frames) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        v.removeAttribute('src');
+        v.load();
+        URL.revokeObjectURL(url);
+        resolve(frames);
+      }
+      v.onerror = function () { finish([]); };
+      function grab() {
+        var cv = document.createElement('canvas');
+        cv.width = v.videoWidth;
+        cv.height = v.videoHeight;
+        cv.getContext('2d').drawImage(v, 0, 0);
+        return cv.toDataURL('image/jpeg', 0.85);
+      }
+      var frames = [];
+      /* 路径二：无时长元数据的录制型 webm（duration=Infinity/0）——
+         挂到 DOM 离屏播放（游离元素会被省电策略暂停），按播放进度抓帧 */
+      function captureByPlayback() {
+        v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:.01;';
+        document.body.appendChild(v);
+        var flags = [false, false, false];
+        var t0 = Date.now();
+        v.onended = function () { flags[2] = flags[2]; };   // ended 状态在循环里统一读 v.ended
+        (function loop() {
+          if (done) return;
+          var t = v.currentTime;
+          try {
+            if (!flags[0] && (t >= 0.1 || v.ended)) { frames[0] = grab(); flags[0] = true; }
+            if (!flags[1] && (t >= 0.8 || v.ended)) { frames[1] = grab(); flags[1] = true; }
+            if (!flags[2] && v.ended) { frames[2] = grab(); flags[2] = true; }
+          } catch (e) { finish(frames); return; }
+          if ((flags[0] && flags[1] && flags[2]) ||
+              ((v.ended || Date.now() - t0 > 15000) && (flags[0] || flags[1] || flags[2]))) {
+            return finish(frames);
+          }
+          requestAnimationFrame(loop);
+        })();
+        var p = v.play();
+        if (p && p.catch) p.catch(function () { finish(frames); });
+      }
+      /* 路径一：带时长元数据的常规视频 —— 按时长 12% / 50% / 88% seek 取帧 */
+      function start(d) {
+        var pts = [0.12, 0.5, 0.88].map(function (p) {
+          return Math.min(Math.max(0.05, d * p), Math.max(0.05, d - 0.05));
+        });
+        var i = 0;
+        v.onseeked = function () {
+          try { frames.push(grab()); } catch (e) { finish(frames); return; }
+          i += 1;
+          if (i >= pts.length) return finish(frames);
+          try { v.currentTime = pts[i]; } catch (e) { finish(frames); }
+        };
+        try { v.currentTime = pts[0]; } catch (e) { finish([]); }
+      }
+      v.onloadedmetadata = function () {
+        if (v.duration && isFinite(v.duration) && v.videoWidth) { start(v.duration); return; }
+        if (!v.videoWidth) { finish([]); return; }
+        captureByPlayback();
+      };
+      v.src = url;
     });
   }
 
-  function renderThumbs() {
+  function fileB64(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var s = String(fr.result || '');
+        resolve(s.indexOf(',') >= 0 ? s.slice(s.indexOf(',') + 1) : '');
+      };
+      fr.onerror = function () { reject(new Error('读取文件失败')); };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  /* docx / pdf 交给后端解析（浏览器无法直接解包），返回纯文本 */
+  function serverDocText(name, b64) {
+    return fetch('/api/doc/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, b64: b64 })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) throw new Error(d.message || '解析失败');
+      return String(d.text || '');
+    });
+  }
+
+  function addDoc(file) {
+    if (pendingDocs.length >= 2) { toast('文档最多附 2 个，先移除再添加'); return; }
+    if (file.size > MAX_DOC) { toast('文档「' + file.name + '」超过 5MB，无法解析'); return; }
+    var push = function (text) {
+      if (pendingDocs.length >= 2) { toast('文档最多附 2 个，「' + file.name + '」未添加'); return; }
+      if (!String(text).trim()) { toast('「' + file.name + '」未提取到文字（可能是扫描件），请直接粘贴内容或截图'); return; }
+      pendingDocs.push({ name: file.name, text: String(text).slice(0, DOC_CHARS) });
+      renderAttach();
+    };
+    if (/\.docx$|\.pdf$/i.test(file.name)) {
+      fileB64(file).then(function (b64) { return serverDocText(file.name, b64); })
+        .then(push)
+        .catch(function (e) { toast('「' + file.name + '」解析失败：' + (e.message || e)); });
+      return;
+    }
+    var fr = new FileReader();
+    fr.onload = function () { push(fr.result); };
+    fr.onerror = function () { toast('无法读取「' + file.name + '」'); };
+    fr.readAsText(file);
+  }
+
+  /* 统一入口：按类型分发到图片 / 视频 / 文档三条处理线 */
+  function addFiles(files) {
+    Array.prototype.slice.call(files || []).forEach(function (f) {
+      if (!f) return;
+      var isImg = /^image\//.test(f.type);
+      var isVid = /^video\//.test(f.type) || /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(f.name);
+      var isDoc = TEXT_EXT.test(f.name) || /\.docx$|\.pdf$/i.test(f.name) ||
+        /^(text\/|application\/(json|xml|sql|x-yaml))/.test(f.type);
+      if (isImg) {
+        if (pendingImgs.length >= MAX_MEDIA) { toast('图片 / 视频画面合计最多 ' + MAX_MEDIA + ' 张'); return; }
+        compressImg(f).then(function (url) {
+          if (url && pendingImgs.length < MAX_MEDIA) { pendingImgs.push(url); renderAttach(); }
+        });
+      } else if (isVid) {
+        if (f.size >= MAX_VIDEO) { toast('视频「' + f.name + '」达到或超过 ' + (MAX_VIDEO / 1024 / 1024) + 'MB，请压缩或裁剪后再上传'); return; }
+        if (pendingImgs.length >= MAX_MEDIA) { toast('图片 / 视频画面合计最多 ' + MAX_MEDIA + ' 张'); return; }
+        extractVideoFrames(f).then(function (frames) {
+          frames = frames.slice(0, MAX_MEDIA - pendingImgs.length);
+          if (!frames.length) { toast('无法从「' + f.name + '」提取画面，请换图片或截图'); return; }
+          pendingImgs = pendingImgs.concat(frames);
+          if (pendingVids.indexOf(f.name) < 0) pendingVids.push(f.name);
+          renderAttach();
+          toast('已从视频抽取 ' + frames.length + ' 个关键帧');
+        });
+      } else if (isDoc) {
+        addDoc(f);
+      } else {
+        toast('暂不支持「' + f.name + '」：请上传图片、文本文档、docx / pdf 或 ≤2MB 视频');
+      }
+    });
+  }
+
+  function renderAttach() {
     var box = $('#thumbs');
-    box.style.display = pendingImgs.length ? 'flex' : 'none';
+    box.style.display = (pendingImgs.length || pendingDocs.length) ? 'flex' : 'none';
     box.innerHTML = '';
     pendingImgs.forEach(function (url, i) {
       var d = document.createElement('div');
@@ -793,22 +1038,38 @@
       d.querySelector('img').src = url;
       d.querySelector('.rm').addEventListener('click', function () {
         pendingImgs.splice(i, 1);
-        renderThumbs();
+        renderAttach();
+      });
+      box.appendChild(d);
+    });
+    pendingDocs.forEach(function (doc, i) {
+      var d = document.createElement('div');
+      d.className = 'thumb doc';
+      d.title = doc.text.slice(0, 200);
+      d.innerHTML = '<span>📄</span><span class="fname"></span><button class="rm" type="button" title="移除">×</button>';
+      d.querySelector('.fname').textContent = doc.name;
+      d.querySelector('.rm').addEventListener('click', function () {
+        pendingDocs.splice(i, 1);
+        renderAttach();
       });
       box.appendChild(d);
     });
   }
 
+  function renderThumbs() { renderAttach(); }   // 兼容旧调用
+
   function clearComposer() {
     inp.value = '';
     inp.style.height = 'auto';
     pendingImgs = [];
-    renderThumbs();
+    pendingDocs = [];
+    pendingVids = [];
+    renderAttach();
   }
 
   $('#attach-btn').addEventListener('click', function () { $('#file-inp').click(); });
   $('#file-inp').addEventListener('change', function () {
-    addImgs(this.files);
+    addFiles(this.files);
     this.value = '';
   });
   inp.addEventListener('paste', function (e) {
@@ -818,14 +1079,14 @@
     }).map(function (it) { return it.getAsFile(); });
     if (files.length) {
       e.preventDefault();
-      addImgs(files);
+      addFiles(files);
     }
   });
 
   inp.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      if (send(inp.value, pendingImgs)) clearComposer();
+      if (send(inp.value, pendingImgs, pendingDocs)) clearComposer();
     }
   });
   inp.addEventListener('input', function () {
@@ -833,20 +1094,29 @@
     this.style.height = Math.min(130, this.scrollHeight) + 'px';
   });
   $('#send-btn').addEventListener('click', function () {
-    if (send(inp.value, pendingImgs)) clearComposer();
+    if (send(inp.value, pendingImgs, pendingDocs)) clearComposer();
   });
   document.querySelectorAll('.scene').forEach(function (b) {
     b.addEventListener('click', function () {
-      if (send(b.dataset.q, pendingImgs)) {
+      if (send(b.dataset.q, pendingImgs, pendingDocs)) {
         pendingImgs = [];
-        renderThumbs();
+        pendingDocs = [];
+        pendingVids = [];
+        renderAttach();
       }
     });
   });
-  $('#clear-btn').addEventListener('click', welcome);
+  $('#clear-btn').addEventListener('click', function () {
+    pendingImgs = [];
+    pendingDocs = [];
+    pendingVids = [];
+    renderAttach();
+    welcome();
+  });
 
   welcome();
 })();
 </script>
+<script src="logo-lens.js" defer></script>
 </body>
 </html>

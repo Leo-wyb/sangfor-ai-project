@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 data.db
 fastgpt.config
+fastgpt.config.enc
 .zcode/
 node_modules/
 package-lock.json
@@ -15,3 +16,11 @@ verify_*.png
 _check/
 .piptmp/
 .pylibs/
+
+# 部署特有：超大文件走 GitHub Release，不入仓库
+download/CyberNWT.zip
+docs/videos/topo-scan.mp4
+# 开发期临时产物（与 pack.py 口径一致）
+_*
+ck4.txt
+灵犀测速-*.doc

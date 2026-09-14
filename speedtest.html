@@ -22,9 +22,9 @@
     color-scheme: dark;
     --bg: #0A0A0A;
     --grid-line: rgba(255, 255, 255, 0.06);
-    --header-bg: rgba(16, 18, 22, 0.34);
+    --header-bg: rgba(16, 18, 22, 0.62);
     --border: rgba(205, 214, 224, 0.14);
-    --panel: rgba(24, 30, 38, 0.86);
+    --panel: rgba(24, 30, 38, 0.93);
     --panel-border: rgba(205, 214, 224, 0.16);
     --text: #EDEDED;
     --text-2: #9CA3AF;
@@ -42,9 +42,9 @@
     color-scheme: light;
     --bg: #dbe1e7;
     --grid-line: rgba(0, 0, 0, 0.07);
-    --header-bg: rgba(216, 224, 231, 0.40);   /* 白天半透明银顶栏 */
+    --header-bg: rgba(216, 224, 231, 0.62);
     --border: rgba(0, 0, 0, 0.14);
-    --panel: rgba(247, 250, 253, 0.45);   /* 白天磨砂银玻璃，透出背景液态银 */
+    --panel: rgba(247, 250, 253, 0.74);   /* 白天磨砂银玻璃，透出背景液态银 */
     --panel-border: rgba(0, 0, 0, 0.14);
     --text: #111111;
     --text-2: #52525B;
@@ -146,6 +146,9 @@
   .strip .cell .k { color: var(--text-2); white-space: nowrap; }
   .strip .cell .v { font-family: var(--font-mono); font-weight: 600; }
   .strip .sep { flex: 1; }
+  /* 主信息条双分隔：节点紧随"你的线路"（小空隙），并发模式靠右（弹性撑开） */
+  .strip .sep-node { flex: 0 1 34px; }
+  .strip .sep-stream { flex: 1; }
   .strip select {
     appearance: none; -webkit-appearance: none;
     height: 32px; padding: 0 28px 0 12px; border-radius: 6px; border: 1px solid var(--border);
@@ -208,6 +211,31 @@
   .btn:hover { border-color: var(--green); }
   .btn.primary { background: var(--text); color: var(--bg); font-weight: 600; border-color: var(--text); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* 持续测速进行中：按钮变为「停止」，红色描边 + 呼吸脉冲提示循环运行中 */
+  .btn.looping { border-color: var(--red); color: var(--red); font-weight: 600; animation: loop-pulse 1.5s ease-out infinite; }
+  @keyframes loop-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 128, 128, 0.35); }
+    100% { box-shadow: 0 0 0 8px rgba(255, 128, 128, 0); }
+  }
+  /* 持续测速弹窗：比卡片更实的底色，保证表单文字清晰 */
+  #loop-modal { background: rgba(24, 30, 38, 0.97); }
+  [data-theme="light"] #loop-modal { background: rgba(247, 250, 253, 0.94); }
+  #fb-modal { background: rgba(24, 30, 38, 0.97); }
+  [data-theme="light"] #fb-modal { background: rgba(247, 250, 253, 0.96); }
+  .fb-row:hover { background: var(--prog-track); }
+  #loop-pick-btn:hover { background: var(--accent-bg); color: var(--text); }
+  /* 持续测速运行器窗口：只显示运行状态条 */
+  body.loop-runner > *:not(#runner-bar) { display: none !important; }
+  #runner-bar {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; padding: 24px;
+    background: var(--bg); color: var(--text); text-align: center; z-index: 200;
+  }
+  #runner-bar b { font-size: 17px; letter-spacing: 1px; }
+  #runner-bar span { font-size: 13px; color: var(--text); line-height: 1.6; max-width: 90%; }
+  #runner-bar small { font-size: 11px; color: var(--text-2); }
+  .btn-go:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-go:disabled:hover { transform: none; }
   .stage-note { margin-top: 10px; font-size: 12px; color: var(--text-2); text-align: center; line-height: 1.7; max-width: 620px; }
 
   /* ---------- 指标格 ---------- */
@@ -237,6 +265,23 @@
   .strip select:disabled { opacity: 0.55; cursor: not-allowed; }
   .strip select option { background: var(--panel); color: var(--text); padding: 6px 10px; }
   .hint-inline { margin-left: auto; font-size: 11.5px; color: var(--text-2); font-weight: 400; }
+  .route-btn { margin-left: auto; background: var(--accent-bg); border: 1px solid var(--accent-border, var(--border)); color: var(--text); font-size: 12px; font-family: inherit; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+  .route-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .route-btn:disabled { opacity: .5; cursor: not-allowed; }
+  /* 线路视图：段条与图例 */
+  .rt-seg { display: flex; align-items: center; gap: 10px; padding: 8px 4px; font-size: 12.5px; border-bottom: 1px dashed var(--grid-line); }
+  .rt-seg .rt-name { width: 240px; font-family: var(--font-mono); }
+  .rt-seg .rt-bar { flex: 1; height: 10px; border-radius: 99px; background: var(--prog-track); overflow: hidden; }
+  .rt-seg .rt-bar i { display: block; height: 100%; border-radius: 99px; background: var(--blue); transition: width .4s; }
+  .rt-seg.bad .rt-bar i { background: var(--red); }
+  .rt-seg.warn .rt-bar i { background: var(--warn); }
+  .rt-seg .rt-ms { width: 96px; text-align: right; font-family: Consolas, monospace; }
+  .rt-seg.bad .rt-ms { color: var(--red); font-weight: 700; }
+  .rt-node { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+  .rt-node b { color: var(--text); font-family: Consolas, monospace; }
+  .rt-node .dot { width: 10px; height: 10px; border-radius: 3px; background: var(--blue); flex: none; }
+  .rt-node.bad .dot { background: var(--red); }
+  .rt-concl { margin-top: 12px; padding: 11px 15px; border-radius: 8px; background: var(--accent-bg); font-size: 13px; line-height: 1.85; letter-spacing: .2px; }
   .hops-card { margin-top: 16px; }
   .hops-card h2 { display: flex; align-items: center; }
   .hop-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; font-size: 12.5px; border-bottom: 1px dashed var(--grid-line); }
@@ -272,8 +317,9 @@
   }
   .verdict .grade.mid { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
   .verdict .grade.bad { background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, transparent); }
+  .verdict .txt { flex: 1; min-width: 0; }
   .verdict .txt b { display: block; font-size: 15px; }
-  .verdict .txt small { display: block; margin-top: 4px; font-size: 12px; color: var(--text-2); line-height: 1.6; }
+  .verdict .txt small { display: block; margin-top: 4px; font-size: 12px; color: var(--text-2); line-height: 1.6; overflow-wrap: anywhere; white-space: normal; }
   .findings { margin-top: 10px; }
   .fd { display: flex; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13px; line-height: 1.6; margin-top: 8px; background: var(--accent-bg); }
   .fd::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; margin-top: 7px; background: var(--green); }
@@ -281,17 +327,53 @@
   .fd.bad::before { background: var(--red); }
   .fd.info::before { background: var(--blue); }
 
-  .hist table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  .hist th { text-align: left; color: var(--text-2); font-weight: 400; padding: 7px 10px; border-bottom: 1px solid color-mix(in srgb, var(--blue) 14%, transparent); white-space: nowrap; }
-  .hist td { padding: 8px 10px; color: var(--text); border-bottom: 1px solid color-mix(in srgb, var(--blue) 7%, transparent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .hist table { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+  .hist th { text-align: left; color: var(--text-2); font-weight: 400; padding: 7px 8px; border-bottom: 1px solid color-mix(in srgb, var(--blue) 14%, transparent); white-space: nowrap; }
+  .hist td { padding: 8px 8px; color: var(--text); border-bottom: 1px solid color-mix(in srgb, var(--blue) 7%, transparent); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist td.u, .hist th.u { width: 62px; text-align: right; }
+  .hist td.d, .hist th.d { width: 70px; text-align: right; }
+  .hist td.p, .hist th.p { width: 64px; text-align: right; }
+  .hist td.j, .hist th.j { width: 56px; text-align: right; }
   .hist .g { font-weight: 700; }
   .hist .mode-tag { font-size: 11px; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-2); }
   .empty { color: var(--text-2); font-size: 13px; padding: 10px 2px; }
   .hist-head { display: flex; align-items: center; justify-content: space-between; }
   .link-btn { background: none; border: none; color: var(--text-2); font-size: 12px; cursor: pointer; font-family: inherit; padding: 4px 8px; border-radius: 6px; }
   .link-btn:hover { color: var(--red); background: var(--accent-bg); }
+  /* 历史记录悬停详情浮层：微透明 + 毛玻璃模糊，兼顾通透感与文字清晰度 */
+  #hist-tip {
+    display: none;
+    position: fixed;
+    z-index: 80;
+    pointer-events: none;
+    background: rgba(35, 43, 52, 0.78);
+    backdrop-filter: blur(16px) saturate(1.15);
+    -webkit-backdrop-filter: blur(16px) saturate(1.15);
+    border: 1px solid rgba(205, 214, 224, 0.28);
+    border-radius: 10px;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.5);
+    padding: 12px 14px;
+    max-width: 380px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #ededed;
+  }
+  [data-theme="light"] #hist-tip {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(0, 0, 0, 0.16);
+    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.22);
+    color: #111111;
+  }
+  #hist-tip .ht-time { font-size: 13.5px; margin-bottom: 7px; }
+  #hist-tip .ht-ctx { font-size: 12.5px; color: var(--text-2); margin-bottom: 8px; }
+  #hist-tip table { border-collapse: collapse; }
+  #hist-tip table td { padding: 3.5px 0; vertical-align: top; }
+  #hist-tip .ht-label { color: var(--text-2); padding-right: 16px; white-space: nowrap; font-size: 12.5px; }
+  #hist-tip .ht-val { font-family: var(--font-mono); font-size: 13px; }
+  #hist-tip .ht-delta { font-size: 12px; margin-left: 6px; }
+  #hist-tip .ht-brief { margin-top: 9px; padding: 8px 11px; border-radius: 8px; background: var(--accent-bg); font-size: 12.5px; line-height: 1.7; }
 
-  footer { text-align: center; padding: 26px 0 34px; font-size: 12px; color: color-mix(in srgb, var(--text-2) 60%, transparent); }
+  footer { position: relative; z-index: 1; text-align: center; padding: 26px 0 34px; font-size: 13px; color: var(--text-2); }
 
   @media (max-width: 900px) {
     .metrics { grid-template-columns: 1fr 1fr; }
@@ -308,7 +390,7 @@
   <nav>
     <a href="home.html">首页</a>
     <a href="download/CyberNWT.zip" download="CyberNWT.zip">下载功能</a>
-      <a href="download/CyberNWT-产品文档.docx" download="CyberNWT-产品文档.docx">产品文档</a>
+      <a href="javascript:void(0)" data-cm-open>使用手册</a>
     <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
     <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
   </nav>
@@ -342,19 +424,23 @@
 
   <div class="strip">
     <div class="cell"><span class="k">你的线路</span><span class="v" id="loc-val">定位中…</span></div>
-    <div class="sep"></div>
+    <div class="sep sep-node"></div>
     <div class="cell" id="node-cell"><span class="k">测试节点</span>
       <select id="node-sel" title="测速节点"><option value="auto">自动选择（推荐）</option></select>
     </div>
-    <div class="cell" id="peer-cell" style="display:none"><span class="k">测速对端</span>
-      <input id="peer-addr" class="peer-input" placeholder="留空 = 本站服务器 · 或对端 IP:端口" spellcheck="false" title="内网测速对端：留空测本站服务器；填内网其他机器 IP 即可互测（对方需运行 CyberNWT 站点），网关/网络设备自动降级为仅测延迟">
+    <div class="cell" id="peer-input-cell" style="display:none"><span class="k">对端地址</span>
+      <input id="peer-addr" class="peer-input" placeholder="留空 = 对网关测延迟 · 或 IP:端口" spellcheck="false" title="内网测速对端：留空默认对所选线路的网关测延迟；填内网其他机器 IP（对方运行 CyberNWT 站点）可互测完整上下行带宽">
     </div>
-    <div class="sep"></div>
+    <div class="sep sep-stream"></div>
     <div class="cell"><span class="k">并发模式</span>
       <select id="stream-sel" title="多流=跑满带宽测硬件极限；单流=模拟真实单文件传输/单请求业务">
         <option value="multi">多流（跑满网卡 · 极限）</option>
         <option value="single">单流（模拟真实业务）</option>
       </select>
+    </div>
+    <div class="sep" id="peer-break" style="display:none;flex-basis:100%;height:0"></div>
+    <div class="cell" id="peer-cell" style="display:none"><span class="k">测速线路</span>
+      <select id="nic-sel" title="选择测速网卡：多网卡=多线路，选定后自动带出该线路网关作对端（可清空改测本站服务器带宽）"></select>
     </div>
   </div>
   <div class="strip" id="env-strip" style="display:none">
@@ -383,7 +469,7 @@
 
     <div class="stage-actions">
       <button class="btn primary" id="btn-start">开始测速</button>
-      <button class="btn" id="btn-stop" style="display:none">停止</button>
+      <button class="btn" id="btn-loop" title="弹窗设置停止时间与报告导出路径后循环测速">持续测速</button>
     </div>
     <div class="stage-note" id="stage-note">全链路大陆节点：下行 阿里云+腾讯云+华为云（CDN 按工程师位置自动就近调度边缘节点）；上行 按定位扫描大陆全部 Ookla 官方节点多分片并发。</div>
 
@@ -411,8 +497,76 @@
   </div>
 
   <div class="card hops-card" id="hops-card" style="display:none">
-    <h2>分段时延（逐跳）<span class="chip">PATH</span><span class="hint-inline" id="hops-target"></span></h2>
+    <h2>分段时延（逐跳）<span class="chip">PATH</span>
+      <button class="route-btn" id="btn-route" title="把逐跳路径还原成物理线路图：定位慢在哪一段（终端→网关→运营商→公网）">🛰 查看线路</button>
+      <span class="hint-inline" id="hops-target"></span></h2>
     <div id="hops-body"><div class="empty">开始测速后自动采样每一跳的延迟与丢包。</div></div>
+  </div>
+
+  <!-- 持续测速设置弹窗：停止方式 + 报告导出路径 -->
+  <div id="loop-mask" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(4,10,20,.62);backdrop-filter:blur(3px)"></div>
+  <div id="loop-modal" style="display:none;position:fixed;z-index:91;left:50%;top:50%;transform:translate(-50%,-50%);width:min(480px,92vw);border:1px solid var(--panel-border);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:20px 22px;flex-direction:column;gap:14px">
+    <h2 style="font-size:15px;display:flex;align-items:center;gap:10px;margin:0">持续测速设置<span class="chip" style="font-size:10px;font-family:var(--font-mono);letter-spacing:1.5px;color:var(--text-2);border:1px solid var(--border);border-radius:4px;padding:2px 7px">LOOP</span></h2>
+    <label for="loop-bw-ack" style="display:flex;align-items:center;gap:8px;font-size:16px;color:var(--text);white-space:nowrap;cursor:pointer;border:1px solid var(--border);background:var(--accent-bg);border-radius:8px;padding:9px 10px">
+      <input id="loop-bw-ack" type="checkbox" checked style="width:16px;height:16px;margin:0;accent-color:var(--text);cursor:pointer;flex:none">
+      <span>带宽（说明：持续测速可能对带宽持续占用，请确认是否满足持续测速）</span>
+    </label>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label for="loop-stop-mode" style="font-size:13px;color:var(--text-2)">停止方式</label>
+      <select id="loop-stop-mode" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--accent-bg);color:var(--text);font-size:13px">
+        <option value="duration">固定时长 —— 到点自动停止并生成报告</option>
+        <option value="rounds">固定轮数 —— 测满 N 轮自动停止并生成报告</option>
+        <option value="manual">手动停止 —— 一直测，点「停止」后生成报告</option>
+      </select>
+    </div>
+    <div id="loop-stop-value-cell" style="display:flex;flex-direction:column;gap:6px">
+      <label for="loop-stop-value" id="loop-stop-value-label" style="font-size:13px;color:var(--text-2)">停止时间（单位为分钟）</label>
+      <input id="loop-stop-value" type="number" min="1" step="1" value="30" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--accent-bg);color:var(--text);font-size:13px">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label for="loop-export-path" style="font-size:13px;color:var(--text-2)">报告导出位置（点右侧文件夹图标选择；选一次自动记住；留空则存到 download）</label>
+      <div style="position:relative">
+        <input id="loop-export-path" type="text" placeholder="点右侧文件夹图标选择文件夹" style="width:100%;padding:8px 40px 8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--accent-bg);color:var(--text);font-size:13px;font-family:var(--font-mono)">
+        <button id="loop-pick-btn" type="button" title="选择报告导出文件夹" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;border-radius:6px;background:transparent;color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
+          <svg viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        </button>
+      </div>
+      <small style="font-size:11.5px;color:var(--text-2)">公网界面发起即持续测公网，内网界面发起即持续测内网。测速在<b>独立小窗口</b>运行：主页面可随意刷新/切页/关闭，回来自动接上进度；请保持小窗口开启（可最小化），关闭即停止。到点自动汇总全部轮次，生成含明细、统计、时间线、诊断、分析、总结的 Word 报告。<br>报告位置点右侧图标选择，<b>选一次自动记住，全程零提示</b>：点开始即可离开，报告自动出现在所选文件夹；留空则存 download。</small>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px">
+      <button class="btn" id="loop-cancel">取消</button>
+      <button class="btn primary" id="loop-confirm">开始持续测速</button>
+    </div>
+  </div>
+
+  <!-- 导出文件夹选择器：点选本机文件夹，返回真实路径供服务程序直写（零提示的关键） -->
+  <div id="fb-mask" style="display:none;position:fixed;inset:0;z-index:95;background:rgba(4,10,20,.62);backdrop-filter:blur(3px)"></div>
+  <div id="fb-modal" style="display:none;position:fixed;z-index:96;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,92vw);border:1px solid var(--panel-border);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:18px 20px;flex-direction:column;gap:12px">
+    <h2 style="font-size:15px;display:flex;align-items:center;gap:10px;margin:0">选择报告导出文件夹<span class="chip" style="font-size:10px;font-family:var(--font-mono);letter-spacing:1.5px;color:var(--text-2);border:1px solid var(--border);border-radius:4px;padding:2px 7px">FOLDER</span></h2>
+    <div id="fb-quick" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="fb-up" class="btn" style="height:32px;padding:0 12px;flex:none" title="返回上一级">↑</button>
+      <input id="fb-path" spellcheck="false" placeholder="也可粘贴路径后回车，如 D:\测速报告" style="flex:1;min-width:0;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--accent-bg);color:var(--text);font-size:12.5px;font-family:var(--font-mono)">
+      <button id="fb-go" class="btn" style="height:32px;padding:0 12px;flex:none">转到</button>
+    </div>
+    <div id="fb-list" style="height:250px;overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--accent-bg)"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <small id="fb-cur" style="font-size:11.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></small>
+      <div style="display:flex;gap:10px;flex:none">
+        <button class="btn" id="fb-cancel">取消</button>
+        <button class="btn primary" id="fb-ok">选择当前文件夹</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 线路视图弹窗：物理链路逐段可视化（节点+线段标红=瓶颈段）；display 由 JS 切 flex -->
+  <div id="route-mask" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(4,10,20,.62);backdrop-filter:blur(3px)"></div>
+  <div id="route-modal" style="display:none;position:fixed;z-index:91;left:50%;top:54%;transform:translate(-50%,-50%);width:min(760px,92vw);height:min(660px,84vh);background:var(--panel);border:1px solid var(--panel-border);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.5);flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 8px;flex:none">
+      <h2 style="font-size:15px;display:flex;align-items:center;gap:10px;margin:0">物理线路视图<span class="chip" style="font-size:10px;font-family:var(--font-mono);letter-spacing:1.5px;color:var(--text-2);border:1px solid var(--border);border-radius:4px;padding:2px 7px">ROUTE</span></h2>
+      <button id="route-close" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div id="route-body" style="padding:0 20px 16px;flex:1;overflow:auto"></div>
   </div>
 
   <div class="grid2">
@@ -437,7 +591,8 @@
   </div>
 </main>
 
-<footer>CyberNWT · 演示环境</footer>
+<footer style="text-align:center;padding:22px 0 30px;font-size:12.5px;color:var(--text-2,#8b93a1);">CyberNWT · 演示环境 · <a href="javascript:void(0)" data-cm-open style="color:inherit;text-decoration:underline dotted rgba(128,128,128,.45);text-underline-offset:3px;">功能指引</a></footer>
+<script src="report-builder.js"></script>
 <script>
 (function () {
   'use strict';
@@ -448,6 +603,7 @@
   var S = {
     mode: 'wan',
     running: false,
+    looping: false,    // 持续测速：循环执行完整测速，直到再点一次停止
     streamMode: 'multi',   // multi | single
     pingProbe: [],         // 压测期间的负载下延迟采样
     hopsData: null,
@@ -463,6 +619,8 @@
     upShardPool: null, // 上行节点池（服务端扫描大陆全部节点 + 静态 IP 分片合并）
     upShards: [],      // 可用的大陆 Ookla 上行分片
     peer: null,        // 内网对端 { base, label }
+    peerAutoBase: null, // 裸 IP 探活时发现的对端真实端口 { host, base }（8644 无服务时补探 8642）
+    nics: [],          // 本机网卡清单（测速线路选择）
     res: { ping: null, jitter: null, down: null, up: null },
     curve: []          // { t, v, ph }
   };
@@ -502,6 +660,29 @@
   /* ================= 基础工具 ================= */
   var $ = function (s) { return document.querySelector(s); };
   var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  /* ---------- 后台计时 Worker ----------
+     页面切到后台/最小化后，window 的 setTimeout/setInterval 会被浏览器节流（最严可到 1 次/分钟），
+     持续测速要求工程师切去干别的事时照常运行，因此所有计时统一经 Worker 驱动（Worker 计时不节流）。
+     Worker 创建失败（受限环境）时 bgSleep 自动回退为普通 setTimeout。 */
+  var bgWorker = null, bgWaiters = {}, bgSeq = 0;
+  try {
+    bgWorker = new Worker(URL.createObjectURL(new Blob(
+      ['onmessage=function(e){var d=e.data;setTimeout(function(){postMessage(d)},d.ms)};'],
+      { type: 'text/javascript' })));
+    bgWorker.onmessage = function (e) {
+      var w = bgWaiters[e.data.id];
+      if (w) { delete bgWaiters[e.data.id]; w(); }
+    };
+  } catch (err) { bgWorker = null; }
+  function bgSleep(ms) {
+    if (!bgWorker) return sleep(ms);
+    return new Promise(function (resolve) {
+      var id = ++bgSeq;
+      bgWaiters[id] = resolve;
+      bgWorker.postMessage({ id: id, ms: ms });
+    });
+  }
+  sleep = function (ms) { return bgSleep(ms); };
   function fmt(v, unit) {
     if (v == null || isNaN(v)) return '—';
     if (unit === 'ms') return v >= 100 ? v.toFixed(0) : v.toFixed(1);
@@ -559,7 +740,7 @@
   ];
 
   /* ================= DOM 引用 ================= */
-  var elGo = $('#btn-go'), elStart = $('#btn-start'), elStop = $('#btn-stop');
+  var elGo = $('#btn-go'), elStart = $('#btn-start');
   var elWrap = $('#gauge-wrap'), elProg = $('#g-prog'), elCenter = $('#gauge-center');
   var elLoc = $('#loc-val'), elNodeSel = $('#node-sel'), elNote = $('#stage-note'), elGoSub = $('#go-sub');
   var C = 880; // 圆环周长 2πr
@@ -567,9 +748,11 @@
   /* ================= 模式切换 ================= */
   var tabs = document.querySelectorAll('#mode-tabs button');
   var elNodeCell = $('#node-cell'), elPeerCell = $('#peer-cell'), peerInput = $('#peer-addr');
+  var elPeerInputCell = $('#peer-input-cell'), nicSel = $('#nic-sel');
   tabs.forEach(function (b) {
     b.addEventListener('click', function () {
       if (S.mode === b.dataset.mode) return;
+      stopLoop();   // 切换模式（公网↔内网）时结束持续测速，避免旧目标空转
       if (S.running) { stopTest(); sleep(150).then(applyMode); return; }
       applyMode();
       function applyMode() {
@@ -579,6 +762,7 @@
         if (S.mode === 'wan') {
           elNodeCell.style.display = '';
           elPeerCell.style.display = 'none';
+          elPeerInputCell.style.display = 'none';
           elNote.textContent = '全链路大陆节点：下行 阿里云+腾讯云+华为云（CDN 按工程师位置自动就近调度边缘节点，页面实测延迟排序）；上行 按定位扫描大陆全部 Ookla 官方节点后多分片并发实测。';
           elGoSub.textContent = '公网测速';
           if (!S.loc) locate();
@@ -587,10 +771,14 @@
           probeNodes().then(function () {}).catch(function () {});
         } else {
           elNodeCell.style.display = 'none';
+          elPeerInputCell.style.display = '';
           elPeerCell.style.display = '';
-          elNote.textContent = '直连内网对端压测（4 连接并发）：留空测本站服务器；填内网其他机器 IP 即可互测（对方运行 CyberNWT 站点即可，无需额外部署）；网关/网络设备自动降级为仅测延迟。';
+          elNote.textContent = '对端地址留空 = 默认对网关测延迟（线路选择联动）；填内网其他机器 IP（对方运行 CyberNWT 站点）可互测完整上下行带宽。';
           elGoSub.textContent = '内网测速';
-          probePeer();
+          loadNics().then(function () {
+            // 对端默认留空：测速时自动对所选线路的网关测延迟（无需手填）
+            probePeer();
+          });
           echoIp();
         }
       }
@@ -618,19 +806,23 @@
       $('#cpu-val').textContent = 'CPU ' + (d.cpu == null ? '—' : d.cpu) + '% · 内存 ' + (d.mem == null ? '—' : d.mem) + '%';
     }).catch(function () {});
   }
-  // 测速期间轮询本机负载（CPU 打满说明是电脑性能瓶颈而非网络）
-  var cpuTimer = null, cpuPeak = { cpu: 0, mem: 0 };
+  // 测速期间轮询本机负载（CPU 打满说明是电脑性能瓶颈而非网络）；Worker 计时，后台不节流
+  var cpuToken = null, cpuPeak = { cpu: 0, mem: 0 };
   function startCpuPoll() {
     stopCpuPoll();
-    cpuTimer = setInterval(function () {
+    var token = {};
+    cpuToken = token;
+    (function tick() {
+      if (cpuToken !== token) return;
       fetchTimeout('/api/speedtest/cpu', 5000).then(function (r) { return r.json(); }).then(function (d) {
         if (d.cpu != null && d.cpu > cpuPeak.cpu) cpuPeak.cpu = d.cpu;
         if (d.mem != null && d.mem > cpuPeak.mem) cpuPeak.mem = d.mem;
         $('#cpu-val').textContent = 'CPU ' + (d.cpu == null ? '—' : d.cpu) + '% · 内存 ' + (d.mem == null ? '—' : d.mem) + '%';
       }).catch(function () {});
-    }, 3000);
+      bgSleep(3000).then(tick);
+    })();
   }
-  function stopCpuPoll() { if (cpuTimer) { clearInterval(cpuTimer); cpuTimer = null; } }
+  function stopCpuPoll() { cpuToken = null; }
 
   /* ---------- 逐跳时延面板 ---------- */
   /* 逐跳目标：国内知名公共 DNS 链（阿里/腾讯/114/百度），任一失败自动切换下一个 */
@@ -689,68 +881,351 @@
     else loadHopsChain();
   }
 
-  /* ---------- 负载下延迟采样（抖动/丢包时序） ---------- */
-  function startPingProbe(target) {
+  /* ================= 物理线路视图（查看线路） =================
+     把逐跳采样还原成一张线路拓扑图：
+     本机网卡 → 接入网关 → 运营商骨干（逐跳）→ 公网目标。
+     节点圆角框 + 连线，线上标注实测延迟增量；突增段红色 = 瓶颈，图下给定位结论。 */
+  function buildRouteSegs(hops) {
+    var nic = currentNic();
+    var segs = [];
+    // 第一段：本机网卡 → 首跳（接入网关）；无线链路质量常在这一段体现
+    var h0 = hops.find(function (h) { return h.ip; });
+    segs.push({
+      name: (nic ? nic.name + ' ' + nic.ip : '本机') + ' → ' + (h0 ? h0.ip : '接入网关'),
+      role: '接入段（网线 / Wi-Fi）',
+      ms: h0 ? h0.ms : null, loss: h0 ? h0.loss : null,
+      hint: nic && nic.conn_type === 'wifi' ? '无线接入：受信号/干扰影响大' : '有线接入：查网线与水晶头'
+    });
+    // 中间段：逐跳延迟增量（后一跳 − 前一跳，负值按 0 计）
+    var prev = h0;
+    for (var i = 1; i < hops.length; i++) {
+      var h = hops[i];
+      if (!h.ip) continue;             // 超时跳不画段（运营商禁 ICMP 响应属正常）
+      var inc = (prev && prev.ms != null && h.ms != null) ? Math.round(Math.max(0, h.ms - prev.ms) * 10) / 10 : null;
+      segs.push({
+        name: (prev ? prev.ip : '接入') + ' → ' + h.ip,
+        role: '互联段 ' + i,
+        ms: inc, loss: h.loss, absMs: h.ms,
+        hopTo: h.ip
+      });
+      prev = h;
+    }
+    return segs;
+  }
+  function routeVerdict(segs, hops) {
+    var bad = [], warns = [];
+    segs.forEach(function (s, i) {
+      if (i === 0) {   // 接入段看绝对延迟与丢包
+        var h0 = hops.find(function (h) { return h.ip; });
+        if (h0 && h0.ms != null && h0.ms > 10) warns.push({ s: s, why: '接入延迟 ' + h0.ms + ' ms 偏高' });
+        if (h0 && h0.loss > 0) bad.push({ s: s, why: '接入段丢包 ' + h0.loss + '%' });
+        return;
+      }
+      if (s.ms != null && s.ms >= 15) bad.push({ s: s, why: '该段延迟突增 +' + s.ms + ' ms' });
+      else if (s.ms != null && s.ms >= 6) warns.push({ s: s, why: '该段延迟增加 +' + s.ms + ' ms' });
+      if (s.loss != null && s.loss >= 50 && s.hopTo) { /* 禁 ping 跳不算丢包瓶颈 */ }
+    });
+    var out = [];
+    if (bad.length) {
+      var b = bad[0];
+      out.push(['bad', '⚠ 瓶颈定位：<b>' + esc(b.s.name) + '</b>（' + b.why + '）。' +
+        (b.s.hopTo ? '问题出在到达 <b>' + esc(b.s.hopTo) + '</b> 的那一段链路——' : '') +
+        (b.s.role.indexOf('接入') === 0 ? '优先查网线/水晶头/网卡协商速率（百兆瓶颈最常见）。'
+          : '属于运营商/骨干互联段，企业内网无法自行处理，可截图此图向运营商报障。')]);
+    }
+    if (out.length === 0 && warns.length) {
+      var w = warns[0];
+      out.push(['warn', '⚠ 需关注：<b>' + esc(w.s.name) + '</b>（' + w.why + '）。' + (w.s.role.indexOf('接入') === 0 ? '接入段延迟偏高：Wi-Fi 场景建议靠近 AP 复测，有线场景查链路协商。' : '出口方向延迟抬升：可能跨省路由或出口拥塞。')]);
+    }
+    if (out.length === 0) out.push(['info', '✓ 全链路逐段延迟均匀，无明显突增段：物理线路与出口均健康。']);
+    var timeout = hops.filter(function (h) { return !h.ip; }).length;
+    if (timeout) out.push(['info', '路径中有 ' + timeout + ' 跳不响应 ping（* 号）：多为运营商设备禁用 ICMP，属正常现象，不代表断路。']);
+    return out;
+  }
+  /* 拓扑节点链构建：本机 → 接入网关 → 运营商骨干跳（合并禁 ping 空档）→ 目标云 */
+  function buildRouteNodes(hops) {
+    var nic = currentNic();
+    // 公网模式网卡下拉未加载时，从定位信息兜底取本机出口 IP
+    var selfName = nic ? ('本机 · ' + nic.name) : '本机';
+    var selfSub = nic ? (nic.ip + (nic.speed ? ' · ' + nic.speed : '')) : ((S.loc && S.loc.ip) ? S.loc.ip + ' · 出口' : '');
+    var nodes = [];
+    nodes.push({ icon: '💻', name: selfName, sub: selfSub, kind: 'self' });
+    var real = hops.filter(function (h) { return h.ip; });
+    var timeoutCnt = hops.length - real.length;
+    real.forEach(function (h, i) {
+      var isGw = i === 0;
+      nodes.push({
+        icon: isGw ? '🏠' : '📡',
+        name: isGw ? '接入网关' : '骨干节点',
+        sub: h.ip + (h.ms != null ? ' · ' + h.ms + ' ms' : '') + (h.loss ? ' · 丢' + h.loss + '%' : ''),
+        ip: h.ip, ms: h.ms, loss: h.loss, kind: isGw ? 'gw' : 'isp',
+        // 延迟相对前一真实跳的增量（网关看绝对值）
+        inc: isGw ? null : (function () {
+          var p = real[i - 1];
+          return (p && p.ms != null && h.ms != null) ? Math.round(Math.max(0, h.ms - p.ms) * 10) / 10 : null;
+        })()
+      });
+    });
+    // 末段目标（公网 DNS 链 / 内网对端）
+    var last = real[real.length - 1];
+    var nicTail = hops.length && real.length && hops[hops.length - 1].ip === last.ip ? '目标' : '目标';
+    nodes.push({ icon: '🌐', name: nicTail, sub: last ? last.ip : '', cloud: true, kind: 'net' });
+    if (timeoutCnt) nodes.timeoutCnt = timeoutCnt;
+    return nodes;
+  }
+  function openRouteView() {
+    var hops = S.hopsData;
+    var body = $('#route-body');
+    if (!hops || !hops.length) { body.innerHTML = '<div class="empty">尚无路径数据——先完成一次测速（逐跳采样随测速自动进行）。</div>'; }
+    else {
+      var nodes = buildRouteNodes(hops);
+      var segs = buildRouteSegs(hops);
+      var maxMs = Math.max.apply(null, segs.filter(function (s) { return s.ms != null; }).map(function (s) { return s.ms; }).concat([1]));
+      // ---- SVG 拓扑：纵向分层（本机 → 网关 → 骨干… → 目标云），逐段着色 ----
+      // W=460：SVG 以原生比例渲染（容器≤460px 不缩放），节点与文字保证清晰
+      var W = 560, nodeH = 58, gap = 22, y0 = 14;
+      var H = y0 * 2 + nodes.length * nodeH + (nodes.length - 1) * gap;
+      var cx = W / 2;
+      var ys = nodes.map(function (_, i) { return y0 + i * (nodeH + gap) + nodeH / 2; });
+      function segClass(inc, isGw, hop) {
+        if (isGw) return (hop && hop.ms != null && hop.ms > 10) ? 'warn' : (hop && hop.loss > 0 ? 'warn' : 'ok');
+        return inc == null ? 'ok' : (inc >= 15 ? 'bad' : inc >= 6 ? 'warn' : 'ok');
+      }
+      var s = ['<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:' + W + 'px;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">'];
+      s.push('<defs><linearGradient id="rt-cloud" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#3b82f6" stop-opacity=".18"/><stop offset="1" stop-color="#3b82f6" stop-opacity=".04"/></linearGradient></defs>');
+      // 目标云背景
+      s.push('<rect x="' + (cx - 225) + '" y="' + (ys[ys.length - 1] - 31) + '" width="450" height="66" rx="16" fill="url(#rt-cloud)" stroke="#3b82f6" stroke-opacity=".35" stroke-dasharray="5 4"/>');
+      // 连线（节点框之间）
+      for (var i = 0; i < nodes.length - 1; i++) {
+        var a = nodes[i], b = nodes[i + 1];
+        var seg = segs[Math.min(i, segs.length - 1)];
+        var cls = segClass(b.inc, b.kind === 'gw', b);
+        var color = cls === 'bad' ? 'var(--red)' : cls === 'warn' ? 'var(--warn)' : 'var(--blue)';
+        var dash = b.kind === 'isp' ? '6 5' : '';
+        var y1 = ys[i] + nodeH / 2, y2 = ys[i + 1] - nodeH / 2;
+        s.push('<line x1="' + cx + '" y1="' + (y1 + 2) + '" x2="' + cx + '" y2="' + (y2 - 2) + '" stroke="' + color + '" stroke-width="' + (cls === 'bad' ? 3 : 2) + '"' + (dash ? ' stroke-dasharray="' + dash + '"' : '') + ' opacity=".8"/>');
+        // 流动光点
+        s.push('<circle r="3.2" fill="' + color + '"><animateMotion dur="1.6s" repeatCount="indefinite" path="M ' + cx + ' ' + (y1 + 2) + ' L ' + cx + ' ' + (y2 - 2) + '"/></circle>');
+        // 线上延迟标注
+        var incTxt = b.kind === 'gw'
+          ? (b.ms != null ? b.ms + ' ms' : '')
+          : (b.inc != null ? '+' + b.inc + ' ms' : '');
+        if (b.loss) incTxt += ' · 丢' + b.loss + '%';
+        if (incTxt) {
+          var midY = (y1 + y2) / 2;
+          var pillW = incTxt.length * 8 + 18;
+          s.push('<rect x="' + (cx + 12) + '" y="' + (midY - 11) + '" width="' + pillW + '" height="22" rx="11" fill="var(--panel)" stroke="' + color + '" stroke-opacity=".5"/>');
+          s.push('<text x="' + (cx + 21) + '" y="' + (midY + 5) + '" font-size="13" fill="' + color + '" font-family="Consolas,monospace" style="pointer-events:none">' + esc(incTxt) + '</text>');
+        }
+        if (cls === 'bad') {
+          s.push('<text x="' + (cx - 16) + '" y="' + ((y1 + y2) / 2 + 6) + '" text-anchor="end" font-size="16" style="pointer-events:none">⛔</text>');
+        }
+      }
+      // 节点框
+      nodes.forEach(function (n, i) {
+        var y = ys[i] - nodeH / 2;
+        var border = n.kind === 'self' ? '#7ee2a8' : n.kind === 'gw' ? '#8ab4f8' : n.kind === 'net' ? '#3b82f6' : 'rgba(138,180,248,.5)';
+        var barColor = n.kind === 'self' ? '#7ee2a8' : n.kind === 'gw' ? '#8ab4f8' : '#5aa7e8';
+        var fill = n.cloud ? 'transparent' : 'rgba(13,27,46,.95)';
+        s.push('<rect x="' + (cx - 225) + '" y="' + y + '" width="450" height="' + nodeH + '" rx="12" fill="' + fill + '" stroke="' + border + '" stroke-width="' + (n.kind === 'self' || n.kind === 'net' ? 2 : 1.6) + '"' + (n.cloud ? ' stroke-dasharray="5 4"' : '') + '/>');
+        if (!n.cloud) {
+          s.push('<rect x="' + (cx - 175) + '" y="' + (y + 8) + '" width="4" height="' + (nodeH - 16) + '" rx="2" fill="' + barColor + '" opacity=".9"/>');
+        }
+        s.push('<text x="' + (cx - 202) + '" y="' + (ys[i] + 8) + '" font-size="24">' + n.icon + '</text>');
+        s.push('<text x="' + (cx - 166) + '" y="' + (ys[i] - 3) + '" font-size="14.5" fill="#f2f8ff" font-family="Microsoft YaHei,sans-serif" font-weight="600">' + esc(n.name) + '</text>');
+        s.push('<text x="' + (cx - 166) + '" y="' + (ys[i] + 17) + '" font-size="12" fill="#b8c8dc" font-family="Consolas,monospace">' + esc(n.sub) + '</text>');
+      });
+      s.push('</svg>');
+      // 图例 + 结论
+      var html = '<div style="font-size:12.5px;color:var(--text-1,#c9d5e3);margin:2px 0 8px;line-height:1.65">自上而下 = 数据包走过的物理线路；线上数字 = 该段实测延迟增量；<span style="color:var(--red)">红 = 突增 ≥15 ms（瓶颈）</span> · <span style="color:var(--warn)">黄 = 抬升 ≥6 ms</span> · ⛔ = 瓶颈段' +
+        (nodes.timeoutCnt ? '；骨干中 ' + nodes.timeoutCnt + ' 跳禁 ping 未画出（正常）' : '') + '</div>';
+      html += s.join('');
+      html += routeVerdict(segs, hops).map(function (f) {
+        return '<div class="rt-concl" style="color:' + (f[0] === 'bad' ? 'var(--red)' : f[0] === 'warn' ? 'var(--warn)' : 'var(--text-2)') + '">' + f[1] + '</div>';
+      }).join('');
+      body.innerHTML = html;
+      body.scrollTop = 0;   // 每次打开回到顶部
+    }
+    $('#route-mask').style.display = 'block';
+    $('#route-modal').style.display = 'flex';
+  }
+  /* 弹窗打开期间锁定背后页面滚动；滚轮只作用于弹窗内容 */
+  (function () {
+    var modal = document.getElementById('route-modal');
+    var mask = document.getElementById('route-mask');
+    var stopWheel = function (e) { e.preventDefault(); e.stopPropagation(); };
+    modal.addEventListener('wheel', function (e) {
+      // 让浏览器默认滚动 #route-body（可滚动时），但不让事件传到背后页面
+      var body = document.getElementById('route-body');
+      var atTop = body.scrollTop <= 0, atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 1;
+      if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) e.preventDefault();   // 到顶/到底也不穿透
+      e.stopPropagation();
+    }, { passive: false });
+    mask.addEventListener('wheel', stopWheel, { passive: false });
+    // 背景滚动锁：body overflow hidden（保留滚动条宽度避免页面跳动）
+    var lock = function () {
+      var sw = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = sw > 0 ? sw + 'px' : '';
+    };
+    var unlock = function () { document.body.style.overflow = ''; document.body.style.paddingRight = ''; };
+    window.__routeLock = { lock: lock, unlock: unlock };
+  })();
+  $('#btn-route').addEventListener('click', function () { if (window.__routeLock) window.__routeLock.lock(); openRouteView(); });
+  $('#route-close').addEventListener('click', closeRouteView);
+  $('#route-mask').addEventListener('click', closeRouteView);
+  function closeRouteView() {
+    $('#route-mask').style.display = $('#route-modal').style.display = 'none';
+    if (window.__routeLock) window.__routeLock.unlock();
+  }
+
+  /* ---------- 负载下延迟采样（抖动/丢包时序）；Worker 计时，后台不节流 ---------- */
+  function startPingProbe(target, opts) {
     S.pingProbe = [];
-    function once() {
-      if (!S.running) return;
+    var token = {};
+    S.pingProbeToken = token;
+    (function once() {
+      if (S.pingProbeToken !== token) return;
       var t0 = performance.now();
-      fetchTimeout(target + '?r=' + rand(), 3000).then(function () {
+      fetchTimeout(target + '?r=' + rand(), 3000, opts).then(function () {
         S.pingProbe.push({ t: performance.now() - t0, ok: true });
       }).catch(function () {
         S.pingProbe.push({ t: -1, ok: false });
       });
-    }
-    // 2 秒一个轻量探测，压测期间持续采样
-    S.pingTimer = setInterval(once, 2000);
-    once();
+      // 2 秒一个轻量探测，压测期间持续采样
+      bgSleep(2000).then(once);
+    })();
   }
-  function stopPingProbe() { if (S.pingTimer) { clearInterval(S.pingTimer); S.pingTimer = null; } }
+  function stopPingProbe() { S.pingProbeToken = null; }
 
-  /* 解析内网对端输入：留空 = 本站服务器（同源）；否则 http://host:port */
+  /* ================= 测速线路（本机网卡选择） =================
+     客户现场常见多网卡（有线+无线+USB），每块网卡 = 一条内网线路。
+     选定线路后：对端留空自动测该网卡网段的网关；ICMP/测速流量按该网卡源 IP 走
+     （Windows 按目标 IP 查路由选出口，目标在该网卡网段内即从该网卡出，等效绑定）。 */
+  function currentNic() {
+    var arr = S.nics || [];
+    for (var i = 0; i < arr.length; i++) if (arr[i].ip === nicSel.value) return arr[i];
+    return null;
+  }
+  function nicLabel(n) {
+    if (!n) return '';
+    return n.name + '（' + n.ip + (n.speed ? ' · ' + n.speed : '') + (n.virtual ? ' · 虚拟' : '') + '）';
+  }
+  function loadNics() {
+    return fetchTimeout('/api/speedtest/nics', 15000).then(function (r) { return r.json(); }).then(function (d) {
+      S.nics = (d && d.ok && d.nics) ? d.nics : [];
+      if (!S.nics.length) {
+        nicSel.innerHTML = '<option value="">未读到可用网卡（对端请手动填写）</option>';
+        return;
+      }
+      var activeIp = d.active && d.active.ip;
+      nicSel.innerHTML = S.nics.map(function (n) {
+        return '<option value="' + esc(n.ip) + '">' + esc(nicLabel(n)) + (n.ip === activeIp ? ' · 默认' : '') + '</option>';
+      }).join('');
+      // 预选：默认线路（当前活动网卡）优先，且绝不落到虚拟网卡；否则第一条有网关的真实网卡
+      var pick = S.nics.filter(function (n) { return n.ip === activeIp && !n.virtual; })[0] ||
+                 S.nics.filter(function (n) { return !n.virtual && n.gateway; })[0] ||
+                 S.nics.filter(function (n) { return !n.virtual; })[0] || S.nics[0];
+      nicSel.value = pick.ip;
+    }).catch(function () {
+      nicSel.innerHTML = '<option value="">网卡读取失败（对端请手动填写）</option>';
+    });
+  }
+  /* 线路切换：自动带出该网卡网段的网关作对端（仅当对端为空或之前是别的网关时覆盖） */
+  nicSel.addEventListener('change', function () {
+    // 对端留空即默认对网口（网关）测延迟，不再自动回填；仅当用户此前手填过网关 IP 时跟随线路切换更新
+    var n = currentNic();
+    var v = (peerInput.value || '').trim();
+    if (n && n.gateway && /^(\d{1,3}\.){3}\d{1,3}$/.test(v)) peerInput.value = n.gateway;
+    if (!S.running) probePeer();
+  });
+
+  /* 解析内网对端输入：留空 = 默认对所选线路网关测延迟（无网关则本站服务器）；否则 http://host:port */
   function lanTarget() {
     var v = (peerInput.value || '').trim();
-    if (!v) return { base: '', label: '本站服务器 ' + location.host };
+    if (!v) {
+      var n = currentNic();
+      if (n && n.gateway) return { base: 'http://' + n.gateway + ':8644', host: n.gateway, label: '网关 ' + n.gateway, gwOnly: true };
+      return { base: '', host: '', label: '本站服务器 ' + location.host };
+    }
     var m = v.match(/^(?:https?:\/\/)?([A-Za-z0-9.\-]+)(?::(\d{1,5}))?$/);
     if (!m) return null;
-    var port = m[2] ? parseInt(m[2], 10) : 8644;
-    return { base: 'http://' + m[1] + ':' + port, label: '对端 ' + m[1] + ':' + port };
+    // 裸 IP 未写端口：探活若发现对方完整站点在 8642，则沿用（否则默认 speedpeer 的 8644）
+    var port = m[2] ? parseInt(m[2], 10) : (S.peerAutoBase && S.peerAutoBase.host === m[1] ? 8642 : 8644);
+    return { base: 'http://' + m[1] + ':' + port, host: m[1], explicitPort: !!m[2], label: '对端 ' + m[1] + ':' + port };
   }
 
-  /* 对端探活三级：测速服务（CyberNWT 站点/speedpeer）→ 任意 HTTP 站点 → ICMP（网关） */
+  /* 对端探活三级：测速服务（CyberNWT 站点/speedpeer）→ 任意 HTTP 站点 → ICMP（网关）
+     裸 IP 未写端口时额外补探 :8642——对方跑完整 CyberNWT 站点（压测端点在 8642）而没跑
+     speedpeer（8644）时，不做这步会被 ICMP 误判成「网关/网络设备」只测延迟。
+     S.peerProbing=true 期间点开始测速：等探活收敛再起跑，避免 peerKind 旧值走错分支 */
   function probePeer() {
     var t = lanTarget();
     if (!t) { elNote.textContent = '对端地址格式无效：请填写 IP 或主机名（可带 :端口）。'; return; }
-    if (!t.base) { elNote.textContent = '目标：本站服务器 ' + location.host + '（留空默认）。也可直接填内网其他机器的 IP 互测。'; return; }
+    if (!t.base) {
+      // 留空且所选线路无网关 = 本站服务器（完整上下行带宽）：重置类型，避免上次探测的 'icmp' 残留
+      S.peerKind = 'speedpeer';
+      S.peerProbing = false;
+      elNote.textContent = '目标：本站服务器 ' + location.host + '。也可直接填内网其他机器的 IP 互测。';
+      return;
+    }
+    S.peerProbing = true;
+    S.peerAutoBase = null;
     elNote.textContent = '正在探测对端 ' + t.label + ' …';
+    var done = function () { S.peerProbing = false; };
+    var probeIcmp = function () {
+      // 三级：ICMP（网关/交换机等网络设备），带所选网卡源地址
+      fetchTimeout('/api/speedtest/icmp?host=' + encodeURIComponent(lanHost()) + icmpSrcParam(), 5000).then(function (r) { return r.json(); }).then(function (d) {
+        done();
+        if (d.ok && d.ms && d.ms.length) {
+          S.peerKind = 'icmp';
+          var avg = d.ms.reduce(function (a, b) { return a + b; }, 0) / d.ms.length;
+          elNote.textContent = '对端可达（ICMP ' + Math.round(avg) + ' ms' + (currentNic() ? ' · 经 ' + currentNic().name : '') + '）：该地址是网关/网络设备，不支持带宽压测——开始测速将仅测延迟。';
+        } else {
+          S.peerKind = 'unreachable';
+          elNote.textContent = '对端 ' + t.label + ' 不可达（HTTP/ICMP 均失败）：请确认地址正确、设备在线。';
+        }
+      }).catch(function () {
+        done();
+        S.peerKind = 'unreachable';
+        elNote.textContent = '对端 ' + t.label + ' 不可达：请确认地址正确、设备在线。';
+      });
+    };
     fetchTimeout(t.base + '/peer/info', 3500).then(function (r) { return r.json(); }).then(function (d) {
       S.peerKind = 'speedpeer';
+      done();
       elNote.textContent = '对端就绪：' + (d.host || '未知主机') + '（' + (d.system || '') + '）· ' + t.label;
     }).catch(function () {
       // 二级：验证 /peer/down 压测能力（CyberNWT 站点内置；普通网站无此端点则转 ICMP）
       fetchTimeout(t.base + '/peer/down?bytes=1024', 4000).then(function (r) {
         S.peerKind = 'speedpeer';
+        done();
         elNote.textContent = '对端是 CyberNWT 站点（' + t.label + '）：支持带宽互测，点开始测速。';
       }).catch(function () {
-        // 三级：ICMP（网关/交换机等网络设备）
-        fetchTimeout('/api/speedtest/icmp?host=' + encodeURIComponent(lanHost()), 5000).then(function (r) { return r.json(); }).then(function (d) {
-          if (d.ok && d.ms && d.ms.length) {
-            S.peerKind = 'icmp';
-            var avg = d.ms.reduce(function (a, b) { return a + b; }, 0) / d.ms.length;
-            elNote.textContent = '对端可达（ICMP ' + Math.round(avg) + ' ms）：该地址是网关/网络设备，不支持带宽压测——开始测速将仅测延迟。';
-          } else {
-            S.peerKind = 'unreachable';
-            elNote.textContent = '对端 ' + t.label + ' 不可达（HTTP/ICMP 均失败）：请确认地址正确、设备在线。';
-          }
-        }).catch(function () {
-          S.peerKind = 'unreachable';
-          elNote.textContent = '对端 ' + t.label + ' 不可达：请确认地址正确、设备在线。';
-        });
+        if (t.explicitPort) { probeIcmp(); return; }
+        // 二级半：裸 IP 补探 :8642（完整 CyberNWT 站点的默认端口）
+        var alt = 'http://' + t.host + ':8642';
+        fetchTimeout(alt + '/peer/down?bytes=1024', 4000).then(function (r) {
+          S.peerKind = 'speedpeer';
+          S.peerAutoBase = { host: t.host, base: alt };
+          done();
+          elNote.textContent = '对端是 CyberNWT 站点（' + t.host + ':8642' + '）：支持带宽互测，点开始测速。';
+        }).catch(probeIcmp);
       });
     });
   }
+  /* 所选网卡的源地址参数（ICMP -S / 服务端绑定用）；回环打开站点时不指定 */
+  function icmpSrcParam() {
+    var n = currentNic();
+    return (n && !/^(127\.|localhost)/.test(location.hostname)) ? '&src=' + encodeURIComponent(n.ip) : '';
+  }
   function lanHost() {
     var v = (peerInput.value || '').trim();
+    if (!v) {
+      var n = currentNic();
+      if (n && n.gateway) return n.gateway;   // 对端留空 = 默认对网口（网关）测延迟
+    }
     var m = v.match(/^(?:https?:\/\/)?([A-Za-z0-9.\-]+)(?::(\d{1,5}))?$/);
     return m ? m[1] : '';
   }
@@ -912,7 +1387,8 @@
     setPhase('idle');
     elStart.textContent = '开始测速';
     elStart.disabled = false;
-    elStop.style.display = 'none';
+    elStart.classList.remove('looping');
+    elStart.classList.add('primary');
     $('#grade').textContent = '–';
     $('#grade').className = 'grade';
     $('#verdict-txt').textContent = '等待测试';
@@ -923,14 +1399,656 @@
 
   /* ================= 测速引擎 ================= */
   elGo.addEventListener('click', startTest);
-  elStart.addEventListener('click', startTest);
-  elStop.addEventListener('click', stopTest);
+  elStart.addEventListener('click', function () {
+    if (S.running) { stopTest(); return; }   // 测速中：开始按钮即「停止」
+    startTest();
+  });
+
+  /* 开始按钮 ⇄ 停止：单次测速时变身「停止」，样式与持续测速的停止完全一致（红字+脉冲） */
+  function setStartBtnAsStop() {
+    elStart.textContent = '停止';
+    elStart.classList.remove('primary');
+    elStart.classList.add('looping');
+    elStart.disabled = false;
+  }
+  function restoreStartBtn(text) {
+    elStart.textContent = text;
+    elStart.classList.remove('looping');
+    elStart.classList.add('primary');
+    elStart.disabled = false;
+  }
+
+  /* ================= 持续测速：弹窗配置（停止方式 + 报告导出）后循环执行 ================= */
+  var elLoop = $('#btn-loop');
+  var LOOP_GAP = 3000;   // 两轮之间的休息时间（ms）
+
+  function setLoopUI(on) {
+    elLoop.textContent = on ? '停止' : '持续测速';
+    elLoop.classList.toggle('looping', on);
+    elStart.disabled = on;
+    elGo.disabled = on;
+  }
+
+  function stopLoop() {
+    if (!S.looping) return;
+    S.looping = false;
+    setLoopUI(false);
+    stopTest();   // 若某一轮正在进行，中止它（无轮进行中则无害）
+  }
+
+  elLoop.addEventListener('click', function () {
+    if (S.looping) { stopLoop(); return; }
+    if (runnerActive) {   // 运行器窗口在跑：远程停止（结束本轮并导出报告）
+      if (loopBC) loopBC.postMessage({ type: 'stop' });
+      elNote.textContent = '已发送停止指令：运行器将结束当前轮次并导出报告，完成后本页自动更新。';
+      return;
+    }
+    openLoopDialog();
+  });
+
+  /* ---------- 持续测速设置弹窗 ---------- */
+  var elLoopModal = $('#loop-modal'), elLoopMask = $('#loop-mask');
+  var elStopMode = $('#loop-stop-mode'), elStopValue = $('#loop-stop-value'),
+      elStopValueCell = $('#loop-stop-value-cell'), elExportPath = $('#loop-export-path'),
+      elStopValueLabel = $('#loop-stop-value-label'), elPickBtn = $('#loop-pick-btn'),
+      elBwAck = $('#loop-bw-ack');
+  var loopValueMem = { duration: 30, rounds: 5 };   // 每种停止方式记住各自的数值
+  var STOP_LABELS = { duration: '停止时间（单位为分钟）', rounds: '停止轮数（单位为轮数）' };
+
+  function applyStopMode(mode) {
+    elStopMode.value = mode;
+    elStopValueCell.style.display = mode === 'manual' ? 'none' : '';
+    elStopValueLabel.textContent = STOP_LABELS[mode] || '';
+    if (mode !== 'manual') elStopValue.value = loopValueMem[mode] || 1;
+  }
+
+  function openLoopDialog() {
+    applyStopMode(STOP_LABELS[elStopMode.value] ? elStopMode.value : 'duration');
+    if (!elExportPath.value) elExportPath.value = localStorage.getItem('cyber-loop-last-path') || '';   // 路径填一次自动记住
+    elLoopModal.style.display = 'flex';
+    elLoopMask.style.display = 'block';
+    fitBwRow();   // 弹窗显示后才能度量行宽，自动适配「带宽」行字号
+  }
+  function closeLoopDialog() {
+    elLoopModal.style.display = 'none';
+    elLoopMask.style.display = 'none';
+  }
+  elStopMode.addEventListener('change', function () {
+    var prev = elStopValueLabel.textContent === STOP_LABELS.rounds ? 'rounds' : 'duration';
+    if (prev !== 'manual') loopValueMem[prev] = parseInt(elStopValue.value, 10) || loopValueMem[prev];
+    applyStopMode(elStopMode.value);
+  });
+  $('#loop-cancel').addEventListener('click', closeLoopDialog);
+  elLoopMask.addEventListener('click', closeLoopDialog);
+  /* ---------- 导出文件夹选择器（应用内，点选完成） ----------
+     选中的是本机真实文件夹路径：报告由服务程序（独立进程）在结束时静默直写该文件夹，
+     零提示；路径自动记住，选一次以后每次打开都已预填。 */
+  var fbState = { path: '', parent: null };
+  function fbOpen() {
+    fbState.path = /^已选/.test(elExportPath.value) ? '' : elExportPath.value.trim();
+    elLoopModal.style.display = 'none';
+    elLoopMask.style.display = 'none';
+    document.getElementById('fb-mask').style.display = 'block';
+    document.getElementById('fb-modal').style.display = 'flex';
+    fbLoad(fbState.path);
+  }
+  function fbClose() {
+    document.getElementById('fb-mask').style.display = 'none';
+    document.getElementById('fb-modal').style.display = 'none';
+    elLoopModal.style.display = 'flex';
+    elLoopMask.style.display = 'block';
+  }
+  function fbLoad(p) {
+    var list = document.getElementById('fb-list');
+    list.innerHTML = '<div class="empty">读取中…</div>';
+    document.getElementById('fb-up').disabled = true;
+    fetchTimeout('/api/speedtest/browse?path=' + encodeURIComponent(p || ''), 8000)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) { list.innerHTML = '<div class="empty">' + esc(d.message || '读取失败') + '</div>'; return; }
+        fbState.path = d.path;
+        fbState.parent = d.parent;
+        document.getElementById('fb-up').disabled = d.parent === null || d.parent === undefined;   // '' = 盘符选择层，可返回
+        document.getElementById('fb-path').value = d.path;
+        document.getElementById('fb-cur').textContent = d.path ? '当前：' + d.path : '请选择磁盘，或点常用位置直达';
+        var quick = document.getElementById('fb-quick');
+        quick.innerHTML = (d.quick || []).map(function (q) {
+          return '<button class="btn" data-p="' + esc(q.path) + '" style="height:28px;padding:0 12px;font-size:12px">📁 ' + esc(q.name) + '</button>';
+        }).join('') + '<span style="font-size:11.5px;color:var(--text-2);align-self:center">常用位置</span>';
+        Array.prototype.forEach.call(quick.querySelectorAll('button'), function (b) {
+          b.addEventListener('click', function () { fbLoad(b.getAttribute('data-p')); });
+        });
+        var sep = d.path.indexOf('\\') > -1 ? '\\' : '/';
+        list.innerHTML = (d.dirs.length ? d.dirs.map(function (name) {
+          var full = d.path ? d.path.replace(/[\\\/]+$/, '') + sep + name : name;   // 空路径 = 盘符列表，name 已是完整路径
+          return '<div class="fb-row" data-p="' + esc(full) + '" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-bottom:1px dashed var(--grid-line);font-size:13px">' +
+            '<span style="flex:none">📁</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(name) + '</span></div>';
+        }).join('') : '<div class="empty">此目录下没有子文件夹——可直接点「选择当前文件夹」</div>');
+        Array.prototype.forEach.call(list.querySelectorAll('.fb-row'), function (row) {
+          row.addEventListener('click', function () { fbLoad(row.getAttribute('data-p')); });
+        });
+      })
+      .catch(function () { list.innerHTML = '<div class="empty">读取失败：请确认服务程序正在运行</div>'; });
+  }
+  elPickBtn.addEventListener('click', fbOpen);
+  document.getElementById('fb-up').addEventListener('click', function () { if (fbState.parent != null) fbLoad(fbState.parent); });
+  document.getElementById('fb-go').addEventListener('click', function () { fbLoad(document.getElementById('fb-path').value.trim()); });
+  document.getElementById('fb-path').addEventListener('keydown', function (e) { if (e.key === 'Enter') fbLoad(this.value.trim()); });
+  document.getElementById('fb-cancel').addEventListener('click', fbClose);
+  document.getElementById('fb-mask').addEventListener('click', fbClose);
+  document.getElementById('fb-ok').addEventListener('click', function () {
+    if (!fbState.path) return;   // 还停在盘符列表层：先进入某个磁盘
+    elExportPath.value = fbState.path;
+    try { localStorage.setItem('cyber-loop-last-path', fbState.path); } catch (e) {}
+    fbClose();
+  });
+  var runnerActive = false;   // 持续测速由独立运行器窗口承载（本页仅显示进度/远程停止）
+  /* 「带宽」确认行：自动适配字号——在不换行不出界的前提下尽量大，文字顶到右边界（弹窗显示时才可度量） */
+  function fitBwRow() {
+    var label = document.querySelector('label[for="loop-bw-ack"]');
+    if (!label) return;
+    for (var size = 16; size >= 11; size -= 0.5) {
+      label.style.fontSize = size + 'px';
+      if (label.scrollWidth <= label.clientWidth) return;
+    }
+  }
+  $('#loop-confirm').addEventListener('click', function () {
+    var mode = elStopMode.value;
+    var val = parseInt(elStopValue.value, 10);
+    if (mode !== 'manual' && (!val || val < 1)) {
+      elStopValue.style.borderColor = 'var(--red)';
+      elStopValue.focus();
+      setTimeout(function () { elStopValue.style.borderColor = ''; }, 1200);
+      return;
+    }
+    var pathVal = elExportPath.value.trim();
+    if (/^已选/.test(pathVal)) pathVal = '';   // 旧版「另存为」流程的展示残留（已废弃）→ 不导出
+    /* 路径填一次自动记住：之后每次点开始就走人，报告静默写入该文件夹，全程无任何提示 */
+    try {
+      if (pathVal) localStorage.setItem('cyber-loop-last-path', pathVal);
+      else localStorage.removeItem('cyber-loop-last-path');
+    } catch (e) {}
+    /* 跟随发起页：在公网测速界面点持续测速 = 持续测公网；在内网测速界面点 = 持续测内网。
+       运行器是新开的页面，必须把当时的模式、线路（网卡）、对端、并发一并带入 */
+    var cfg = { mode: mode, value: val || 0, exportPath: pathVal, bw: elBwAck.checked, ts: Date.now(),
+      testMode: S.mode, peer: (peerInput.value || '').trim(), nic: nicSel.value, stream: S.streamMode };
+    closeLoopDialog();
+    /* 独立运行器窗口承载循环：本页刷新/切换功能页都不影响测速，回来自动接上进度 */
+    try {
+      localStorage.setItem('cyber-loop-config', JSON.stringify(cfg));
+      localStorage.removeItem('cyber-loop-status');
+    } catch (e) {}
+    var w = null;
+    try { w = window.open('speedtest.html?runner=1', 'cyber-loop-runner', 'width=480,height=240'); } catch (e) {}
+    if (w) {
+      try { w.focus(); } catch (e) {}
+      runnerActive = true;
+      setLoopUI(true);
+      elNote.textContent = '持续测速已在独立窗口启动：可最小化、刷新或切换功能页，测速不受影响；关闭该窗口会停止测速。';
+      return;
+    }
+    /* 弹窗被浏览器拦截：回退为本页运行 */
+    S.looping = true;
+    setLoopUI(true);
+    runLoop(cfg);
+  });
+
+  /* ---------- 循环引擎：到点自动收轮，结束后可导出报告 ---------- */
+  /* 停止条件是否已满足：轮数测满 / 时长到点（manual 永不自动停） */
+  function loopStopDue(cfg, startedAt, rounds) {
+    if (cfg.mode === 'rounds') return rounds >= cfg.value;
+    if (cfg.mode === 'duration') return Date.now() - startedAt >= cfg.value * 60000;
+    return false;
+  }
+  async function runLoop(cfg) {
+    var startedAt = Date.now();
+    var results = [];   // 每轮结果快照
+    while (S.running) await sleep(200);   // 手动测速进行中：等这轮结束后再进入循环
+    var rounds = 0;
+    while (S.looping && !loopStopDue(cfg, startedAt, rounds)) {
+      S.loopRound = rounds + 1;
+      S.loopNoBw = cfg.bw === false;   // 未勾选「带宽」：仅第一轮测带宽，后续轮只测时延
+      loopBeat(loopNote(cfg, startedAt, rounds, 0));
+      await startTest();
+      elStart.disabled = S.looping;       // 轮次间隙保持禁用，停止统一走「持续测速」按钮
+      rounds++;
+      results.push(snapshotResult(rounds));
+      if (!S.looping) break;
+      if (loopStopDue(cfg, startedAt, rounds)) break;   // 末轮测完：直接收尾出报告，不进入「下一轮」倒计时
+      for (var t = LOOP_GAP / 1000; t > 0 && S.looping; t--) {
+        loopBeat(loopNote(cfg, startedAt, rounds, t));
+        await sleep(1000);
+      }
+    }
+    S.looping = false;
+    setLoopUI(false);
+    var summary = '持续测速已结束：共完成 ' + results.length + ' 轮' +
+      (cfg.mode === 'duration' ? '，历时 ' + (Math.round((Date.now() - startedAt) / 6000) / 10) + ' 分钟' : '') + '。';
+    if (results.length && (cfg.exportPath || RUNNER)) summary += ' 报告导出中…';
+    elNote.textContent = summary;
+    loopBeat(summary);
+    try { localStorage.setItem('cyber-loop-last-result', JSON.stringify({ t: Date.now(), note: summary })); } catch (e) {}
+    var exP = results.length ? exportLoopReport(results, cfg, startedAt, summary) : null;
+    if (RUNNER) {
+      /* 运行器：等报告处理完成后通知主页面（含最终文案），并把窗口切换为「已结束」状态。
+         exportLoopReport 完成时已把最终结果（含保存位置）写入 lastBeat，此处不再覆盖。 */
+      (exP || Promise.resolve()).then(function () {
+        if (loopBC) loopBC.postMessage({ type: 'done', summary: lastBeat });
+        try { localStorage.removeItem('cyber-loop-config'); localStorage.removeItem('cyber-loop-status'); } catch (e) {}
+        var bn = document.getElementById('runner-note');
+        if (bn) bn.textContent = lastBeat;
+        var barEl = document.getElementById('runner-bar');
+        if (barEl) {
+          var bt = barEl.querySelector('b');
+          if (bt) bt.textContent = '持续测速已结束';
+          var sm = barEl.querySelector('small');
+          if (sm) sm.textContent = /报告已保存|报告已导出/.test(lastBeat)
+            ? '测速已完成，报告已生成，当前窗口可以关闭'
+            : '测速已完成，但报告未能导出——原因见上方文字';
+        }
+        document.title = '持续测速 · 已结束';
+      });
+    }
+  }
+
+  function loopNote(cfg, startedAt, doneRounds, gapSec) {
+    var next = doneRounds + 1;
+    if (cfg.mode === 'rounds' && next > cfg.value) next = cfg.value;   // 保险：任何情况下都不显示超出目标轮数的编号
+    var base = '持续测速中：第 ' + next + ' 轮' +
+      (cfg.mode === 'rounds' ? ' / 共 ' + cfg.value + ' 轮' : '') + ' · ';
+    if (gapSec > 0) return base + gapSec + ' 秒后开始下一轮';
+    if (cfg.mode === 'duration') {
+      var leftMin = Math.max(0, cfg.value - (Date.now() - startedAt) / 60000);
+      return base + '剩余 ' + (leftMin >= 1 ? Math.ceil(leftMin) + ' 分钟' : '不足 1 分钟');
+    }
+    if (cfg.mode === 'manual') return base + '点「停止」结束';
+    return base + '测满 ' + cfg.value + ' 轮后自动生成报告';
+  }
+
+  /* 每轮结束后的结果快照（S.res 会在下一轮开始时被重置） */
+  function snapshotResult(rounds) {
+    var r = S.res || {};
+    var gwOnlyRound = S.mode === 'lan' && S.peerKind === 'icmp';   // 网关/网络设备：仅测延迟，无带宽
+    return {
+      round: rounds,
+      time: new Date().toLocaleString('zh-CN', { hour12: false }),
+      mode: S.mode,
+      target: S.mode === 'wan' ? (S.node ? S.node.name + ' 等 CDN' : '公网 CDN') : (S.peer ? S.peer.label : '本站'),
+      ping: r.ping, jitter: r.jitter,
+      down: gwOnlyRound ? null : r.down,   // 网关轮次如实记为未测（避免报告出现误导性的 0.00 Mbps）
+      up: gwOnlyRound ? null : r.up,
+      pingMin: r.pingMin || null,
+      loadJitter: r.loadJitter || null, loadLoss: r.loadLoss || null
+    };
+  }
+
+  /* ---------- 报告构建：每轮明细 + 统计 + 诊断/分析/总结 ---------- */
+  function fmtStat(vals) {
+    var v = vals.filter(function (x) { return x != null && isFinite(x); });
+    if (!v.length) return null;
+    var avg = v.reduce(function (a, b) { return a + b; }, 0) / v.length;
+    var min = Math.min.apply(null, v), max = Math.max.apply(null, v);
+    var sd = Math.sqrt(v.reduce(function (a, b) { return a + (b - avg) * (b - avg); }, 0) / v.length);
+    return { avg: avg, min: min, max: max, sd: sd, cv: avg > 0 ? sd / avg * 100 : 0 };
+  }
+  function downTier(mbps) {
+    return mbps >= 850 ? '千兆级' : mbps >= 450 ? '五百兆级' : mbps >= 250 ? '三百兆级'
+      : mbps >= 85 ? '百兆级' : mbps >= 30 ? '高速宽带' : mbps >= 10 ? '一般' : '受限';
+  }
+
+  /* ---------- 客户端真 .docx 生成：最小 ZIP（STORE）打包 OOXML，保存对话框/运行器直出 Word 文件 ---------- */
+  
+  
+  
+
+  /* 报告导出：唯一机制 = 服务程序（独立进程）直写本机真实路径。
+     用户填好路径点开始即可离开：无论主页面刷新、切页还是关闭，结束时报告都静默出现在该文件夹，
+     全程无任何提示。未填路径时运行器默认存站点 download 目录；
+     服务程序不可达时暂存报告，下次进页面静默补存。 */
+  function exportLoopReport(results, cfg, startedAt, summary) {
+    var blocks = buildReportBlocks(results, cfg, startedAt);
+    var d = new Date();
+    function p2(n) { return (n < 10 ? '0' : '') + n; }
+    var filename = '灵犀测速-持续测速报告-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds()) + '.docx';
+    var base = summary.replace(' 报告导出中…', '');
+    function note(txt) {
+      elNote.textContent = txt; loopBeat(txt);
+      /* 结果持久化：主页面刷新/切页回来也能看到报告去向 */
+      try { localStorage.setItem('cyber-loop-last-result', JSON.stringify({ t: Date.now(), note: txt })); } catch (e) {}
+    }
+    async function run() {
+      var pathVal = (cfg.exportPath || '').trim();
+      if (/^已选/.test(pathVal)) pathVal = '';   // 旧版「另存为」流程的展示残留（已废弃）→ 不导出
+      if (!pathVal && RUNNER) pathVal = 'download';   // 运行器未填路径：默认存 download，报告不丢失
+      if (!pathVal) { note(base + '（未设置导出位置，跳过报告）'); return; }
+      try {
+        var r = await fetchTimeout('/api/speedtest/report', 20000, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: pathVal, filename: filename, blocks: blocks })
+        });
+        var data = await r.json();
+        if (data.ok) { note(base + ' 报告已导出到 ' + data.path); return; }
+        note('持续测速已结束，但报告导出失败：' + (data.message || '未知错误'));
+        stashPendingReport(blocks, filename, pathVal);
+      } catch (e) {
+        note('持续测速已结束，但报告保存失败：' + (e.message || e));
+        stashPendingReport(blocks, filename, pathVal);
+      }
+    }
+    return run();
+  }
+
+  /* 报告送达失败时暂存到 localStorage（含目标路径）：服务程序恢复可达后自动静默补存，报告永不丢失 */
+  function stashPendingReport(blocks, filename, pathVal) {
+    try {
+      var json = JSON.stringify({ t: Date.now(), filename: filename, path: pathVal || 'download', blocks: blocks });
+      if (json.length < 2 * 1024 * 1024) localStorage.setItem('cyber-loop-pending-report', json);
+    } catch (e) {}
+  }
+
+  /* 补存提示条：仅在服务程序不可达、无法自动补存时出现 */
+  function buildRescueBar(message) {
+    var oldBar = document.getElementById('loop-rescue-bar');
+    if (oldBar) oldBar.remove();
+    var barEl = document.createElement('div');
+    barEl.id = 'loop-rescue-bar';
+    barEl.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:120;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:92vw;padding:10px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--panel-border);box-shadow:0 12px 30px rgba(0,0,0,.35);font-size:13px;color:var(--text)';
+    var tip = document.createElement('span');
+    tip.textContent = message;
+    barEl.appendChild(tip);
+    return barEl;
+  }
+  async function saveReportToPicker(blocks, suggestedName) {
+    if (!window.showSaveFilePicker) throw new Error('当前浏览器不支持文件保存对话框');
+    var handle = await window.showSaveFilePicker({
+      suggestedName: suggestedName || '灵犀测速-持续测速报告.docx',
+      types: [{ description: 'Word 文档', accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] } }]
+    });
+    await saveViaHandle(handle, buildDocx(blocks));
+    return handle.name;
+  }
+
+  /* 打开页面时发现未送达的暂存报告：先静默交服务程序补写（原目标路径，服务程序内部失败则落 download），
+     成功即完成、不打扰用户；仅当服务程序仍不可达时才出现补存条，由用户把报告另存为本机文件 */
+  function offerPendingReportRescue() {
+    var pr = null;
+    try { pr = JSON.parse(localStorage.getItem('cyber-loop-pending-report') || 'null'); } catch (e) {}
+    if (!pr || !pr.blocks || !pr.blocks.length) return;
+    fetchTimeout('/api/speedtest/report', 20000, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: pr.path || 'download', filename: pr.filename, blocks: pr.blocks })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ok) throw new Error((d && d.message) || '补存失败');
+      try { localStorage.removeItem('cyber-loop-pending-report'); } catch (e) {}
+      elNote.textContent = '上次未送达的持续测速报告已补存到 ' + d.path;
+      try { localStorage.setItem('cyber-loop-last-result', JSON.stringify({ t: Date.now(), note: elNote.textContent })); } catch (e) {}
+    }).catch(function () {
+      var when = new Date(pr.t).toLocaleString('zh-CN', { hour12: false });
+      var barEl = buildRescueBar('服务程序暂不可达：发现一份未送达的持续测速报告（' + when + '），可另存为本机文件。');
+      var btnSave = document.createElement('button');
+      btnSave.className = 'btn primary';
+      btnSave.textContent = '选择位置保存';
+      btnSave.addEventListener('click', async function () {
+        try {
+          var name = await saveReportToPicker(pr.blocks, pr.filename);
+          try { localStorage.removeItem('cyber-loop-pending-report'); } catch (e) {}
+          elNote.textContent = '补存完成：' + name;
+          barEl.remove();
+        } catch (e2) {
+          if (e2 && e2.message && e2.message.indexOf('不支持') > -1) btnSave.textContent = '当前浏览器不支持';
+        }
+      });
+      var btnIgnore = document.createElement('button');
+      btnIgnore.className = 'link-btn';
+      btnIgnore.textContent = '忽略并清除';
+      btnIgnore.addEventListener('click', function () {
+        try { localStorage.removeItem('cyber-loop-pending-report'); } catch (e) {}
+        barEl.remove();
+      });
+      barEl.appendChild(btnSave); barEl.appendChild(btnIgnore);
+      document.body.appendChild(barEl);
+    });
+  }
+
+  async function saveViaHandle(fileHandle, blob) {
+    var w = await fileHandle.createWritable();   // 保存对话框已授予写入权限，无需再次询问
+    await w.write(blob);
+    await w.close();
+    return fileHandle.name;
+  }
+
+  function buildReportBlocks(results, cfg, startedAt) {
+    var endedAt = Date.now();
+    var wan = results[0] && results[0].mode === 'wan';
+    var zh = { hour12: false };
+    var stopTxt = cfg.mode === 'rounds' ? '固定轮数（' + cfg.value + ' 轮）'
+      : cfg.mode === 'duration' ? '固定时长（' + cfg.value + ' 分钟）' : '手动停止';
+    var stP = fmtStat(results.map(function (r) { return r.ping; }));
+    var stJ = fmtStat(results.map(function (r) { return r.jitter; }));
+    var stD = fmtStat(results.map(function (r) { return r.down; }));
+    var stU = fmtStat(results.map(function (r) { return r.up; }));
+    var failRounds = results.filter(function (r) { return r.down == null && r.ping == null; }).length;
+    var gwMode = !wan && !stD && results.some(function (r) { return r.ping != null; });   // 内网对端为网关/网络设备：仅测延迟，无带宽
+    var durMin = Math.round((endedAt - startedAt) / 6000) / 10;
+
+    /* 数据对比统一给出百分比：与平均/前一轮的偏离幅度 */
+    function pctVs(base, val) {
+      if (base == null || val == null || !isFinite(base) || base <= 0 || !isFinite(val)) return '—';
+      var p = (val - base) / base * 100;
+      if (!isFinite(p) || Math.abs(p) < 0.5) return '持平';
+      return (p > 0 ? '↑' : '↓') + Math.abs(p).toFixed(1) + '%';
+    }
+    function maxDev(st, key) {
+      if (!st || results.length < 2) return null;
+      var best = null;
+      results.forEach(function (r) {
+        var v = r[key];
+        if (v == null || !isFinite(v) || st.avg <= 0) return;
+        var dev = Math.abs(v - st.avg) / st.avg * 100;
+        if (!best || dev > best.dev) best = { round: r.round, val: v, dev: dev };
+      });
+      return best;
+    }
+
+    var B = [];
+    B.push({ t: 'h1', text: '灵犀测速 · 持续测速报告' });
+    B.push({ t: 'b', text: '生成时间：' + new Date(endedAt).toLocaleString('zh-CN', zh) });
+    B.push({ t: 'b', text: '测速模式：' + (wan ? '公网测速（大陆公有 CDN 与公有测速节点）' : '内网测速（对端直连）') });
+    B.push({ t: 'b', text: '测速目标：' + (results[0] ? results[0].target : '—') });
+    B.push({ t: 'b', text: '停止方式：' + stopTxt + (cfg.mode === 'duration' ? '，实际历时 ' + durMin + ' 分钟' : '') });
+    B.push({ t: 'b', text: '完成轮数：' + results.length + ' 轮（' + new Date(startedAt).toLocaleTimeString('zh-CN', zh) + ' — ' + new Date(endedAt).toLocaleTimeString('zh-CN', zh) + '）' });
+    if (failRounds) B.push({ t: 'b', text: '异常轮数：' + failRounds + ' 轮未获得有效数据' });
+
+    /* 与最后一次（末轮）的百分比对比 */
+    function cmpVsLast(r, last) {
+      var parts = [];
+      if (r.down != null && r.down > 0 && last.down != null && last.down > 0) {
+        var d = (r.down - last.down) / last.down * 100;
+        parts.push(Math.abs(d) < 0.5 ? '下行持平' : '下行' + (d > 0 ? '↑' : '↓') + Math.abs(d).toFixed(1) + '%');
+      }
+      if (r.ping != null && last.ping != null && last.ping > 0) {
+        var p = (r.ping - last.ping) / last.ping * 100;
+        parts.push(Math.abs(p) < 0.5 ? '延迟持平' : '延迟' + (p > 0 ? '↑' : '↓') + Math.abs(p).toFixed(1) + '%');
+      }
+      if (r.up != null && r.up > 0 && last.up != null && last.up > 0) {
+        var u = (r.up - last.up) / last.up * 100;
+        parts.push(Math.abs(u) < 0.5 ? '上行持平' : '上行' + (u > 0 ? '↑' : '↓') + Math.abs(u).toFixed(1) + '%');
+      }
+      return parts.length ? parts.join(' · ') : '—';
+    }
+
+    B.push({ t: 'h2', text: '一、每轮明细' });
+    var lastR = results[results.length - 1];
+    var rows = [['轮次', '时间', '延迟 (ms)', '抖动 (ms)', '下行 (Mbps)', '上行 (Mbps)', '与最后一次比较']];
+    results.forEach(function (r) {
+      rows.push([r.round, r.time, fmt(r.ping, 'ms'), fmt(r.jitter, 'ms'), fmt(r.down), fmt(r.up),
+        r === lastR ? '基准（末轮）' : cmpVsLast(r, lastR)]);
+    });
+    B.push({ t: 'table', rows: rows });
+
+    B.push({ t: 'h2', text: '二、统计汇总' });
+    rows = [['指标', '平均', '最小', '最大', '标准差', '波动系数']];
+    function stRow(name, st, unit) {
+      rows.push(st ? [name, fmt(st.avg, unit) + ' ' + unit, fmt(st.min, unit) + ' ' + unit, fmt(st.max, unit) + ' ' + unit, fmt(st.sd, unit) + ' ' + unit, st.cv.toFixed(1) + '%']
+                   : [name, '—', '—', '—', '—', '—']);
+    }
+    stRow('延迟', stP, 'ms');
+    stRow('抖动', stJ, 'ms');
+    stRow('下行带宽', stD, 'Mbps');
+    stRow('上行带宽', stU, 'Mbps');
+    B.push({ t: 'table', rows: rows });
+
+    B.push({ t: 'h2', text: '三、运行时间线' });
+    var tl = [{ k: 'milestone', text: '测速开始：' + new Date(startedAt).toLocaleTimeString('zh-CN', zh) + '（目标：' + (results[0] ? results[0].target : '—') + '，停止方式：' + stopTxt + '）。' }];
+    var prevR = null;
+    results.forEach(function (r) {
+      if (r.down == null && r.ping == null) {
+        tl.push({ k: 'warn', text: '⚠ ' + r.time + ' 第 ' + r.round + ' 轮：未获得有效数据——该轮测速失败，网络可能瞬断或对端无响应。' });
+        prevR = r;
+        return;
+      }
+      if (prevR && prevR.down != null && prevR.down > 0 && r.down != null) {
+        var dc = (r.down - prevR.down) / prevR.down * 100;
+        if (Math.abs(dc) >= 15) tl.push({ k: 'chg', text: (dc > 0 ? '↑ ' : '↓ ') + r.time + ' 第 ' + r.round + ' 轮：下行较上一轮（第 ' + prevR.round + ' 轮）' + (dc > 0 ? '提升 ' : '下降 ') + Math.abs(dc).toFixed(1) + '%（' + fmt(prevR.down) + ' → ' + fmt(r.down) + ' Mbps）' + (Math.abs(dc) >= 40 ? '，波动显著，建议核对该时段网络活动。' : '。') });
+      }
+      if (prevR && prevR.ping != null && prevR.ping > 0 && r.ping != null) {
+        var pc = (r.ping - prevR.ping) / prevR.ping * 100;
+        if (Math.abs(pc) >= 30) tl.push({ k: 'chg', text: (pc > 0 ? '↑ ' : '↓ ') + r.time + ' 第 ' + r.round + ' 轮：延迟较上一轮变化 ' + Math.abs(pc).toFixed(1) + '%（' + fmt(prevR.ping, 'ms') + ' → ' + fmt(r.ping, 'ms') + ' ms）。' });
+      }
+      if (prevR && prevR.up != null && prevR.up > 0 && r.up != null) {
+        var uc = (r.up - prevR.up) / prevR.up * 100;
+        if (Math.abs(uc) >= 25) tl.push({ k: 'chg', text: (uc > 0 ? '↑ ' : '↓ ') + r.time + ' 第 ' + r.round + ' 轮：上行较上一轮变化 ' + Math.abs(uc).toFixed(1) + '%（' + fmt(prevR.up) + ' → ' + fmt(r.up) + ' Mbps）。' });
+      }
+      if (r.loadLoss > 0) tl.push({ k: 'warn', text: '⚠ ' + r.time + ' 第 ' + r.round + ' 轮：压测期间探测到丢包 ' + r.loadLoss + '%，该时段链路存在间歇性丢包。' });
+      if (r.loadJitter != null && r.loadJitter >= 20) tl.push({ k: 'warn', text: '⚠ ' + r.time + ' 第 ' + r.round + ' 轮：负载下抖动达 ' + r.loadJitter + ' ms，该时段网络波动明显。' });
+      prevR = r;
+    });
+    tl.push({ k: 'milestone', text: '测速结束：' + new Date(endedAt).toLocaleTimeString('zh-CN', zh) + '，共完成 ' + results.length + ' 轮。' });
+    if (tl.length <= 2) tl.push({ k: 'warn', text: '全程无显著异常（记录阈值：下行变化 ≥15%、上行 ≥25%、延迟 ≥30%、出现丢包或负载抖动 ≥20 ms 时逐条记录）。' });
+    /* 呈现：开始/结束为加粗里程碑（无符号）；⚠ 异常为普通要点；↑↓ 同轮细节数据缩进一级 */
+    tl.forEach(function (t) {
+      if (t.k === 'milestone') B.push({ t: 'p', bold: true, text: t.text });
+      else if (t.k === 'chg') B.push({ t: 'b', ind: 1, text: t.text });
+      else B.push({ t: 'b', text: t.text });
+    });
+
+    B.push({ t: 'h2', text: '四、诊断' });
+    if (stD) {
+      var devD = maxDev(stD, 'down');
+      var dLine = '下行带宽平均 ' + fmt(stD.avg) + ' Mbps，判定为「' + downTier(stD.avg) + '」线路，多轮区间 ' + fmt(stD.min) + ' — ' + fmt(stD.max) + ' Mbps，波动系数 ' + stD.cv.toFixed(1) + '%';
+      if (devD) dLine += '；偏离平均最大的是第 ' + devD.round + ' 轮（' + fmt(devD.val) + ' Mbps，较平均 ' + pctVs(stD.avg, devD.val) + '）';
+      if (stU && stD.avg > 0) dLine += '；上行平均为下行的 ' + (stU.avg / stD.avg * 100).toFixed(1) + '%';
+      B.push({ t: 'b', text: dLine + '。' });
+    } else if (gwMode) {
+      B.push({ t: 'b', text: '对端为网关/网络设备（不支持带宽压测）：持续测速仅测量延迟与抖动，不涉及带宽指标。' });
+    } else {
+      B.push({ t: 'b', text: '下行带宽：全部轮次均未获得有效数据，请检查出口网络、网卡协商速率或对端服务是否正常。' });
+    }
+    if (stU) B.push({ t: 'b', text: '上行带宽平均 ' + fmt(stU.avg) + ' Mbps，多轮区间 ' + fmt(stU.min) + ' — ' + fmt(stU.max) + ' Mbps，波动系数 ' + stU.cv.toFixed(1) + '%。' });
+    if (stP) {
+      var pMsg = wan
+        ? (stP.avg < 30 ? '平均延迟 ' + fmt(stP.avg, 'ms') + ' ms，时延优良，适合对时延敏感的业务。' : stP.avg < 60 ? '平均延迟 ' + fmt(stP.avg, 'ms') + ' ms，处于正常范围。' : '平均延迟 ' + fmt(stP.avg, 'ms') + ' ms 偏高，通常与跨省出口、出口拥塞或无线接入有关。')
+        : (stP.avg < 3 ? '平均延迟 ' + fmt(stP.avg, 'ms') + ' ms，接入链路非常健康。' : '平均延迟 ' + fmt(stP.avg, 'ms') + ' ms 偏高，建议检查 Wi-Fi 信号、网线质量或交换机转发。');
+      B.push({ t: 'b', text: '延迟：' + pMsg });
+    }
+    if (stJ) B.push({ t: 'b', text: '抖动：平均 ' + fmt(stJ.avg, 'ms') + ' ms' + (stJ.avg < 5 ? '，时延平稳，满足视频会议、语音等实时业务要求。' : stJ.avg < 20 ? '，属可接受范围，实时业务偶有轻微波动。' : '，波动明显，视频会议/VOIP 等实时业务可能出现卡顿。') });
+    var lossRounds = results.filter(function (r) { return r.loadLoss > 0; });
+    if (lossRounds.length) B.push({ t: 'b', text: '负载下丢包：' + lossRounds.length + ' 轮探测到丢包（最高 ' + Math.max.apply(null, lossRounds.map(function (r) { return r.loadLoss; })) + '%），存在间歇性丢包，建议排查链路质量与对端负载。' });
+
+    /* 排障参考：时延与丢包是持续测速的核心排障指标，以下全部为实测值 */
+    var worstPing = null;
+    results.forEach(function (r) { if (r.ping != null && (!worstPing || r.ping > worstPing.ping)) worstPing = r; });
+    if (stP) B.push({ t: 'b', text: '排障参考——时延：各轮中位延迟 ' + fmt(stP.min, 'ms') + ' — ' + fmt(stP.max, 'ms') + ' ms' + (worstPing ? '，最高为第 ' + worstPing.round + ' 轮（中位 ' + fmt(worstPing.ping, 'ms') + ' ms' + (worstPing.pingMin != null ? '，最低 ' + fmt(worstPing.pingMin, 'ms') + ' ms' : '') + '）' : '') + '；时延突增的轮次即网络质量变差的时间点，可结合运行时间线核对。' });
+    B.push({ t: 'b', text: '排障参考——丢包：' + (lossRounds.length
+      ? '第 ' + lossRounds.map(function (r) { return r.round; }).join('、') + ' 轮在压测期间探测到丢包（最高 ' + Math.max.apply(null, lossRounds.map(function (r) { return r.loadLoss; })) + '%）。持续丢包通常意味着链路拥塞、无线干扰或物理层误码，建议结合下方逐跳数据定位发生区段。'
+      : '全程压测期间未探测到丢包，链路可靠性良好。') });
+    var hops = Array.isArray(S.hopsData) ? S.hopsData : [];
+    if (hops.length) {
+      B.push({ t: 'p', text: '逐跳路径采样（测速期间自动采集，用于定位时延突增与丢包发生的网络区段）:' });
+      var hopRows = [['跳', '节点', '延迟', '丢包率']];
+      hops.forEach(function (h) {
+        hopRows.push([h.hop, h.ip || '超时（无响应）', h.ms == null ? '超时' : h.ms + ' ms', h.ip ? ((h.loss || 0) + '%') : '—']);
+      });
+      B.push({ t: 'table', rows: hopRows });
+      var badHop = null;
+      hops.forEach(function (h) { if (h.ip && h.loss >= 20 && (!badHop || h.hop < badHop.hop)) badHop = h; });
+      var slowHop = null;
+      hops.forEach(function (h, i) { if (h.ms != null && i > 0 && (!slowHop || h.ms > slowHop.ms)) slowHop = h; });
+      if (badHop) B.push({ t: 'b', text: '排障定位：第 ' + badHop.hop + ' 跳（' + badHop.ip + '）丢包 ' + badHop.loss + '%，优先排查该跳所在的网络区段（接入段找网线/Wi-Fi/光猫，运营商段可致电报障）。' });
+      else if (slowHop) B.push({ t: 'b', text: '排障定位：第 ' + slowHop.hop + ' 跳（' + slowHop.ip + '）时延最高（' + slowHop.ms + ' ms），若明显高于前后跳，该节点即为路径瓶颈。' });
+    }
+
+    if (results.length >= 2 && stD) {
+      B.push({ t: 'p', text: '各轮与平均值、前一轮的对比（百分比为偏离幅度）：' });
+      var cmp = [['轮次', '下行 (Mbps)', '较平均', '较前一轮', '延迟 (ms)', '较平均', '上行 (Mbps)', '较平均']];
+      var prev = null;
+      results.forEach(function (r) {
+        cmp.push([r.round, fmt(r.down), pctVs(stD.avg, r.down), prev && prev.down > 0 ? pctVs(prev.down, r.down) : '—',
+                  fmt(r.ping, 'ms'), pctVs(stP ? stP.avg : null, r.ping),
+                  fmt(r.up), pctVs(stU ? stU.avg : null, r.up)]);
+        prev = r;
+      });
+      B.push({ t: 'table', rows: cmp });
+    }
+
+    B.push({ t: 'h2', text: '五、分析' });
+    if (stD && results.length >= 2) {
+      B.push({ t: 'b', text: '稳定性：各轮下行波动系数 ' + stD.cv.toFixed(1) + '%' + (stD.cv < 5 ? '，带宽输出非常稳定。' : stD.cv < 15 ? '，带宽基本稳定，属正常抖动范围。' : '，带宽波动较大，建议关注测试时段的网络负载或无线信号变化。') });
+      var half = Math.floor(results.length / 2);
+      var aD = fmtStat(results.slice(0, half).map(function (r) { return r.down; }));
+      var bD = fmtStat(results.slice(half).map(function (r) { return r.down; }));
+      if (aD && bD && aD.avg > 0) {
+        var chg = (bD.avg - aD.avg) / aD.avg * 100;
+        if (chg > 10) B.push({ t: 'b', text: '趋势：后半程下行较前半程提升 ' + chg.toFixed(1) + '%，网络状态呈好转趋势。' });
+        else if (chg < -10) B.push({ t: 'b', text: '趋势：后半程下行较前半程下降 ' + Math.abs(chg).toFixed(1) + '%，网络状态呈下滑趋势，建议关注链路拥塞或对端负载变化。' });
+        else B.push({ t: 'b', text: '趋势：前后半程下行变化 ' + Math.abs(chg).toFixed(1) + '%（10% 以内），整体走势平稳。' });
+      }
+      if (stP && stP.cv >= 20) B.push({ t: 'b', text: '延迟波动：多轮延迟波动系数 ' + stP.cv.toFixed(0) + '%，时延起伏明显，实时业务体验可能受影响。' });
+    } else {
+      B.push({ t: 'b', text: '完成轮数较少，趋势与稳定性分析以单轮数据为准，建议延长持续测速时长获得更可靠的结论。' });
+    }
+    B.push({ t: 'b', text: '口径说明：下行经大陆公有 CDN 多源分流实测，上行经大陆公有测速节点多分片并发实测；数据全部来自真实传输流量计时，多轮平均值可平滑单次偶发因素。' });
+
+    B.push({ t: 'h2', text: '六、总结' });
+    var grade = stD ? downTier(stD.avg) : (gwMode ? '网关模式（仅延迟）' : '无有效数据');
+    var stabTxt = stD ? (stD.cv < 5 ? '非常稳定（波动系数 ' + stD.cv.toFixed(1) + '%）' : stD.cv < 15 ? '基本稳定（波动系数 ' + stD.cv.toFixed(1) + '%）' : '波动较大（波动系数 ' + stD.cv.toFixed(1) + '%）') : '—';
+    var p1 = '本次持续测速共完成 ' + results.length + ' 轮' + (cfg.mode === 'duration' ? '，历时 ' + durMin + ' 分钟' : '') + '，整体判定为「' + grade + '」线路。';
+    if (stD && stU && stP) {
+      p1 += '下行平均 ' + fmt(stD.avg) + ' Mbps（区间 ' + fmt(stD.min) + ' — ' + fmt(stD.max) + '），上行平均 ' + fmt(stU.avg) + ' Mbps（区间 ' + fmt(stU.min) + ' — ' + fmt(stU.max) + '），平均延迟 ' + fmt(stP.avg, 'ms') + ' ms、抖动 ' + fmt(stJ ? stJ.avg : 0, 'ms') + ' ms，带宽输出' + stabTxt + '。';
+    }
+    B.push({ t: 'p', text: p1 });
+    var healthy = stJ && stJ.avg < 20 && !lossRounds.length;
+    var p2t = '质量画像：';
+    if (stP) p2t += '延迟' + (stP.avg < (wan ? 60 : 3) ? '处于健康水平' : '偏高') + '（平均 ' + fmt(stP.avg, 'ms') + ' ms）';
+    if (stJ) p2t += '，抖动' + (stJ.avg < 5 ? '平稳' : stJ.avg < 20 ? '可接受' : '明显') + '（平均 ' + fmt(stJ.avg, 'ms') + ' ms）';
+    if (lossRounds.length) p2t += '，压测期间存在间歇性丢包（' + lossRounds.length + ' 轮）';
+    p2t += '。据此判断：日常网页浏览、云文档协作与高清视频会议' + (healthy ? '可获得流畅体验' : '在高峰时段可能出现卡顿');
+    if (stD && stD.avg >= 85) p2t += '，大文件传输与镜像分发的耗时可控制在较低水平';
+    p2t += '。';
+    B.push({ t: 'p', text: p2t });
+    var tips = [];
+    if (stD && stD.cv >= 15) tips.push('带宽波动较大，优先排查无线干扰（改用有线接入）、同网段高负载设备或运营商限速，并在相近时段复测对比');
+    if (stP && stP.avg >= 60 && wan) tips.push('平均延迟偏高，建议核对出口路由与跨省链路，必要时更换接入线路或错峰使用');
+    if (lossRounds.length) tips.push('存在丢包，建议逐段检查网线、水晶头、交换机端口与对端负载');
+    if (!tips.length) tips.push('各项指标健康，保持当前链路状态即可；如需长期观察，可定期执行持续测速并留存报告对比');
+    B.push({ t: 'p', text: '建议：' + tips.join('；') + '。' });
+    return B;
+  }
 
   async function startTest() {
     if (S.running) return;
     S.running = true; S.stopped = false;
-    elStart.disabled = true;
-    elStop.style.display = '';
+    if (S.looping) {
+      // 持续测速期间「开始测速」保持原样禁用，停止统一走「持续测速」按钮
+      elStart.textContent = '开始测速';
+      elStart.classList.remove('looping');
+      elStart.classList.add('primary');
+      elStart.disabled = true;
+    } else {
+      setStartBtnAsStop();
+    }
     S.res = { ping: null, jitter: null, down: null, up: null };
     S.curve = [];
     drawCurve();
@@ -945,6 +2063,13 @@
       } else {
         var lt = lanTarget();
         if (!lt) throw new Error('对端地址格式无效：请填写 IP 或主机名（可带 :端口）');
+        // 探活仍在进行时等它收敛（最多 18s，含裸 IP 补探 8642 的一级），否则 peerKind 旧值会让延迟阶段走错分支
+        if (S.peerProbing) {
+          setPhase('ping', '对端探活中…');
+          setCenterVal('…', '', '正在确认对端类型');
+          var waited = 0;
+          while (S.peerProbing && waited < 18000) { await sleep(200); waited += 200; }
+        }
         S.peer = lt;
         S.node = { name: lt.label };
         $('#m-down-sub').textContent = '直连 ' + lt.label;
@@ -962,23 +2087,50 @@
       var pingProbeUrl = S.mode === 'wan'
         ? ((S.node && S.node.probe ? S.node.probe : DOWN_NODES[0].probe) + '?r=')
         : (S.peerKind === 'icmp' ? null : (S.peer.base + '/peer/ping?r='));
-      if (S.mode === 'wan' || S.peerKind !== 'icmp') startPingProbe(pingProbeUrl);
+      if (S.mode === 'wan' || S.peerKind !== 'icmp') startPingProbe(pingProbeUrl, S.mode === 'wan' ? undefined : { method: 'HEAD' });
       await phasePing();
       if (S.stopped) throw new Error('stopped');
       if (S.mode === 'lan' && S.peerKind === 'icmp') {
         // 网关类对端：仅延迟有工程意义；带宽无压测服务，直接出结果
-        setPhase('down', '带宽测速', '对端为网络设备，不支持 HTTP 压测');
+        setPhase('done', '延迟测速完成');
+        stopCpuPoll(); stopPingProbe();
+        drawPingSeries();
         S.res.down = 0; S.res.up = 0;
         $('#m-down').textContent = '—';
         $('#m-up').textContent = '—';
         $('#m-down-sub').textContent = '对端是网关/网络设备（不支持压测）';
         $('#m-up-sub').textContent = '带宽互测需对端运行 CyberNWT 站点';
-        elStart.disabled = false;
-        elStart.textContent = '再测一次';
-        S.running = false;
+        S.curve.push({ t: performance.now(), v: 0, ph: 'done' });
+        drawCurve();
+        finish();
         setCenterVal(Math.round(S.res.ping), ' ms', '延迟测速完成');
         elNote.textContent = '已完成延迟测速：该对端是网关/网络设备，不支持带宽压测；测带宽请填一台运行了 CyberNWT 站点的内网机器 IP，或留空测本站。';
+        if (S.looping) { elStart.textContent = '开始测速'; elStart.classList.add('primary'); elStart.disabled = true; }
+        else restoreStartBtn('再测一次');
+        S.running = false;
         // 逐跳路径已随测试启动并行执行（startHopsParallel），此处无需再触发
+        return;
+      }
+      if (S.looping && S.loopNoBw && S.loopRound > 1) {
+        /* 持续测速未勾选「带宽」：仅第一轮测带宽，后续轮只测时延，避免持续占用带宽 */
+        setPhase('done', '时延监测完成');
+        stopCpuPoll(); stopPingProbe();
+        drawPingSeries();
+        S.res.down = null; S.res.up = null;
+        $('#m-down').textContent = '—';
+        $('#m-up').textContent = '—';
+        $('#m-down-sub').textContent = '未勾选持续带宽';
+        $('#m-up-sub').textContent = '本轮仅测时延';
+        S.curve.push({ t: performance.now(), v: 0, ph: 'done' });
+        drawCurve();
+        $('#verdict-txt').textContent = '持续时延监测';
+        $('#verdict-sub').textContent = '本轮仅测时延（未勾选持续带宽）· 延迟 ' + fmt(S.res.ping, 'ms') + ' ms · 抖动 ' + fmt(S.res.jitter, 'ms') + ' ms';
+        setCenterVal(fmt(S.res.ping), ' ms', '时延监测完成 · 未测带宽');
+        S.lastBrief = '持续时延监测：延迟 ' + fmt(S.res.ping, 'ms') + ' ms、抖动 ' + fmt(S.res.jitter, 'ms') + ' ms（本轮未测带宽）。';
+        saveHist();
+        if (S.looping) { elStart.textContent = '开始测速'; elStart.classList.add('primary'); elStart.disabled = true; }
+        else restoreStartBtn('再测一次');
+        S.running = false;
         return;
       }
       setPhase('down', '下载测速', S.mode === 'wan' ? '大陆多源分流 · ' + S.downSlots.length + ' 连接并发' : S.peer.label + ' · 4 连接并发');
@@ -1001,9 +2153,8 @@
       stopCpuPoll(); stopPingProbe();
     }
     S.running = false;
-    elStart.disabled = false;
-    elStart.textContent = '再测一次';
-    elStop.style.display = 'none';
+    if (S.looping) { elStart.textContent = '开始测速'; elStart.classList.add('primary'); elStart.disabled = true; }
+    else restoreStartBtn('再测一次');
   }
 
   function stopTest() { S.stopped = true; abortAll(); }
@@ -1014,12 +2165,12 @@
   }
 
   async function phasePing() {
-    var url, method, opts, n;
+    var url, opts, n;
     var arr = [];
-    if (S.mode === 'wan') { url = (S.node && S.node.probe ? S.node.probe : DOWN_NODES[0].probe) + '?r='; method = 'GET'; opts = undefined; n = 10; }
+    if (S.mode === 'wan') { url = (S.node && S.node.probe ? S.node.probe : DOWN_NODES[0].probe) + '?r='; opts = undefined; n = 10; }
     else if (S.peerKind === 'icmp') {
-      // 网关/网络设备：服务端 ICMP 代理测延迟（真实 ping 值，最多 10 样本）
-      var d = await (await fetchTimeout('/api/speedtest/icmp?host=' + encodeURIComponent(lanHost()) + '&n=10', 15000)).json();
+      // 网关/网络设备：服务端 ICMP 代理测延迟（真实 ping 值，最多 10 样本，带所选网卡源地址）
+      var d = await (await fetchTimeout('/api/speedtest/icmp?host=' + encodeURIComponent(lanHost()) + '&n=10' + icmpSrcParam(), 15000)).json();
       arr = (d && d.ms) || [];
       if (!arr.length) throw new Error('ICMP 延迟探测失败：对端不响应 ping');
       for (var k = 0; k < arr.length; k++) {
@@ -1028,7 +2179,7 @@
         await sleep(40);
       }
     }
-    else { url = S.peer.base + '/peer/ping?r='; method = 'HEAD'; opts = undefined; n = 10; }
+    else { url = S.peer.base + '/peer/ping?r='; opts = { method: 'HEAD' }; n = 10; }   // 对端仅实现 HEAD /peer/ping（204 无响应体）；发 GET 会 404 且无 CORS 头
     if (S.mode === 'wan' || S.peerKind !== 'icmp') {
       for (var i = 0; i < n; i++) {
         var t0 = performance.now();
@@ -1148,25 +2299,24 @@
     await upStreamWan(sh.url, onBytes, signal);
   }
 
-  /* 内网上行：XHR 直传对端 /peer/up（CORS 已开，实时进度） */
+  /* 内网上行：no-cors 盲传对端 /peer/up + 自适应块大小（与公网 upStreamWan 同口径）：
+     固定 8MB 大块在部分链路会堵满整个请求周期，快了翻倍/慢了减半保持管道满载 */
   async function upStreamLan(url, onBytes, signal) {
-    var blob = makePayload(8 * 1024 * 1024);
+    var sz = 1048576;
     while (!signal.aborted) {
-      var ok = await new Promise(function (resolve) {
-        var xhr = new XMLHttpRequest();
-        S.xhrs.push(xhr);
-        var last = 0;
-        xhr.upload.onprogress = function (e) {
-          if (e.loaded > last) { onBytes(e.loaded - last); last = e.loaded; }
-        };
-        xhr.onloadend = function () {
-          var i = S.xhrs.indexOf(xhr); if (i > -1) S.xhrs.splice(i, 1);
-          resolve(xhr.status > 0);
-        };
-        try { xhr.open('POST', url + '?r=' + rand()); xhr.send(blob); }
-        catch (e) { resolve(false); }
-      });
-      if (!ok) { await sleep(300); if (S.stopped) break; }
+      var blob = makePayload(sz);
+      var t0 = performance.now();
+      try {
+        await postNoCors(url + '?r=' + rand(), blob, signal, 30000);
+        onBytes(blob.size);
+        var dt = (performance.now() - t0) / 1000;
+        if (dt < 1 && sz < 8388608) sz = Math.min(8388608, sz * 2);
+        else if (dt > 3 && sz > 524288) sz = Math.max(524288, Math.floor(sz / 2));
+      } catch (e) {
+        if (signal.aborted) break;
+        await sleep(300);   // 单块失败快速重试，不中断整轮
+        if (S.stopped) break;
+      }
     }
   }
 
@@ -1204,10 +2354,12 @@
 
     var t0 = performance.now();
     var warmSnapshot = null;
-    var warmTimer = setTimeout(function () { warmSnapshot = { t: performance.now(), b: bytes }; }, cfg.warmup);
+    bgSleep(cfg.warmup).then(function () { warmSnapshot = { t: performance.now(), b: bytes }; });
     var live = 0;
     var meter = [];
-    var ticker = setInterval(function () {
+    var tickerToken = {};
+    (function tick() {
+      if (tickerToken.stop) return;
       var now = performance.now();
       meter.push([now, bytes]);
       while (meter.length && now - meter[0][0] > 1500) meter.shift();
@@ -1220,13 +2372,14 @@
       drawCurve();
       var tile = kind === 'down' ? $('#m-down') : $('#m-up');
       tile.textContent = fmt(live);
-    }, 200);
+      bgSleep(200).then(tick);
+    })();
 
     await Promise.race([
       Promise.all(streams.map(function (p) { return p.catch(function () {}); })),
       sleep(cfg.budget + cfg.warmup + 300)
     ]);
-    clearInterval(ticker); clearTimeout(warmTimer);
+    tickerToken.stop = true;
     abortAll();
     await sleep(120);
 
@@ -1322,7 +2475,7 @@
     else tier = '受限';
 
     grade.textContent = wan ? (r.down >= 100 ? '优' : r.down >= 30 ? '良' : r.down >= 10 ? '中' : '差')
-                             : (r.down >= 850 ? '满' : r.down >= 85 ? '优' : '良');
+                             : (S.peerKind === 'icmp' && r.down === 0) ? '延' : (r.down >= 850 ? '满' : r.down >= 85 ? '优' : '良');
     grade.className = 'grade' + (r.down >= 85 ? '' : r.down >= 10 ? ' mid' : ' bad');
 
     if (wan) {
@@ -1338,12 +2491,21 @@
     } else {
       var loop = /^(127\.|localhost)/.test(location.hostname) || location.hostname === '';
       v.textContent = tier === '百兆' ? '内网链路 · 百兆瓶颈' : '内网链路 · ' + tier + '级';
-      sub.textContent = '对端：' + (S.peer ? S.peer.label : '本站服务器 ' + location.host) + ' · 4 连接并发实测';
-      if (tier === '百兆') fs.push(['warn', '实测约百兆：链路中存在百兆瓶颈（网线非千兆、网卡协商或交换机端口为 100M）。']);
-      if (r.down != null && r.down >= 85 && r.down < 850) fs.push(['info', '未跑满千兆属正常现象：受网卡、网线、交换机与测试终端性能影响。']);
-      if (r.down != null && r.down < 85) fs.push(['bad', '内网下行 ' + fmt(r.down) + ' Mbps：低于百兆，建议更换网线 / 检查网卡协商速率。']);
-      if (r.ping != null && r.ping >= 3) fs.push(['warn', '内网延迟 ' + fmt(r.ping, 'ms') + ' ms 偏高：建议检查 Wi-Fi 干扰、网线质量或交换机转发。']);
-      else if (r.ping != null) fs.push(['', '内网延迟 ' + fmt(r.ping, 'ms') + ' ms，链路健康。']);
+      sub.textContent = '线路：' + (currentNic() ? nicLabel(currentNic()) + ' → ' : '') + (S.peer ? S.peer.label : '本站服务器 ' + location.host) + ' · 4 连接并发实测';
+      // 对端是网关（仅延迟模式，down=0 为占位）：不评带宽档位，只说延迟结论
+      var gwOnly = S.peerKind === 'icmp' && r.down === 0;
+      if (gwOnly) {
+        v.textContent = '内网延迟测速（网关）';
+        sub.textContent = '线路：' + (currentNic() ? nicLabel(currentNic()) + ' → ' : '') + (S.peer ? S.peer.label : '') + ' · 仅测延迟（网关不支持带宽压测）';
+        if (r.ping != null && r.ping >= 3) fs.push(['warn', '到网关延迟 ' + fmt(r.ping, 'ms') + ' ms 偏高：建议检查 Wi-Fi 干扰、网线质量或交换机转发。']);
+        else if (r.ping != null) fs.push(['', '到网关延迟 ' + fmt(r.ping, 'ms') + ' ms，接入链路健康。']);
+      } else {
+        if (tier === '百兆') fs.push(['warn', '实测约百兆：链路中存在百兆瓶颈（网线非千兆、网卡协商或交换机端口为 100M）。']);
+        if (r.down != null && r.down >= 85 && r.down < 850) fs.push(['info', '未跑满千兆属正常现象：受网卡、网线、交换机与测试终端性能影响。']);
+        if (r.down != null && r.down < 85) fs.push(['bad', '内网下行 ' + fmt(r.down) + ' Mbps：低于百兆，建议更换网线 / 检查网卡协商速率。']);
+        if (r.ping != null && r.ping >= 3) fs.push(['warn', '内网延迟 ' + fmt(r.ping, 'ms') + ' ms 偏高：建议检查 Wi-Fi 干扰、网线质量或交换机转发。']);
+        else if (r.ping != null) fs.push(['', '内网延迟 ' + fmt(r.ping, 'ms') + ' ms，链路健康。']);
+      }
       if (loop) fs.push(['warn', '当前从服务器本机访问（回环测试）：如需测真实内网速度，请在同一局域网的另一台电脑浏览器中打开本页面。']);
     }
     if (r.jitter != null && r.jitter >= 20) fs.push(['warn', '抖动 ' + fmt(r.jitter, 'ms') + ' ms 较大：网络波动明显，视频会议等实时业务可能卡顿。']);
@@ -1353,6 +2515,12 @@
     fd.innerHTML = allFs.map(function (f) {
       return '<div class="fd ' + f[0] + '">' + f[1] + '</div>';
     }).join('');
+    // 灵犀解读最精简摘要（存入历史记录，悬停可回看对比）：结论 + 最重要的 1 条提示
+    var brief = (v.textContent || '') + '：' + (allFs.length
+      ? (allFs.find(function (f) { return f[0] === 'bad'; }) || allFs.find(function (f) { return f[0] === 'warn'; }) || allFs[0])[1].replace(/<[^>]+>/g, '')
+      : '各项指标正常');
+    if (brief.length > 120) brief = brief.slice(0, 118) + '…';
+    S.lastBrief = brief;
     saveHist();
   }
 
@@ -1360,27 +2528,93 @@
   function loadHist() { try { return JSON.parse(localStorage.getItem('cyber-speed-hist-v2') || '[]'); } catch (e) { return []; } }
   function saveHist() {
     if (S.res.down == null && S.res.ping == null) return;
+    var nic = currentNic();
     var h = loadHist();
     h.unshift({
       time: new Date().toLocaleString('zh-CN', { hour12: false }),
       mode: S.mode, node: S.node ? S.node.name : '—',
-      ping: S.res.ping, jitter: S.res.jitter, down: S.res.down, up: S.res.up
+      ping: S.res.ping, jitter: S.res.jitter, down: S.res.down, up: S.res.up,
+      // 完整指标存档（悬停详情用）：负载下抖动/丢包、线路（网卡+对端）、单/多流、节点链、灵犀摘要
+      loadJitter: S.res.loadJitter || null, loadLoss: S.res.loadLoss || null,
+      nic: nic ? (nic.name + ' ' + nic.ip) : '', peer: S.peer ? S.peer.label : '',
+      stream: S.streamMode === 'single' ? '单流' : '多流',
+      region: S.loc && S.loc.region ? S.loc.region : '',
+      brief: S.lastBrief || ''
     });
     try { localStorage.setItem('cyber-speed-hist-v2', JSON.stringify(h.slice(0, 10))); } catch (e) {}
     renderHist();
+  }
+  /* 历史记录悬停详情：完整指标 + 与当前(最近一次)结果的自动对比 */
+  function histDetailHtml(x, cur) {
+    var rows = [];
+    function cmp(label, val, curVal, unit, lowerBetter) {
+      var delta = '';
+      // 基线为 0 时倍率无意义（如 0.00 → 450 会出现十万级百分比），不显示对比
+      if (cur && curVal != null && val != null && val > 0 && curVal !== val) {
+        var pct = (curVal - val) / val * 100;
+        if (isFinite(pct) && Math.abs(pct) >= 1) {
+          var good = lowerBetter ? pct < 0 : pct > 0;   // 延迟/抖动/丢包越低越好，带宽越高越好
+          delta = ' <span class="ht-delta" style="color:var(--' + (good ? 'green' : 'red') + ')">' +
+            (pct > 0 ? '↑' : '↓') + Math.abs(pct).toFixed(0) + '% vs 当前</span>';
+        }
+      }
+      rows.push('<tr><td class="ht-label">' + label + '</td>' +
+        '<td class="ht-val">' + (val == null ? '—' : fmt(val, unit)) + (unit && val != null ? ' ' + unit : '') + delta + '</td></tr>');
+    }
+    cmp('延迟', x.ping, cur && cur.ping, 'ms', true);
+    cmp('抖动', x.jitter, cur && cur.jitter, 'ms', true);
+    cmp('下行', x.down, cur && cur.down, 'Mbps', false);
+    cmp('上行', x.up, cur && cur.up, 'Mbps', false);
+    if (x.loadJitter != null || x.loadLoss != null)
+      rows.push('<tr><td style="color:var(--text-2);padding-right:12px">负载下</td><td style="font-family:Consolas,monospace">抖动 ' + (x.loadJitter == null ? '—' : x.loadJitter + ' ms') + ' · 丢包 ' + (x.loadLoss == null ? '—' : x.loadLoss + '%') + '</td></tr>');
+    var ctx = [];
+    if (x.nic) ctx.push('线路 ' + x.nic);
+    if (x.peer) ctx.push('对端 ' + x.peer);
+    if (x.stream) ctx.push(x.stream);
+    if (x.region) ctx.push(x.region);
+    var html = '<div class="ht-ctx">' + esc(ctx.join(' · ') || (x.mode === 'wan' ? '公网' : '内网')) + '</div>';
+    html += '<table>' + rows.join('') + '</table>';
+    if (x.brief) html += '<div class="ht-brief">💡 ' + esc(x.brief) + '</div>';
+    return html;
   }
   function renderHist() {
     var h = loadHist();
     var body = $('#hist-body');
     if (!h.length) { body.innerHTML = '<div class="empty">暂无记录，完成一次测试后自动保存（保存在本机浏览器）。</div>'; return; }
-    body.innerHTML = '<table><tr><th>时间</th><th>模式</th><th>节点</th><th>延迟</th><th>抖动</th><th>下行</th><th>上行</th></tr>' +
-      h.map(function (x) {
-        return '<tr><td>' + x.time + '</td>' +
+    var cur = h[0];   // 最近一次 = 对比基准
+    body.innerHTML = '<table><tr><th>时间</th><th>模式</th><th>节点/线路</th><th class="p">延迟</th><th class="j">抖动</th><th class="d">下行</th><th class="u">上行</th></tr>' +
+      h.map(function (x, i) {
+        return '<tr class="hist-row" data-hi="' + i + '" style="cursor:default"><td title="' + esc(x.time) + '">' + esc(x.time) + '</td>' +
           '<td><span class="mode-tag">' + (x.mode === 'wan' ? '公网' : '内网') + '</span></td>' +
-          '<td>' + (x.node || '—') + '</td>' +
-          '<td>' + fmt(x.ping, 'ms') + '</td><td>' + fmt(x.jitter, 'ms') + '</td>' +
-          '<td class="g">' + fmt(x.down) + '</td><td>' + fmt(x.up) + '</td></tr>';
+          '<td title="' + esc(x.node || '') + '">' + esc(x.node || '—') + '</td>' +
+          '<td class="p">' + fmt(x.ping, 'ms') + '</td><td class="j">' + fmt(x.jitter, 'ms') + '</td>' +
+          '<td class="d g">' + fmt(x.down) + '</td><td class="u g">' + fmt(x.up) + '</td></tr>';
       }).join('') + '</table>';
+    // 悬停详情：完整指标 + 灵犀摘要 + 与最近一次的自动对比（跟随鼠标的浮层，样式见 #hist-tip）
+    var tip = document.getElementById('hist-tip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'hist-tip';
+      document.body.appendChild(tip);
+    }
+    Array.prototype.forEach.call(body.querySelectorAll('tr.hist-row'), function (tr) {
+      var rec = h[+tr.dataset.hi];
+      tr.addEventListener('mouseenter', function (e) {
+        tip.innerHTML = '<div class="ht-time"><b>' + esc(rec.time) + '</b></div>' + histDetailHtml(rec, cur);
+        tip.style.display = 'block';
+        moveTip(e);
+      });
+      tr.addEventListener('mousemove', moveTip);
+      tr.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+    });
+    function moveTip(e) {
+      var w = tip.offsetWidth, h2 = tip.offsetHeight;
+      var x = e.clientX + 16, y = e.clientY + 12;
+      if (x + w > window.innerWidth - 8) x = e.clientX - w - 12;
+      if (y + h2 > window.innerHeight - 8) y = e.clientY - h2 - 10;
+      tip.style.left = Math.max(8, x) + 'px';
+      tip.style.top = Math.max(8, y) + 'px';
+    }
   }
   $('#hist-clear').addEventListener('click', function () {
     try { localStorage.removeItem('cyber-speed-hist-v2'); } catch (e) {}
@@ -1453,9 +2687,196 @@
   buildNodeSel();
   drawCurve();
   probeNodes().then(function () {}).catch(function () {});
+
+  /* ================= 持续测速运行器（?runner=1：独立小窗口承载循环，主页面刷新/切换均不影响） ================= */
+  var RUNNER = /[?&]runner=1/.test(location.search);
+  var loopBC = ('BroadcastChannel' in window) ? new BroadcastChannel('cyber-loop') : null;
+  var lastBeat = '持续测速运行中';
+  function loopBeat(note) {
+    if (note != null) lastBeat = note;
+    var bn = document.getElementById('runner-note');
+    if (bn) bn.textContent = lastBeat;
+    if (!RUNNER) return;
+    try { localStorage.setItem('cyber-loop-status', JSON.stringify({ t: Date.now(), note: lastBeat })); } catch (e) {}
+    if (loopBC) loopBC.postMessage({ type: 'beat', note: lastBeat });
+  }
+  if (RUNNER) {
+    document.body.classList.add('loop-runner');
+    var bar = document.createElement('div');
+    bar.id = 'runner-bar';
+    bar.innerHTML = '<b>持续测速运行中</b><span id="runner-note">正在启动…</span><small>请保持此窗口开启（可最小化到任务栏）· 关闭窗口即停止测速</small>';
+    document.body.appendChild(bar);
+    if (loopBC) loopBC.onmessage = function (e) {
+      if (e.data && e.data.type === 'stop' && S.looping) stopLoop();   // 主页面远程停止
+    };
+    var hbStop = false;
+    (function hb() { if (hbStop) return; loopBeat(); bgSleep(5000).then(hb); })();
+    /* ---------- 界面镜像：把运行器的仪表/指标卡/实时曲线广播给主页面实时显示 ---------- */
+    var mirrorRing = 0, mirrorCenter = null, mirrorPhase = null;
+    (function () {
+      var _setRing = setRing;
+      setRing = function (p) { mirrorRing = p; return _setRing(p); };
+      var _setCenterVal = setCenterVal;
+      setCenterVal = function (v, u, s) { mirrorCenter = { v: v, u: u, s: s }; return _setCenterVal(v, u, s); };
+      var _setPhase = setPhase;
+      setPhase = function (ph, label, sub) {
+        mirrorPhase = (ph === 'idle' || ph === 'done') ? null : { ph: ph, label: label || '', sub: sub || '' };
+        return _setPhase(ph, label, sub);
+      };
+    })();
+    function uiSnap() {
+      function txt(id) { var e = document.getElementById(id); return e ? e.textContent : ''; }
+      return {
+        ph: mirrorPhase ? mirrorPhase.ph : '',
+        idle: !mirrorPhase,
+        label: mirrorPhase ? mirrorPhase.label : '',
+        sub: mirrorPhase ? mirrorPhase.sub : '',
+        ring: mirrorRing,
+        center: mirrorCenter,
+        tiles: {
+          ping: txt('m-ping'), pingSub: txt('m-ping-sub'),
+          jit: txt('m-jit'), jitSub: txt('m-jit-sub'),
+          down: txt('m-down'), downSub: txt('m-down-sub'),
+          up: txt('m-up'), upSub: txt('m-up-sub')
+        },
+        curve: S.curve
+      };
+    }
+    (function tickLoop() {
+      if (hbStop) return;
+      if (S.looping && loopBC) {
+        try { loopBC.postMessage({ type: 'tick', snap: uiSnap() }); } catch (e) {}
+      }
+      bgSleep(600).then(tickLoop);
+    })();
+    (async function () {
+      var cfg = null;
+      try { cfg = JSON.parse(localStorage.getItem('cyber-loop-config') || 'null'); } catch (e) {}
+      var noteEl = document.getElementById('runner-note');
+      if (!cfg) {
+        if (noteEl) noteEl.textContent = '未找到持续测速配置——请从灵犀测速页面重新发起';
+        return;
+      }
+      /* 跟随发起页的测速模式：公网界面点持续测速 = 持续测公网；内网界面点 = 持续测内网。
+         运行器是新开的页面，先恢复发起时的模式、线路（网卡）、对端与并发设置再开跑 */
+      S.streamMode = cfg.stream || 'multi';
+      if (streamSel) streamSel.value = S.streamMode;
+      function startRunnerLoop() {
+        S.looping = true;
+        setLoopUI(true);
+        runLoop(cfg).then(function () { hbStop = true; });
+      }
+      if (cfg.testMode === 'lan') {
+        S.mode = 'lan';
+        elGoSub.textContent = '内网测速';
+        loadNics().then(function () {
+          if (cfg.nic) {
+            for (var i = 0; i < nicSel.options.length; i++) {
+              if (nicSel.options[i].value === cfg.nic) { nicSel.value = cfg.nic; break; }
+            }
+          }
+          peerInput.value = cfg.peer || '';
+          probePeer();   // 以用户实际选择的线路与对端探活（仅此一次，配置正确）
+          startRunnerLoop();   // 配置就绪再开跑，避免首轮用未恢复的默认目标
+        });
+      } else {
+        startRunnerLoop();
+      }
+    })();
+  } else {
+    /* 主页面：始终监听运行器窗口（实时进度画面 / 刷新切页后自动重连 / 完成后同步结束状态） */
+    /* 心跳接管：确认运行器窗口属于本页的持续测速后，接管显示（页面刷新/切页回来自动重连） */
+    function runnerTakeover() {
+      if (runnerActive) return true;
+      var s0 = null, cfg0 = false;
+      try { s0 = JSON.parse(localStorage.getItem('cyber-loop-status') || 'null'); cfg0 = !!localStorage.getItem('cyber-loop-config'); } catch (err) {}
+      if (!(cfg0 && s0 && Date.now() - s0.t < 20000)) return false;   // 与本页无关的运行器
+      runnerActive = true;
+      setLoopUI(true);
+      return true;
+    }
+    /* 套用运行器广播的界面快照：仪表、指标卡与实时曲线同步显示独立窗口里的测速过程 */
+    var mirrorPhaseApplied = null;
+    function applyRunnerTick(sn) {
+      if (!sn) return;
+      var phKey = sn.idle ? 'idle' : sn.ph;
+      if (mirrorPhaseApplied !== phKey) {
+        mirrorPhaseApplied = phKey;
+        if (sn.idle) setPhase('idle');
+        else setPhase(sn.ph, sn.label, sn.sub || '');
+      }
+      setRing(sn.ring || 0);
+      if (sn.center) setCenterVal(sn.center.v, sn.center.u, sn.center.s);
+      else if (!sn.idle) setCenterVal('—', '', sn.sub || '');
+      var t = sn.tiles || {};
+      if (t.ping != null) { $('#m-ping').textContent = t.ping; $('#m-ping-sub').textContent = t.pingSub || ''; }
+      if (t.jit != null) { $('#m-jit').textContent = t.jit; $('#m-jit-sub').textContent = t.jitSub || ''; }
+      if (t.down != null) { $('#m-down').textContent = t.down; $('#m-down-sub').textContent = t.downSub || ''; }
+      if (t.up != null) { $('#m-up').textContent = t.up; $('#m-up-sub').textContent = t.upSub || ''; }
+      if (sn.curve && sn.curve.length) { S.curve = sn.curve; drawCurve(); }
+    }
+    if (loopBC) loopBC.onmessage = function (e) {
+      if (!e.data) return;
+      if (e.data.type === 'tick') {
+        if (runnerTakeover()) applyRunnerTick(e.data.snap);   // 实时画面：仪表/指标/曲线
+        return;
+      }
+      if (e.data.type === 'beat') {
+        if (runnerTakeover()) {
+          elNote.textContent = '持续测速正在独立窗口运行：' + String(e.data.note || '').replace(/^持续测速中：/, '');
+        }
+      } else if (e.data.type === 'done' && runnerActive) {
+        runnerActive = false;
+        mirrorPhaseApplied = null;
+        setLoopUI(false);
+        elNote.textContent = e.data.summary || '持续测速已结束。';
+        try { localStorage.removeItem('cyber-loop-config'); localStorage.removeItem('cyber-loop-status'); } catch (err) {}
+        renderHist();
+      }
+    };
+    (async function () {
+      var fresh = null;
+      try { fresh = JSON.parse(localStorage.getItem('cyber-loop-status') || 'null'); } catch (e) {}
+      var cfgAlive = false;
+      try { cfgAlive = !!localStorage.getItem('cyber-loop-config'); } catch (e) {}
+      if (cfgAlive && fresh && Date.now() - fresh.t < 20000) {
+        /* 页面刷新/切页回来：运行器心跳仍新鲜，立即接管显示 */
+        runnerActive = true;
+        setLoopUI(true);
+        elNote.textContent = '持续测速正在独立窗口运行：' + String(fresh.note || '').replace(/^持续测速中：/, '') + '（点「持续测速」位置的「停止」可远程结束）';
+      } else if (cfgAlive && fresh) {
+        try { localStorage.removeItem('cyber-loop-config'); localStorage.removeItem('cyber-loop-status'); } catch (e) {}
+      }
+      (function poll() {
+        bgSleep(4000).then(function () {
+          if (!runnerActive) { poll(); return; }
+          var s = null;
+          try { s = JSON.parse(localStorage.getItem('cyber-loop-status') || 'null'); } catch (e) {}
+          if (!s || Date.now() - s.t > 30000) {   // 运行器窗口已被关闭
+            runnerActive = false;
+            setLoopUI(false);
+            elNote.textContent = '持续测速运行器窗口已被关闭，测速中断（已完成轮次保留在历史记录与报告中）。';
+            try { localStorage.removeItem('cyber-loop-config'); localStorage.removeItem('cyber-loop-status'); } catch (e) {}
+            return;
+          }
+          poll();
+        });
+      })();
+      /* 上次持续测速的结果与报告去向：进页面即展示（运行器结束时已持久化，主页面不在场也不丢信息） */
+      try {
+        var lr = JSON.parse(localStorage.getItem('cyber-loop-last-result') || 'null');
+        if (lr && lr.note && !runnerActive) {
+          elNote.textContent = '上次持续测速（' + new Date(lr.t).toLocaleString('zh-CN', { hour12: false }) + '）：' + lr.note;
+        }
+      } catch (e) {}
+      offerPendingReportRescue();   // 有未保存成功的报告时弹出补存入口
+    })();
+  }
 })();
 </script>
 <script src="whiteboard.js" defer></script>
+<script src="manual.js" defer></script>
 <script src="bg-live.js"></script>
+<script src="logo-lens.js" defer></script>
 </body>
 </html>

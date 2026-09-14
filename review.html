@@ -173,7 +173,7 @@
     transition: border-color .15s;
   }
   input.fld:focus, textarea.fld:focus { border-color: color-mix(in srgb, var(--blue) 60%, transparent); }
-  textarea.fld { resize: vertical; min-height: 170px; }
+  textarea.fld { resize: none; min-height: 170px; }
   .card.form { display: flex; flex-direction: column; }
   .card.form textarea.fld { flex: 1; }
   .chips { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -219,6 +219,13 @@
   .rep-body td { color: var(--text); }
   .empty { color: var(--text-2); font-size: 13.5px; text-align: center; padding: 120px 20px; line-height: 2.2; }
 
+  /* ---- 插入图片：报告内图片展示 + 编辑态按钮高亮 ---- */
+  .rep-body img { max-width: 100%; border-radius: 8px; display: block; margin: 10px 0; border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent); }
+  /* 编辑 / 退出编辑 叠放在同一槽位（槽宽取二者较宽者），编辑态切换时按钮位置恒定不动 */
+  .swap { display: inline-grid; }
+  .swap .act { grid-area: 1 / 1; }
+  .act.on { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); }
+
   /* ---- 退出编辑确认对话框 ---- */
   .modal-mask { position: fixed; inset: 0; z-index: 99; display: none;
     align-items: center; justify-content: center;
@@ -227,16 +234,17 @@
   .modal { width: 400px; max-width: calc(100vw - 48px); border-radius: 14px; padding: 24px 26px 20px;
     background: var(--panel); border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent);
     box-shadow: 0 24px 60px rgba(4, 14, 32, .35); }
-  .modal h3 { margin: 0 0 8px; font-size: 16px; color: var(--text); }
-  .modal p { margin: 0 0 18px; font-size: 13px; line-height: 1.9; color: var(--text-2); }
+  .modal h3 { margin: 0 0 10px; font-size: 17px; color: var(--text); }
+  .modal p { margin: 0 0 18px; font-size: 14px; line-height: 2; color: var(--text); }
   .modal-btns { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .mbtn { padding: 9px 20px; border-radius: 9px; cursor: pointer; font-size: 13px; font-family: inherit;
     border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent); background: transparent;
     color: var(--text); transition: all .15s; }
   .mbtn:hover { background: color-mix(in srgb, var(--blue) 10%, transparent); }
   .mbtn.primary { border: none; background: linear-gradient(135deg, #1a56c4, #0f8a5f); color: #fff; font-weight: 600; }
-  .mbtn.plain { border-color: color-mix(in srgb, var(--red) 35%, transparent); color: var(--red); }
-  .mbtn.plain:hover { background: color-mix(in srgb, var(--red) 10%, transparent); }
+  .mbtn.plain { border-color: color-mix(in srgb, var(--red) 60%, transparent); color: var(--red);
+    font-weight: 600; background: color-mix(in srgb, var(--red) 8%, transparent); }
+  .mbtn.plain:hover { background: color-mix(in srgb, var(--red) 16%, transparent); border-color: var(--red); }
 
   footer { text-align: center; padding: 20px 0 30px; font-size: 12px; color: color-mix(in srgb, var(--text-2) 60%, transparent); }
   @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
@@ -263,7 +271,7 @@
   <nav>
     <a href="home.html">首页</a>
     <a href="download/CyberNWT.zip" download="CyberNWT.zip">下载功能</a>
-      <a href="download/CyberNWT-产品文档.docx" download="CyberNWT-产品文档.docx">产品文档</a>
+      <a href="javascript:void(0)" data-cm-open>使用手册</a>
     <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
     <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
   </nav>
@@ -307,8 +315,11 @@
     <div class="rep-head">
       <h2 style="border:none;padding:0">复盘报告 <span class="chip">REPORT</span></h2>
       <span class="sp"></span>
-      <button class="act" id="copy-btn">编辑</button>
-      <button class="act" id="dl-btn" style="display:none">退出编辑</button>
+      <button class="act" id="ins-btn" style="display:none" title="选择电脑中的图片插入到报告（未编辑时自动进入编辑）">插入图片</button>
+      <span class="swap">
+        <button class="act" id="copy-btn">编辑</button>
+        <button class="act" id="dl-btn">退出编辑</button>
+      </span>
       <button class="act" id="word-btn">下载 Word</button>
       <button class="act" id="pdf-btn">导出 PDF</button>
     </div>
@@ -332,10 +343,36 @@
 </div>
 
 <script src="whiteboard.js" defer></script>
+<script src="manual.js" defer></script>
 <script src="bg-live.js"></script>
 <script>
 (function () {
   'use strict';
+
+  /* 自绘提示框：替代浏览器原生 alert（观感统一，明暗随页面主题） */
+  window.rvAlert = function (msg, title) {
+    var dark = document.documentElement.getAttribute('data-theme') !== 'light';
+    var C = dark
+      ? { mask: 'rgba(4,10,20,.55)', bg: '#0b1626', border: '#5aa7e8', text: '#e8f2ff', sub: '#9fb0c3' }
+      : { mask: 'rgba(120,145,170,.35)', bg: '#ffffff', border: 'rgba(29,111,196,.55)', text: '#1c3550', sub: '#5a6b7d' };
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:' + C.mask + ';display:flex;align-items:center;justify-content:center;';
+    var card = document.createElement('div');
+    card.style.cssText = 'background:' + C.bg + ';border:1px solid ' + C.border + ';border-radius:12px;padding:20px 22px;width:430px;max-width:92vw;' +
+      'box-shadow:0 16px 44px rgba(0,0,0,.35);color:' + C.text + ';font:13px/1.9 \"Microsoft YaHei\",sans-serif;';
+    card.innerHTML = '<div style="font-size:15px;font-weight:700;margin-bottom:6px">' + (title || '提示') + '</div>' +
+      '<div style="color:' + C.sub + ';margin-bottom:14px;white-space:pre-wrap">' + String(msg) + '</div>';
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:flex-end;';
+    var ok = document.createElement('button');
+    ok.type = 'button'; ok.textContent = '确定';
+    ok.style.cssText = 'padding:8px 22px;border:none;border-radius:8px;cursor:pointer;background:linear-gradient(135deg,#1a56c4,#0f8a5f);color:#fff;font:600 12.5px/1.2 inherit;';
+    ok.addEventListener('click', function () { ov.remove(); });
+    row.appendChild(ok); card.appendChild(row); ov.appendChild(card);
+    document.body.appendChild(ov);
+    ok.focus();
+  };
+
 
   'use strict';
 
@@ -401,13 +438,14 @@
     }
     for (var i = 0; i < lines.length; i++) {
       var ln = lines[i];
-      var fmt = ln.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+      var fmt = ln.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1">')
+                  .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
       /* Markdown 表格行：| a | b |（分隔行 | --- | --- | 跳过） */
       if (/^\s*\|.*\|\s*$/.test(ln)) {
         if (/^\s*\|[\s:\-|]+\|\s*$/.test(ln)) continue;
         closeUl();
         var cells = ln.trim().replace(/^\|/, '').replace(/\|\s*$/, '').split('|').map(function (c) {
-          return c.trim().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+          return c.trim().replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1">').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
         });
         if (!inTable) { inTable = true; tRows = []; }
         tRows.push(cells);
@@ -463,7 +501,7 @@
     if (editing) { editing = false; setEditBtns(); }   // 重新生成时退出编辑态
     var pname = $('#pname').value.trim();
     var story = $('#story').value.trim();
-    if (!story) { alert('请先填写过程描述 —— 这是 AI 提炼报告的核心材料。'); return; }
+    if (!story) { rvAlert('请先填写过程描述 —— 这是 AI 提炼报告的核心材料。'); return; }
     var stages = [];
     document.querySelectorAll('.stag.on').forEach(function (b) { stages.push(b.textContent); });
 
@@ -473,19 +511,67 @@
       stages.length ? '【所属阶段】' + stages.join('、') : '',
       '【项目过程】', story].filter(Boolean).join('\n');
 
+    /* 流式生成：报告边生成边显示（约 2 秒出第一句），结束整体渲染为富文本 */
     fetch('/api/ai/report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scene: 'review', messages: [{ role: 'user', content: prompt }] })
-    }).then(function (r) { return r.json(); }).then(function (data) {
-      if (!data.ok) throw new Error(data.message || '服务异常');
-      lastRaw = data.reply;
-      typewrite(data.reply, function () {
-        try { localStorage.setItem('cybernwt.lastreport.v2', JSON.stringify({ raw: data.reply, name: pname })); } catch (e) {}
+      body: JSON.stringify({ scene: 'review', stream: true, messages: [{ role: 'user', content: prompt }] })
+    }).then(function (r) {
+      if (!r.ok || !r.body) throw new Error('服务异常');
+      var reader = r.body.getReader();
+      var dec = new TextDecoder('utf-8');
+      var buf = '', raw = '', info = null, finished = false, full = '';
+      var repBody = $('#rep-body');
+      function paint() {
+        repBody.innerHTML = '<pre style="white-space:pre-wrap;font:12.5px/1.9 Consolas,monospace;color:#9db8d4">' +
+          esc(raw) + '</pre>';
+        repBody.scrollTop = repBody.scrollHeight;
+      }
+      function doneCb() {
+        try { localStorage.setItem('cybernwt.lastreport.v2', JSON.stringify({ raw: full, name: pname })); } catch (e) {}
         btn.disabled = false; btn.textContent = '✦ 生成复盘报告';
-      });
+        setEditBtns();   // 报告就绪，亮出「插入图片」按钮
+      }
+      function fin() {
+        if (finished) return;
+        finished = true;
+        full = (info && info.reply) || raw;
+        lastRaw = full;
+        if (raw === full) {          // 流式已展示过源文：直接整体渲染
+          repBody.innerHTML = md(full);
+          repBody.scrollTop = repBody.scrollHeight;
+          doneCb();
+        } else {                     // 回退 / 演示内容一次性到达：沿用打字机
+          typewrite(full, doneCb);
+        }
+      }
+      function handleFrame(frame) {
+        var ev = '', ds = '';
+        frame.split('\n').forEach(function (ln) {
+          if (ln.indexOf('event:') === 0) ev = ln.slice(6).trim();
+          else if (ln.indexOf('data:') === 0) ds += ln.slice(5).trim();
+        });
+        if (!ds) return;
+        var obj;
+        try { obj = JSON.parse(ds); } catch (e) { return; }
+        if (ev === 'delta' && obj.t) { raw += obj.t; paint(); }
+        else if (ev === 'done') { info = obj; }
+      }
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) { fin(); return; }
+          buf += dec.decode(res.value, { stream: true });
+          var i;
+          while ((i = buf.indexOf('\n\n')) >= 0) {
+            handleFrame(buf.slice(0, i));
+            buf = buf.slice(i + 2);
+          }
+          return pump();
+        });
+      }
+      pump().catch(function (e) { throw e; });
     }).catch(function (e) {
-      alert('生成失败：' + (e.message || e));
+      rvAlert('生成失败：' + (e.message || e));
       btn.disabled = false; btn.textContent = '✦ 生成复盘报告';
     });
   }
@@ -496,11 +582,19 @@
   var editing = false;
   var editBtn = $('#copy-btn');
   var exitBtn = $('#dl-btn');
+  var swapEl = document.querySelector('.swap');   // 编辑 / 退出编辑 的共同槽位
   var repBody = $('#rep-body');
+  var lastCaret = null;   // 编辑区光标位置（点击「插入图片」后图片落到这里）
+  var imgMap = {};        // 编辑态图片占位符 #img:N → data URL（保存时还原，编辑区不出现 base64 长串）
+  var imgSeq = 0;
 
   function setEditBtns() {
-    editBtn.style.display = editing ? 'none' : '';
-    exitBtn.style.display = editing ? '' : 'none';
+    // 槽位固定：「插入图片」恒居左，「编辑/退出编辑」叠放同一槽位——编辑态切换只换字不挪位
+    var hasReport = !!lastRaw;
+    [editBtn, insBtn, exitBtn, swapEl].forEach(function (b) { b.style.display = hasReport ? '' : 'none'; });
+    editBtn.style.visibility = (hasReport && !editing) ? 'visible' : 'hidden';
+    exitBtn.style.visibility = (hasReport && editing) ? 'visible' : 'hidden';
+    insBtn.classList.toggle('on', editing);           // 编辑态高亮，提示插入将进入正文
   }
 
   function enterEdit() {
@@ -508,21 +602,35 @@
     editing = true;
     var ta = document.createElement('textarea');
     ta.id = 'md-editor';
-    ta.value = lastRaw;
+    // 图片 data URL 换成短占位符（#img:N），编辑区不再出现成片 base64
+    ta.value = lastRaw.replace(/(!\[[^\]]*\]\()(data:[^)]+)\)/g, function (m, head, url) {
+      var key = '#img:' + (++imgSeq);
+      imgMap[key] = url;
+      return head + key + ')';
+    });
     ta.style.cssText = 'width:100%;min-height:' + Math.max(300, repBody.clientHeight - 20) + 'px;' +
       'box-sizing:border-box;padding:14px 16px;border:1px solid color-mix(in srgb,var(--blue) 35%,transparent);' +
       'border-radius:10px;background:color-mix(in srgb,var(--panel) 80%,transparent);color:var(--text);' +
-      'font:12.5px/1.9 Consolas,monospace;outline:none;resize:vertical;';
+      'font:12.5px/1.9 Consolas,monospace;outline:none;resize:none;';
     repBody.innerHTML = '';
     repBody.appendChild(ta);
     ta.focus();
+    try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}   // 光标默认落正文末尾
+    lastCaret = [ta.value.length, ta.value.length];
+    ['keyup', 'click', 'select', 'input', 'blur'].forEach(function (ev) {
+      ta.addEventListener(ev, function () { lastCaret = [ta.selectionStart, ta.selectionEnd]; });
+    });
     setEditBtns();
   }
 
   function saveEdit() {
     var ta = $('#md-editor');
     if (!ta) return;
-    lastRaw = ta.value;
+    // 占位符还原为真实 data URL，预览/导出/缓存均带完整图片
+    lastRaw = ta.value.replace(/!\[([^\]]*)\]\(#(img:\d+)\)/g, function (m, alt, id) {
+      var u = imgMap['#' + id];
+      return u ? '![' + alt + '](' + u + ')' : m;
+    });
     repBody.innerHTML = md(lastRaw);
     try { localStorage.setItem('cybernwt.lastreport.v2',
       JSON.stringify({ raw: lastRaw, name: $('#pname').value.trim() })); } catch (e) {}
@@ -544,9 +652,9 @@
   exitBtn.addEventListener('click', function () {
     if (!editing) return;
     var changed = $('#md-editor') && $('#md-editor').value !== lastRaw;
-    $('#exit-msg').textContent = changed
-      ? '报告内容已修改。保存后修改生效；不保存将放弃全部修改；取消则继续编辑。'
-      : '内容尚未修改。确定要退出编辑吗？（取消则继续编辑）';
+    $('#exit-msg').innerHTML = changed
+      ? '报告内容已修改，请选择：<br>「确定并保存」—— 保存修改并退出编辑；<br>「不保存」—— 放弃本次全部修改；<br>「取消」—— 返回继续编辑。'
+      : '内容尚未修改，请选择：<br>「确定并保存」—— 退出编辑；<br>「取消」—— 返回继续编辑。';
     $('#exit-discard').style.display = changed ? '' : 'none';
     $('#exit-mask').classList.add('show');
   });
@@ -562,10 +670,81 @@
     $('#exit-mask').classList.remove('show');
     exitEdit(false);
   });
+
+  /* ---- 插入图片：选择电脑中的图片插入报告 ----
+     未编辑时点击 → 自动进入编辑再选图；编辑中点击 → 图片插入光标所在位置。
+     图片以 Markdown 语法（![]()）写入正文，保存后预览/导出均含图片。 ---- */
+  var insBtn = $('#ins-btn');
+  var imgInput = document.createElement('input');
+  imgInput.type = 'file';
+  imgInput.accept = 'image/*';
+  imgInput.style.display = 'none';
+  document.body.appendChild(imgInput);
+
+  insBtn.addEventListener('click', function () {
+    if (!lastRaw) { rvAlert('请先生成复盘报告，再插入图片。'); return; }
+    if (!editing) enterEdit();   // 自动进入编辑（编辑/退出按钮随之切换）
+    var ta = $('#md-editor');
+    if (ta && lastCaret) {       // 回到上次光标位置再弹文件选择
+      ta.focus();
+      try { ta.setSelectionRange(lastCaret[0], lastCaret[1]); } catch (e) {}
+    }
+    imgInput.value = '';
+    imgInput.click();
+  });
+  imgInput.addEventListener('change', function () {
+    var f = imgInput.files && imgInput.files[0];
+    if (!f) return;
+    if (!/^image\//.test(f.type)) { rvAlert('请选择图片文件（PNG / JPG / GIF / WebP）。'); return; }
+    insertImageFile(f);
+  });
+
+  function insertImageFile(f) {
+    var ta = $('#md-editor');
+    if (!ta) return;
+    var name = (f.name || '').replace(/[\[\]()"]/g, '');   // 保留扩展名（如 .png），仅去掉易破坏语法的字符
+    var apply = function (dataUrl) {
+      var key = '#img:' + (++imgSeq);      // 编辑区只放短占位符，data URL 存内存映射
+      imgMap[key] = dataUrl;
+      var snap = '![' + (name ? '图片 · ' + name : '图片') + '](' + key + ')';
+      var s = lastCaret ? lastCaret[0] : ta.value.length;
+      var e = lastCaret ? lastCaret[1] : s;
+      var before = ta.value.slice(0, s), after = ta.value.slice(e);
+      var nl1 = before && !/\n$/.test(before) ? '\n\n' : '';
+      var nl2 = after && after.charAt(0) !== '\n' ? '\n\n' : '\n';
+      ta.value = before + nl1 + snap + nl2 + after;
+      var caret = (before + nl1 + snap).length;
+      ta.focus();
+      try { ta.setSelectionRange(caret, caret); } catch (err) {}
+      lastCaret = [caret, caret];
+    };
+    if (f.size <= 300 * 1024) {
+      var rd = new FileReader();
+      rd.onload = function () { apply(rd.result); };
+      rd.readAsDataURL(f);
+    } else {
+      // 大图先压缩（最长边 ≤1400px / JPEG 85%），避免 base64 撑爆本地缓存
+      var rd2 = new FileReader();
+      rd2.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, 1400 / Math.max(img.width, img.height));
+          var c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.width * scale));
+          c.height = Math.max(1, Math.round(img.height * scale));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          apply(c.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = function () { rvAlert('图片读取失败，请换一张试试。'); };
+        img.src = rd2.result;
+      };
+      rd2.readAsDataURL(f);
+    }
+  }
   // 导出 Word：以 Word 兼容 HTML 打包 .doc（无需联网组件，Word/WPS 均可打开）
   $('#word-btn').addEventListener('click', function () {
     if (!lastRaw) return;
-    if (editing) { alert('请先退出编辑（保存或放弃修改）后再导出。'); return; }
+    if (editing) { rvAlert('请先退出编辑（保存或放弃修改）后再导出。'); return; }
     var title = ($('#pname').value.trim() || '复盘报告');
     var body = $('#rep-body').innerHTML;
     var doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">' +
@@ -586,7 +765,7 @@
   // 导出 PDF：调用浏览器打印（另存为 PDF），打印时只输出报告
   $('#pdf-btn').addEventListener('click', function () {
     if (!lastRaw) { return; }
-    if (editing) { alert('请先退出编辑（保存或放弃修改）后再导出。'); return; }
+    if (editing) { rvAlert('请先退出编辑（保存或放弃修改）后再导出。'); return; }
     window.print();
   });
 
@@ -599,7 +778,10 @@
       $('#rep-body').innerHTML = md(saved.raw);
     }
   } catch (e) {}
+  setEditBtns();   // 有缓存报告时亮出「插入图片」按钮
 })();
 </script>
+<footer style="text-align:center;padding:22px 0 30px;font-size:12.5px;color:var(--text-2,#8b93a1);position:relative;z-index:2;">CyberNWT · 演示环境 · <a href="javascript:void(0)" data-cm-open style="color:inherit;text-decoration:underline dotted rgba(128,128,128,.45);text-underline-offset:3px;">功能指引</a></footer>
+<script src="logo-lens.js" defer></script>
 </body>
 </html>

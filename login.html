@@ -77,7 +77,9 @@
   .panel .sub { grid-area: sub; }
   .panel .tabs { grid-area: tabs; }
   .panel .hint { grid-area: hint; }
-  .form { grid-area: form; visibility: hidden; }
+  /* align-self:start 让两个表单保持各自自然高度（否则 grid 默认拉伸等高，
+     登录提示框的上移位移量就无法按高度差计算） */
+  .form { grid-area: form; align-self: start; visibility: hidden; }
   .form.active { visibility: visible; }
   label { display: block; font-size: 12px; color: #a7b0bb; margin-bottom: 13px; }
   input {
@@ -85,6 +87,7 @@
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 12px; color: #f2f4f7; font-size: 14px;
+    caret-color: #ffffff; /* 深色底上文字输入光标默认可能过暗，显式提白 */
     outline: none; transition: border-color 0.2s, box-shadow 0.2s;
     font-family: inherit;
   }
@@ -111,12 +114,40 @@
   .btn:active { transform: scale(0.985); }
   .btn:disabled { filter: grayscale(0.5) brightness(0.92); opacity: 0.65; cursor: wait; }
 
+  /* 演示账号提示：高亮醒目 + 一键填充，确保评审第一眼就能看到登录方式。
+     配色取自粒子 Logo 的冰蓝/银白，与整体冷色调统一；亮度以醒目但不抢左侧粒子焦点为度 */
   .hint {
-    margin-top: 16px; padding-top: 13px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.18);
-    font-size: 12px; color: rgba(167, 176, 187, 0.85); text-align: center;
+    margin-top: 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 11px 12px 9px;
+    border: 1px solid rgba(185, 222, 255, 0.6);
+    background: linear-gradient(180deg, rgba(185, 222, 255, 0.2), rgba(185, 222, 255, 0.08));
+    border-radius: 12px;
+    font-size: 14.5px; color: #e6edf6; text-align: center;
+    cursor: pointer; user-select: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    animation: hintGlow 2.6s ease-in-out infinite;
   }
-  .hint b { color: #eef1f5; font-weight: 600; }
+  .hint:hover {
+    animation: none;
+    border-color: rgba(205, 232, 255, 0.9);
+    background: linear-gradient(180deg, rgba(185, 222, 255, 0.28), rgba(185, 222, 255, 0.12));
+    box-shadow: 0 0 22px rgba(126, 190, 244, 0.34);
+  }
+  .hint:active { transform: scale(0.98); }
+  .hint b {
+    font-size: 17px; color: #ffffff; font-weight: 700; letter-spacing: 0.5px;
+    text-shadow: 0 0 12px rgba(148, 200, 250, 0.75);
+  }
+  .hint .tip { font-size: 11px; letter-spacing: 1px; color: rgba(195, 218, 240, 0.85); }
+  @keyframes hintGlow {
+    0%, 100% { box-shadow: 0 0 0 rgba(126, 190, 244, 0); }
+    50% { box-shadow: 0 0 16px rgba(126, 190, 244, 0.32); }
+  }
+  /* 登录视图：提示框上移紧跟登录按钮（位移量由 JS 按两个表单的高度差实时计算）；
+     注册视图：不加位移，保持卡片底部原位 */
+  .panel.login-mode .hint { transform: translateY(var(--hint-shift, -80px)); }
+  .panel.login-mode .hint:active { transform: translateY(var(--hint-shift, -80px)) scale(0.98); }
 
   /* 窄屏：Logo 在上方，卡片移到底部居中 */
   @media (max-width: 999px) {
@@ -179,7 +210,10 @@
     <button class="btn" id="reg-btn" type="submit">注 册</button>
   </form>
 
-  <p class="hint">演示账号：<b>admin</b>　密码：<b>admin</b></p>
+  <div class="hint" id="demo-hint" title="点击自动填充演示账号">
+    <span>演示账号：<b>admin</b>　密码：<b>admin</b></span>
+    <span class="tip">点击自动填充，直接登录</span>
+  </div>
 </main>
 
 <script>
@@ -776,6 +810,17 @@
     login: ['欢迎来到CyberNWT', '登录以进入项目展示'],
     register: ['创建账号', '注册一个新账号开始体验']
   };
+  // 登录视图时演示提示框上移到按钮与卡片底部的中间偏上位置，注册视图保持卡片底部原位；
+  // 位移量 = 两表单高度差的 55%（全部上移会贴住按钮，显得太挤）。
+  // 位置切换不做过渡动画，保证任何环境（含后台标签页）下位置都即时正确
+  function syncHintPos(name) {
+    const loginActive = name === 'login';
+    panel.classList.toggle('login-mode', loginActive);
+    if (loginActive) {
+      const shift = Math.round(($('#register-form').offsetHeight - $('#login-form').offsetHeight) * 0.55);
+      panel.style.setProperty('--hint-shift', '-' + shift + 'px');
+    }
+  }
   document.querySelectorAll('.tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.tab').forEach(function (b) { b.classList.remove('active'); });
@@ -785,8 +830,10 @@
       $('#register-form').classList.toggle('active', name === 'register');
       $('#panel-title').textContent = TITLES[name][0];
       $('#panel-sub').textContent = TITLES[name][1];
+      syncHintPos(name);
     });
   });
+  syncHintPos('login'); // 初始为登录视图
   function switchTab(name) {
     document.querySelector('.tab[data-tab="' + name + '"]').click();
   }
@@ -804,6 +851,14 @@
     panel.classList.add('shake');
   }
 
+  // 点击演示账号提示：一键填充 admin 账号密码（评审盲审时无需手动输入）
+  $('#demo-hint').addEventListener('click', function () {
+    switchTab('login');
+    $('#login-user').value = 'admin';
+    $('#login-pass').value = 'admin';
+    setMsg('login-msg', '已填充演示账号，点击「登录」进入');
+  });
+
   async function api(path, body) {
     let res, data = {};
     try {
@@ -815,7 +870,7 @@
       data = await res.json();
     } catch (e) {
       // file:// 直接打开或服务器未启动时走到这里
-      return { status: 0, data: { ok: false, message: '无法连接服务器：请先运行 python server.py，再通过 http://127.0.0.1:8642 访问' } };
+      return { status: 0, data: { ok: false, message: '无法连接服务器：请先启动服务（双击 CyberNWT.exe，或运行 python server.py），再通过 http://127.0.0.1:8642 访问' } };
     }
     return { status: res.status, data: data || {} };
   }
@@ -835,6 +890,8 @@
 
     if (status === 200 && data.ok) {
       setMsg('login-msg', '登录成功，正在进入…');
+      // 标记本次登录：首页读到后自动弹出使用手册（每次登录都展示一遍指引）
+      try { sessionStorage.setItem('cyber-manual-open-once', '1'); } catch (e) {}
       setTimeout(function () { location.href = 'home.html'; }, 350);
     } else {
       setMsg('login-msg', data.message || '登录失败', true);

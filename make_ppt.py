@@ -409,10 +409,96 @@ text(s, x6 + Inches(0.2), y6 + Inches(0.78), cw - Inches(0.4), chh - Inches(0.95
 set_transition(s, 'push', 700)
 
 # =========================================================
-# S4 核心能力 1：故障诊断智能体（产品核心）
+# S4 核心能力 0：灵犀测速 SpeedLens
 # =========================================================
 s = add_slide()
 decor(s, '02 / CAPABILITIES', 4)
+sec_head(s, 'SPEEDLENS · 核心能力 01', '灵犀测速：把"测速"重做一遍',
+         '不止给你一个数字，而是直接回答——"网速到底怎么回事"')
+_rows = [
+    ('一键全链路体检', '握手 → 延迟 → 突发下载 → 突发上传 → 智能诊断，五阶段全程约 4 秒', CYAN),
+    ('结论优先', '综合评分 S/A/B/C，逐条输出瓶颈定位、原因分析与处置建议', TEAL),
+    ('全链路透视', '终端 → 网关 → 运营商 → CDN → 源站，逐跳延迟 + 缓存 HIT/MISS 可视化', VIOLET),
+    ('也服务于"机器"', '标准 JSON / Prometheus 指标 / 阈值告警，直接接入 CI 与监控无人值守', AMBER),
+]
+yy = Inches(2.05)
+_anim = []
+for t1, t2, c in _rows:
+    glow_dot(s, Inches(0.95), yy + Inches(0.10), c, 0.10)
+    b1 = text(s, Inches(1.25), yy, Inches(4.7), Inches(0.32),
+              [(t1, {'size': 15, 'color': c, 'bold': True})])
+    b2 = text(s, Inches(1.25), yy + Inches(0.36), Inches(4.7), Inches(0.62),
+              t2, size=11.5, color=TXT2)
+    _anim += [(b1, 'fade', 450), (b2, 'fade', 450)]
+    yy += Inches(1.04)
+chip(s, Inches(0.95), Inches(6.42), '秒级测量', CYAN)
+chip(s, Inches(2.17), Inches(6.42), '智能诊断', TEAL)
+chip(s, Inches(3.39), Inches(6.42), 'CI / 监控', AMBER)
+_pic = pic_framed(s, os.path.join('docs', 'shots', '03b-speedtest-run.png'),
+                  Inches(6.4), Inches(2.0), w=Inches(6.25), max_h=Inches(4.0),
+                  note='灵犀测速实测：实时波形 + 全链路透视 + 智能诊断结论')
+_anim.append((_pic, 'float', 600))
+build_anim(s, _anim)
+set_transition(s, 'wipe', 700)
+
+# =========================================================
+# S5 核心能力 0：内网感知 NetSense
+# =========================================================
+s = add_slide()
+decor(s, '02 / CAPABILITIES', 5)
+sec_head(s, 'NETSENSE · 核心能力 02', '内网感知：走进客户现场的第一分钟',
+         '告别"听客户描述 + 手动画拓扑"，接入即可看见整个网络')
+# 顶部四步流程
+_steps = [('接入现场网络', '网线 / Wi-Fi 均可', CYAN),
+          ('真实探针感知', '存活主机 · 网关 · 网段', TEAL),
+          ('自动绘制拓扑', '分层布局 · 实时流动画', VIOLET),
+          ('给出部署建议', '深信服上架模式', AMBER)]
+cxx, cyy, cwid = Inches(0.9), Inches(2.02), Inches(3.0)
+_anim = []
+for i, (t1, t2, c) in enumerate(_steps):
+    cv = rect(s, cxx + Inches(int(2.85 * i)), cyy, cwid, Inches(0.78),
+              fill=BG2, line=c, lw=1.2, shape=MSO_SHAPE.CHEVRON)
+    try:
+        cv.adjustments[0] = 0.35
+    except Exception:
+        pass
+    b1 = text(s, cxx + Inches(int(2.85 * i)) + Inches(0.30), cyy + Inches(0.09),
+              cwid - Inches(0.55), Inches(0.3),
+              [(t1, {'size': 12.5, 'color': TXT, 'bold': True})], align=PP_ALIGN.CENTER)
+    b2 = text(s, cxx + Inches(int(2.85 * i)) + Inches(0.30), cyy + Inches(0.42),
+              cwid - Inches(0.55), Inches(0.26),
+              t2, size=9, color=TXT3, align=PP_ALIGN.CENTER)
+    _anim += [(cv, 'wipe', 400), (b1, 'fade', 350), (b2, 'fade', 350)]
+_rows = [
+    ('真实探针引擎', 'ICMP 存活探测 + 系统 ARP 表 + OUI 厂商指纹 + 端口特征识别，结果是"探"出来的', CYAN),
+    ('Wi-Fi 就能感知', '不抢占客户网口：笔记本连上现场 Wi-Fi，即可"看见"整个内网环境', TEAL),
+    ('所见即所得', '网段 / VLAN 表、设备指纹清单、可视化拓扑，一键导出 Mermaid / PNG 进交付文档', VIOLET),
+    ('落地到实施', '按现场环境推荐网桥 / 路由 / 旁路部署模式，附可勾选的上架检查清单', AMBER),
+]
+yy = Inches(3.18)
+for t1, t2, c in _rows:
+    glow_dot(s, Inches(0.95), yy + Inches(0.10), c, 0.10)
+    b1 = text(s, Inches(1.25), yy, Inches(5.35), Inches(0.32),
+              [(t1, {'size': 15, 'color': c, 'bold': True})])
+    b2 = text(s, Inches(1.25), yy + Inches(0.36), Inches(5.35), Inches(0.62),
+              t2, size=11.5, color=TXT2)
+    _anim += [(b1, 'fade', 450), (b2, 'fade', 450)]
+    yy += Inches(0.98)
+chip(s, Inches(0.95), Inches(7.0), 'ICMP + ARP', CYAN)
+chip(s, Inches(2.35), Inches(7.0), 'OUI 指纹', TEAL)
+chip(s, Inches(3.55), Inches(7.0), '拓扑即所得', VIOLET)
+_pic = pic_framed(s, os.path.join('docs', 'shots', '04-topology.png'),
+                  Inches(6.85), Inches(3.12), w=Inches(5.8), max_h=Inches(3.55),
+                  note='内网感知实测：自动生成的客户内网拓扑')
+_anim.append((_pic, 'float', 600))
+build_anim(s, _anim)
+set_transition(s, 'split', 700)
+
+# =========================================================
+# S6 核心能力 1：故障诊断智能体（产品核心）
+# =========================================================
+s = add_slide()
+decor(s, '02 / CAPABILITIES', 6)
 sec_head(s, 'CORE · AI AGENT', '故障诊断智能体：30 年经验的"远程专家"',
          '不直接给答案，而是像前辈一样一步步带工程师排查 —— 引导式排查 + 知识库强约束')
 
@@ -446,7 +532,7 @@ set_transition(s, 'fade', 700)
 # S5 核心能力 2：专业知识库（底气所在）
 # =========================================================
 s = add_slide()
-decor(s, '02 / CAPABILITIES', 5)
+decor(s, '02 / CAPABILITIES', 7)
 sec_head(s, 'CORE · KNOWLEDGE BASE', '深信服故障诊断知识库：AI 的"专业底气"',
          '有依据的回答才敢用 —— 资料搜集 → 知识库构建 → 检索调试 → 实测验证')
 
@@ -487,7 +573,7 @@ set_transition(s, 'fade', 700)
 # S6 核心能力 3：案例复盘 + 工具矩阵
 # =========================================================
 s = add_slide()
-decor(s, '02 / CAPABILITIES', 6)
+decor(s, '02 / CAPABILITIES', 8)
 sec_head(s, 'CORE · REPORT & TOOLS', '案例复盘与全流程工具：交付闭环的最后一块拼图',
          '过程输入 → AI 结构化复盘 → 经验沉淀复用；测速/感知/白板支撑现场每一环')
 
@@ -523,10 +609,43 @@ text(s, tx + Inches(0.2), Inches(5.98), tw - Inches(0.4), Inches(0.6),
 set_transition(s, 'push', 700)
 
 # =========================================================
+# S9 核心能力 5：随心记录悬浮白板
+# =========================================================
+s = add_slide()
+decor(s, '02 / CAPABILITIES', 9)
+sec_head(s, 'INSTANT BOARD · 核心能力 05', '随心记录：悬浮白板，灵感不落地',
+         '在任意页面一键唤起，记录不打断手头的工作')
+_rows = [
+    ('全局悬浮球', '任意页面右下角一键唤起：测速中途、AI 对话途中，都能随手把要点记下来', CYAN),
+    ('画 + 写双模式', '4 色画笔、三档粗细、橡皮与撤销；点击白板任意位置直接开始打字', TEAL),
+    ('自动保存本机', '关闭再打开内容仍在；支持一键导出 PNG，直接归档进交付文档', VIOLET),
+    ('为实施现场而生', '割接步骤、临时变更、客户口头需求——随手记、随手查，事后即素材', AMBER),
+]
+yy = Inches(2.05)
+_anim = []
+for t1, t2, c in _rows:
+    glow_dot(s, Inches(0.95), yy + Inches(0.10), c, 0.10)
+    b1 = text(s, Inches(1.25), yy, Inches(4.7), Inches(0.32),
+              [(t1, {'size': 15, 'color': c, 'bold': True})])
+    b2 = text(s, Inches(1.25), yy + Inches(0.36), Inches(4.7), Inches(0.62),
+              t2, size=11.5, color=TXT2)
+    _anim += [(b1, 'fade', 450), (b2, 'fade', 450)]
+    yy += Inches(1.04)
+chip(s, Inches(0.95), Inches(6.42), '悬浮窗', CYAN)
+chip(s, Inches(2.05), Inches(6.42), '手绘 + 打字', TEAL)
+chip(s, Inches(3.45), Inches(6.42), '自动保存', AMBER)
+_pic = pic_framed(s, os.path.join('docs', 'shots', '02-home.png'),
+                  Inches(6.4), Inches(2.0), w=Inches(6.25), max_h=Inches(4.0),
+                  note='功能首页右下角：悬浮球常驻，点开即白板')
+_anim.append((_pic, 'float', 600))
+build_anim(s, _anim)
+set_transition(s, 'fade', 700)
+
+# =========================================================
 # S7 背后的故事：创作过程（放"过程"截图）
 # =========================================================
 s = add_slide()
-decor(s, '03 / STORY', 7)
+decor(s, '03 / STORY', 10)
 sec_head(s, 'BEHIND THE STORY', '背后的故事：从想法到落地，每一步都有迹可循',
          'Vibe Coding 全程驱动 —— 与 AI 结对，把"30 年专家经验"一点点教给它')
 
@@ -568,7 +687,7 @@ set_transition(s, 'fade', 700)
 # S8 改进：真机验证与离线场景（放"改进1"截图）
 # =========================================================
 s = add_slide()
-decor(s, '04 / IMPROVEMENT', 8)
+decor(s, '04 / IMPROVEMENT', 11)
 sec_head(s, 'ITERATION', '改进：从"演示能跑"到"现场可用"',
          '不做"刚好能用"的作品 —— 真机部署验证、离线场景兜底、体验持续打磨')
 
@@ -609,10 +728,59 @@ for name, desc, c in imps:
 set_transition(s, 'push', 700)
 
 # =========================================================
+# S12 技术架构与工程细节
+# =========================================================
+s = add_slide()
+decor(s, '05 / ENGINEERING', 12)
+sec_head(s, 'ENGINEERING · 工程细节', '零依赖的工程化实现',
+         '只用 Python 标准库，把一个"作品"做成可交付的"产品"')
+# 左：五层架构
+_layers = [
+    ('前端层', '单文件 HTML/CSS/JS · 零构建依赖 · 深色玻璃拟态界面', CYAN),
+    ('服务层', '标准库 HTTP 服务 · 会话 / 静态资源 / Range 流媒体', TEAL),
+    ('探针引擎', 'ICMP 存活 / ARP 表 / OUI 指纹 / 端口特征 · 并发探测', VIOLET),
+    ('AI 通道', 'OpenAI 兼容直连 · 诊断/复盘双模型 · 本地知识库检索注入', PINK),
+    ('数据层', 'SQLite：用户 / 会话 / 测速与拓扑记录', AMBER),
+]
+yy = Inches(2.05)
+_anim = []
+for name, desc, c in _layers:
+    b = rect(s, Inches(0.9), yy, Inches(5.7), Inches(0.78),
+             fill=BG2, line=RGBColor(0x1C, 0x2C, 0x48), lw=0.75)
+    rect(s, Inches(0.9), yy, Inches(0.05), Inches(0.78), fill=c)
+    b1 = text(s, Inches(1.15), yy + Inches(0.10), Inches(1.6), Inches(0.3),
+              [(name, {'size': 13.5, 'color': c, 'bold': True})])
+    b2 = text(s, Inches(2.75), yy + Inches(0.13), Inches(3.75), Inches(0.56),
+              desc, size=10.5, color=TXT2)
+    _anim += [(b, 'wipe', 400), (b1, 'fade', 300), (b2, 'fade', 300)]
+    yy += Inches(0.92)
+chip(s, Inches(0.9), Inches(6.72), '纯标准库', CYAN)
+chip(s, Inches(2.0), Inches(6.72), '零第三方依赖', TEAL)
+chip(s, Inches(3.55), Inches(6.72), '一键打包', AMBER)
+# 右：工程亮点
+_pts = [
+    ('安全设计', 'PBKDF2 十二万次迭代加盐存储密码；HttpOnly 会话 Cookie；默认仅本机绑定', CYAN),
+    ('健壮性兜底', 'AI 空回复自动重试、reasoning 内容兜底、图片输入不支持时自动降级为文本', TEAL),
+    ('自动化交付', 'pack.py 一键打包产品 zip，解压双击即用；测速输出 JSON / Prometheus 供 CI', VIOLET),
+    ('诚实的演示口径', '实测与建模数据在界面中显式标注，绝不混淆——工程态度也是竞争力', AMBER),
+]
+yy = Inches(2.05)
+for t1, t2, c in _pts:
+    glow_dot(s, Inches(7.05), yy + Inches(0.10), c, 0.10)
+    b1 = text(s, Inches(7.35), yy, Inches(5.3), Inches(0.32),
+              [(t1, {'size': 14.5, 'color': c, 'bold': True})])
+    b2 = text(s, Inches(7.35), yy + Inches(0.34), Inches(5.3), Inches(0.62),
+              t2, size=11, color=TXT2)
+    _anim += [(b1, 'fade', 450), (b2, 'fade', 450)]
+    yy += Inches(1.12)
+build_anim(s, _anim)
+set_transition(s, 'push', 700)
+
+# =========================================================
 # S9 升华：愿景与致谢
 # =========================================================
 s = add_slide()
-decor(s, '05 / VISION', 9)
+decor(s, '06 / VISION', 13)
 # 装饰
 ring = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(4.42), Inches(0.75), Inches(4.5), Inches(4.5))
 ring.fill.background(); ring.line.color.rgb = RGBColor(0x14, 0x2A, 0x44); ring.line.width = Pt(1.2)
@@ -655,7 +823,16 @@ set_transition(s, 'fade', 900)
 # =========================================================
 # 保存
 # =========================================================
-out = r'D:\桌面\计算机网络方向\深信服sangfor\AI区域争霸赛\CyberNWT-演示PPT.pptx'
-prs.save(out)
-print('SAVED:', out)
-print('slides:', len(prs.slides.__iter__.__self__._sldIdLst))
+out = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CyberNWT-演示PPT.pptx')
+try:
+    prs.save(out)
+    print('SAVED:', out)
+except PermissionError:
+    alt = out.replace('.pptx', '-v2.pptx')
+    prs.save(alt)
+    print('SAVED(FALLBACK，原文件被占用，请关闭后重命名或重跑脚本):', alt)
+_d = r'D:\桌面\计算机网络方向\深信服sangfor\AI区域争霸赛\CyberNWT-演示PPT.pptx'
+if os.path.isdir(os.path.dirname(_d)):
+    prs.save(_d)
+    print('SAVED:', _d)
+print('slides:', len(prs.slides._sldIdLst))
