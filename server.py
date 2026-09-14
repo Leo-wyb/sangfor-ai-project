@@ -2935,6 +2935,49 @@ def lan_ip():
         return ''
 
 
+def terminate_launcher():
+    """Ctrl+C 退出时，若父进程是 CyberNWT.exe 启动器则一并结束。
+
+    启动器在服务进程退出后会自动将其重启，表现为「按 Ctrl+C 窗口关不掉」；
+    因此退出前先结束启动器，控制台窗口才会随之关闭。
+    直接以 python 运行（开发/终端模式）时父进程不是启动器，此函数不做任何事。"""
+    try:
+        import ctypes
+        k32 = ctypes.windll.kernel32
+        TH32CS_SNAPPROCESS = 0x2
+
+        class PE32(ctypes.Structure):
+            _fields_ = [('dwSize', ctypes.c_ulong), ('cntUsage', ctypes.c_ulong),
+                        ('th32ProcessID', ctypes.c_ulong),
+                        ('th32DefaultHeapID', ctypes.c_size_t),
+                        ('th32ModuleID', ctypes.c_ulong), ('cntThreads', ctypes.c_ulong),
+                        ('th32ParentProcessID', ctypes.c_ulong),
+                        ('pcPriClassBase', ctypes.c_long), ('dwFlags', ctypes.c_ulong),
+                        ('szExeFile', ctypes.c_char * 260)]
+
+        me = os.getpid()
+        parent = None
+        names = {}
+        snap = k32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+        e = PE32()
+        e.dwSize = ctypes.sizeof(PE32)
+        ok = k32.Process32First(snap, ctypes.byref(e))
+        while ok:
+            names[e.th32ProcessID] = e.szExeFile.decode('utf-8', 'ignore').lower()
+            if e.th32ProcessID == me:
+                parent = e.th32ParentProcessID
+            ok = k32.Process32Next(snap, ctypes.byref(e))
+        k32.CloseHandle(snap)
+        if parent and names.get(parent, '') == 'cybernwt.exe':
+            h = k32.OpenProcess(0x0001, False, parent)   # PROCESS_TERMINATE
+            if h:
+                k32.TerminateProcess(h, 0)
+                k32.CloseHandle(h)
+                print('[ok] launcher stopped, closing window…')
+    except Exception:
+        pass   # 兜底：任何异常都不影响服务正常退出
+
+
 def main():
     if port_in_use(PORT):
         print(f'[error] 端口 {PORT} 已被占用：可能有一个旧的 server.py 还在运行。')
@@ -2959,10 +3002,17 @@ def main():
         print(f'[ok] 深度内网测速: 在目标机器上运行  py speedpeer.py --host 0.0.0.0  '
               f'（默认端口 {PEER_DEFAULT_PORT}），测速页填入其 IP:端口 即可')
     threading.Timer(0.8, lambda: webbrowser.open(f'http://127.0.0.1:{PORT}/login.html')).start()
+    # 确保 Ctrl+C 信号可用（若启动器以新进程组方式创建本进程，系统会默认禁用 Ctrl+C）
+    try:
+        import ctypes
+        ctypes.windll.kernel32.SetConsoleCtrlHandler(None, False)
+    except Exception:
+        pass
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print('\n[bye] server stopped')
+        terminate_launcher()   # 结束自动重启的启动器，否则窗口无法用 Ctrl+C 关闭
 
 
 if __name__ == '__main__':
