@@ -87,7 +87,7 @@
             '终端 / 打印机自动标记',
             '多网段扫描 + SNMP 链路'
           ],
-          video: 'https://github.com/Leo-wyb/sangfor-ai-project/releases/download/v1.0/topo-scan.mp4',
+          video: 'docs/videos/topo-scan.mp4',
           poster: 'docs/videos/posters/topo-scan.jpg'
         },
         {
@@ -147,7 +147,7 @@
     {
       no: '06', name: '设计巧思', color: '#2dd4bf',
       tagline: '细节里的一致性',
-      desc: '<b style="color:var(--c);font-size:14px">测得快·看得清·随手记·查得准·留得下</b><br>把一次交付现场变成可复用的经验，把每次 AI 结论变成可复核的证据。<span style="display:block;margin-top:12px">人无完人，金无足赤，我会继续把产品优化、更新迭代，正如 AI 赛道所说：AI 赋能从来都不是开发者的专利，而是我们每个普通人都能用上的工具！感谢深信服，感谢大家。</span>',
+      desc: '<b style="color:var(--c);font-size:14px">测得快·看得清·随手记·查得准·留得下</b><br>把一次交付现场变成可复用的经验，把每次 AI 结论变成可复核的证据。<span style="display:block;margin-top:12px">人无完人，金无足赤，我会继续把产品优化、更新迭代，正如 AI 赛道所说：<span style="color:#3d8f8a">AI 赋能从来都不是开发者的专利，而是我们每个普通人都能用上的工具！</span>感谢深信服，感谢大家。</span>',
       chips: ['深浅色自适应', '玻璃拟态 UI', '零依赖纯前端', '数据本地化'],
       cards: [
         { icon: 'bolt', t: '零门槛，才是真落地', d: '无需安装、解压即用，客户内网没有外网也能完整工作；2.4 秒冷启动，随时开工。' },

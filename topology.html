@@ -645,7 +645,7 @@
         <select id="plan-type" class="opt-input short" hidden></select>
       </div>
       <button type="button" class="opt-btn" id="btn-plan-add">＋ 添加一台</button>
-      <span class="opt-note plan-hint"><b>注意：</b>为方便使用者建议打开使用手册进行视频播放，以免无法正确使用功能，感谢。</span>
+      <span class="opt-note plan-hint"><b>注意：</b>为方便使用者，建议打开顶部《使用手册》进行对应视频播放，以免无法正确使用功能，感谢。</span>
     </div>
     <div class="plan-list" id="plan-list"></div>
     <div class="opt-group" style="margin-top:12px">
@@ -831,6 +831,10 @@
     var next = rootEl.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     setTheme(next);
     try { localStorage.setItem('cyber-theme', next); } catch (e) {}
+    /* 拓扑幕跟随页面主题，保证页面与画布明暗永远一致 */
+    if (typeof applyTopoBg === 'function' && document.getElementById('topo-wrap')) {
+      applyTopoBg(next === 'light' ? 'light' : 'dark', false);
+    }
   });
   /* 主题只随用户显式切换变化，不再跟随系统深浅色：
      默认白天模式，避免他人电脑因系统深色偏好打开即夜间 */
@@ -4301,31 +4305,29 @@
     });
   })();
 
-  /* 画布背景切换：太阳 = 纯白幕（默认），月亮 = 黑幕；选择记忆在 localStorage */
+  /* 画布背景切换：太阳 = 纯白幕，月亮 = 黑幕。
+     幕面明暗统一跟随页面主题（页面浅色画布必浅、页面深色画布必深），
+     保证页面与画布不会一半白天一半夜间；画布按钮仅作本次浏览的临时调整 */
   var bgBtn = document.getElementById('tb-bg');
-  /* 读取保存的幕面明暗偏好并应用（清空屏幕 / 移除底图等需要"交还偏好"的时机用） */
+  /* 交还幕面明暗：跟随页面主题（清空屏幕 / 移除底图等时机用） */
   function applySavedTopoBg(wrapEl) {
     var el = wrapEl || document.getElementById('topo-wrap');
-    var saved = 'light';
-    try { saved = localStorage.getItem('cybernwt.topo.bg') || 'light'; } catch (e) {}
-    el.classList.toggle('topo-light', saved === 'light');
-    el.classList.toggle('topo-dark', saved !== 'light');
+    var light = document.documentElement.getAttribute('data-theme') !== 'dark';
+    el.classList.toggle('topo-light', light);
+    el.classList.toggle('topo-dark', !light);
   }
   function applyTopoBg(mode, save) {
     var wrapEl = document.getElementById('topo-wrap');
     wrapEl.classList.toggle('topo-light', mode === 'light');
     wrapEl.classList.toggle('topo-dark', mode !== 'light');
     bgBtn.title = mode === 'light' ? '切换为黑色背景' : '切换为白色背景';
-    if (save) { try { localStorage.setItem('cybernwt.topo.bg', mode); } catch (e) {} }
     if (window.__lastResult) renderTopology(window.__lastResult);   // 重绘节点/文字配色
   }
   bgBtn.addEventListener('click', function () {
-    applyTopoBg(document.getElementById('topo-wrap').classList.contains('topo-light') ? 'dark' : 'light', true);
+    applyTopoBg(document.getElementById('topo-wrap').classList.contains('topo-light') ? 'dark' : 'light', false);
   });
   (function () {
-    var saved = 'light';
-    try { saved = localStorage.getItem('cybernwt.topo.bg') || 'light'; } catch (e) {}
-    applyTopoBg(saved, false);
+    applySavedTopoBg();
   })();
 
   /* ================= 列表渲染 ================= */
