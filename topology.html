@@ -254,7 +254,8 @@
   .card h2 .chip.pink { color: #b78cff; border-color: color-mix(in srgb, #b78cff 50%, transparent); }
 
   /* ---------- 部署规划（上架设备声明） ---------- */
-  .plan-row { display: flex; gap: 10px; align-items: center; margin: 10px 0 10px; }
+  .plan-row { display: flex; gap: 10px; align-items: center; margin: 10px 0 10px; flex-wrap: wrap; }
+  .plan-hint { flex: 1 1 240px; min-width: 220px; }
   .plan-list { display: flex; gap: 8px; flex-wrap: wrap; }
   .plan-item { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px;
     border: 1px dashed color-mix(in srgb, #ffb066 55%, transparent); border-radius: 999px;
@@ -595,7 +596,6 @@
   <div class="logo"><img class="dot" src="logo.png" alt="CyberNWT Logo">CyberNWT</div>
   <nav>
     <a href="home.html">首页</a>
-    <a href="download/CyberNWT.zip" download="CyberNWT.zip">下载功能</a>
       <a href="javascript:void(0)" data-cm-open>使用手册</a>
     <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
     <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
@@ -644,6 +644,7 @@
         <select id="plan-type" class="opt-input short" hidden></select>
       </div>
       <button type="button" class="opt-btn" id="btn-plan-add">＋ 添加一台</button>
+      <span class="opt-note plan-hint"><b>注意：</b>为方便使用者建议打开使用手册进行视频播放，以免无法正确使用功能，感谢。</span>
     </div>
     <div class="plan-list" id="plan-list"></div>
     <div class="opt-group" style="margin-top:12px">

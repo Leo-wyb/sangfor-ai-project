@@ -159,8 +159,11 @@
   .strip input.peer-input {
     height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border);
     background: var(--bg); color: var(--text); font-size: 13px; font-family: var(--font-mono);
-    width: 320px; max-width: 100%;
+    width: 100%; max-width: 100%;
   }
+  /* 内网测速信息条自适应：对端地址一格弹性伸缩，窗口偏窄/系统缩放偏高时
+     优先收缩输入框宽度保持一行排布，而不是把「并发模式」挤到下一行 */
+  .strip .cell#peer-input-cell { flex: 1 1 260px; min-width: 0; }
   .strip input.peer-input:focus { outline: none; border-color: var(--blue); }
 
   /* ---------- 主舞台：圆环仪表 ---------- */
@@ -389,7 +392,6 @@
   <div class="logo"><img class="dot" src="logo.png" alt="CyberNWT Logo">CyberNWT</div>
   <nav>
     <a href="home.html">首页</a>
-    <a href="download/CyberNWT.zip" download="CyberNWT.zip">下载功能</a>
       <a href="javascript:void(0)" data-cm-open>使用手册</a>
     <a href="https://bbs.sangfor.com.cn/plugin.php?id=info:index#?type=index" target="_blank" rel="noopener">深信服社区</a>
     <a href="https://prm.sangfor.com/" target="_blank" rel="noopener">PRM系统</a>
