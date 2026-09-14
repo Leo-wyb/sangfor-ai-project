@@ -17,7 +17,9 @@
 - 不再自嵌入 zip：包内 demo 页的「下载 CyberNWT.zip」按钮在打包时改写为
   GitHub Release 公网直链（产品体积减半；能打开本包的人本就已有产品，
   home 页不设下载入口）；
-- 密钥文件 fastgpt.config 与用户数据 data.db 永不入包（安全边界）。
+- 密钥安全边界：明文 fastgpt.config 永不入包；加密形态 fastgpt.config.enc
+  随包分发（不绑定机器），保证评委下载后 AI 诊断 / 复盘 / 拓扑识别即为真实大模型；
+  用户数据 data.db 永不入包（首次启动自动重建）。
 """
 import os
 import shutil
@@ -45,8 +47,7 @@ EXCLUDE_DIRS = {
 # 不入包的文件（按文件名匹配）
 EXCLUDE_FILES = {
     "data.db",          # 用户数据库：首次启动自动重建
-    "fastgpt.config",   # AI 密钥：绝不随包分发
-    "fastgpt.config.enc",  # AI 密钥（加密形态）：同样绝不随包分发
+    "fastgpt.config",   # AI 密钥明文：绝不随包分发（只允许加密形态随包）
     "server_run.log",
     "CyberNWT.zip",     # 旧包不嵌套（新包由两遍打包机制自嵌入）
 }
