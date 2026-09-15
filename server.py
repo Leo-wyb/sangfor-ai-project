@@ -1602,25 +1602,18 @@ def build_real_network(real, extra_subnets=None, snmp=None, planned=None):
             for it in g['items']:
                 it['dep']['label'] = '双机热备' if g['size'] == 2 else '集群(%d台)' % g['size']
 
-    # ---- 单台声明高可用且未注明台数：降级为单台建模，并返回提示让工程师补足 ----
-    # 「双机/双机热备/热备/HA」单台 → 提示：双机高可用需要两台设备！
-    # 「集群」单台未写台数 → 提示：集群至少需要两台设备！（写明台数如「集群 3台」则按台数展开）
-    cluster_hints = []
+    # ---- 单台声明高可用且未注明台数：自动视为双机（工程师少添加一台时自动补全）----
+    # 「双机/热备/HA/集群」单台未写台数 → size 默认 2，建模阶段自动复制该声明组建成双机
+    # （成员同层并排 + 双心跳，见 _build_chain）；写明台数（如「集群 3台」）仍按台数展开。
+    # 其余情况（非集群声明/连续多台/写明台数）行为不变。
+    cluster_hints = []   # 保留字段（场景数据结构不变）：自动补全后不再产生补足提示
     for g in groups:
         if not g['cluster'] or len(g['items']) > 1:
             continue
-        lead = g['items'][0]
-        nl = (lead['note'] or '').lower()
+        nl = (g['items'][0]['note'] or '').lower()
         if re.search(r'\d+\s*台', nl) or any(w in nl for w in ('两台', '三台', '四台')):
-            continue   # 注明了台数，按台数展开
-        g['cluster'] = False
-        g['size'] = 1
-        lead['dep']['form'] = 'single'
-        dev = lead['info']['name']
-        if any(w in nl for w in ('双机', '热备', 'ha')):
-            cluster_hints.append('%s：双机高可用需要两台设备！请在部署规划中再添加一台（备注「双机」或「集群」）。' % dev)
-        else:
-            cluster_hints.append('%s：集群至少需要两台设备！请再添加一台，或注明台数（如「集群 3台」）。' % dev)
+            continue   # 注明了台数，按台数展开（_cluster_size 已给出 size）
+        g['size'] = 2   # 自动补一台：items 不足的部分由建模阶段复制该声明补齐
 
     def _build_chain(chain_groups, start_members, start_layer, first_label, step_label, kind):
         """逐组串接一条链：普通设备单节点占一层；集群组内各成员同层并排、互联双心跳、

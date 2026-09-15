@@ -258,7 +258,7 @@
   .plan-hint { flex: 1 1 240px; min-width: 220px; font-size: 14px; color: var(--warn); }
   .opt-note.plan-hint b { color: inherit; }
   .plan-list { display: flex; gap: 8px; flex-wrap: wrap; }
-  .plan-item { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px;
+  .plan-item { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;
     border: 1px dashed color-mix(in srgb, #ffb066 55%, transparent); border-radius: 999px;
     padding: 6px 8px 6px 13px; color: var(--text); background: color-mix(in srgb, #ffb066 8%, transparent); }
   .plan-item b { font-weight: 600; }
@@ -899,12 +899,34 @@
   var planItems = [];                  // [{key, note}]
   function renderPlanList() {
     $('#plan-list').innerHTML = planItems.map(function (p, i) {
-      return '<span class="plan-item"><b>' + esc(DEV_LABELS[p.key] || p.key) + '</b>' +
+      return '<span class="plan-item" data-i="' + i + '" title="点击编辑：设备和部署模式将回填到上方，可调整后重新添加">' +
+        '<b>' + esc(DEV_LABELS[p.key] || p.key) + '</b>' +
         (p.note ? '<small>' + esc(p.note) + '</small>' : '') +
         '<button type="button" class="del" data-i="' + i + '" title="移除">✕</button></span>';
     }).join('') || '<span class="opt-note">未逐台添加——感知时将按上方下拉中选中的设备建模（当前下拉选中的设备会自动生效）。</span>';
+    /* 点击黄框（× 以外的部分）= 编辑回填：设备回下拉框、部署模式回输入框，
+       原条目移除，调整后重新「＋添加一台」即可生效；点 × 仍只是移除 */
+    document.querySelectorAll('#plan-list .plan-item').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        if (e.target.closest('.del')) return;
+        var i = +el.dataset.i;
+        var it = planItems[i];
+        if (!it) return;
+        var sel = document.getElementById('plan-type');
+        if (sel) {
+          for (var oi = 0; oi < sel.options.length; oi++) {
+            if (sel.options[oi].value === it.key) { sel.value = it.key; break; }
+          }
+        }
+        var note = document.getElementById('deploy-note');
+        if (note) { note.value = it.note || ''; note.focus(); }
+        planItems.splice(i, 1);
+        renderPlanList();
+      });
+    });
     document.querySelectorAll('#plan-list .del').forEach(function (b) {
-      b.addEventListener('click', function () {
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
         planItems.splice(+b.dataset.i, 1); renderPlanList();
       });
     });
