@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetPulse · 公网网速测试</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --card:#121830; --card2:#0e1428; --line:#1e2748;
+    --txt:#e8ecf8; --sub:#8b94b8; --dim:#5a648c;
+    --accent:#436cef; --accent2:#6a8bff; --green:#22c58b; --red:#f0564a; --amber:#f5a623;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 600px at 70% -10%,#16204a 0%,var(--bg) 55%) fixed,var(--bg);
+    color:var(--txt);font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;padding:28px 16px 60px;
+  }
+  .wrap{max-width:860px;margin:0 auto}
+  header{display:flex;align-items:baseline;gap:12px;margin-bottom:20px}
+  header h1{font-size:22px;letter-spacing:.5px}
+  header h1 b{color:var(--accent2)}
+  header .tag{font-size:12px;color:var(--sub);border:1px solid var(--line);border-radius:20px;padding:3px 10px}
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);
+    border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .card h2{font-size:13px;color:var(--sub);font-weight:600;letter-spacing:1px;margin-bottom:14px;
+    display:flex;align-items:center;gap:8px}
+  .card h2::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent);display:inline-block}
+
+  /* ---- 仪表盘 ---- */
+  .gauge-row{display:flex;flex-wrap:wrap;align-items:center;gap:24px}
+  .gauge-box{position:relative;width:230px;height:170px;flex:0 0 auto}
+  .gauge-box svg{width:100%;height:100%;overflow:visible}
+  .gauge-center{position:absolute;left:0;right:0;top:52px;text-align:center;pointer-events:none}
+  .speed-big{font-size:46px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;
+    background:linear-gradient(90deg,#9db4ff,#fff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .speed-unit{font-size:13px;color:var(--sub);margin-top:6px}
+  .gauge-side{flex:1;min-width:240px}
+  .status-line{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:14px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:0 0 auto}
+  .dot.on{background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.2s infinite}
+  .dot.err{background:var(--red);box-shadow:0 0 10px var(--red)}
+  @keyframes pulse{50%{opacity:.4}}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px}
+  .stat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .stat .k{font-size:11px;color:var(--dim);margin-bottom:5px}
+  .stat .v{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:11px;color:var(--sub);font-weight:400;margin-left:2px}
+
+  /* ---- 图表 ---- */
+  .chart-box{position:relative}
+  #chart{width:100%;height:180px;display:block}
+
+  /* ---- 节点 ---- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .chip{border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--sub);
+    border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer;user-select:none;
+    display:flex;align-items:center;gap:7px;transition:all .15s}
+  .chip:hover{border-color:var(--accent);color:var(--txt)}
+  .chip.active{border-color:var(--accent);background:rgba(67,108,239,.16);color:#cdd9ff}
+  .chip .sz{font-size:11px;color:var(--dim)}
+  .chip.active .sz{color:#8fa6ef}
+  .chip .del{color:var(--dim);font-size:14px;line-height:1;padding:0 1px}
+  .chip .del:hover{color:var(--red)}
+  .chip .rec{font-size:10px;color:var(--green);border:1px solid rgba(34,197,139,.4);border-radius:6px;padding:1px 5px}
+  .node-hint{font-size:12px;color:var(--dim);margin-bottom:14px;min-height:16px}
+  .url-row{display:flex;gap:8px;flex-wrap:wrap}
+  .url-row input{flex:1;min-width:220px;background:#0a0f22;border:1px solid var(--line);border-radius:10px;
+    color:var(--txt);padding:10px 12px;font-size:13px;outline:none}
+  .url-row input:focus{border-color:var(--accent)}
+  .btn{border:none;border-radius:10px;padding:10px 18px;font-size:13px;cursor:pointer;
+    background:rgba(255,255,255,.06);color:var(--txt);transition:all .15s;white-space:nowrap}
+  .btn:hover{background:rgba(255,255,255,.12)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),#2f56d8);font-weight:600}
+  .btn.primary:hover{filter:brightness(1.12)}
+  .btn.danger{background:linear-gradient(135deg,#e0493d,#c73428);font-weight:600}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  /* ---- 选项 ---- */
+  .opts{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+  .opt{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{background:transparent;border:none;color:var(--sub);padding:6px 12px;font-size:12px;cursor:pointer}
+  .seg button.active{background:var(--accent);color:#fff}
+  .controls{display:flex;gap:10px;margin-top:16px}
+  .controls .btn{flex:1;padding:14px;font-size:15px;border-radius:12px}
+  .msg{font-size:12.5px;color:var(--amber);margin-top:12px;min-height:18px;line-height:1.6}
+  .msg.err{color:var(--red)}
+  footer{margin-top:22px;font-size:12px;color:var(--dim);line-height:1.8;text-align:center}
+  a{color:var(--accent2);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⚡ <b>NetPulse</b> 公网网速测试</h1>
+    <span class="tag">真实下载 · 实时测速</span>
+  </header>
+
+  <!-- 仪表盘 -->
+  <div class="card">
+    <div class="gauge-row">
+      <div class="gauge-box">
+        <svg viewBox="0 0 230 170" id="gaugeSvg"></svg>
+        <div class="gauge-center">
+          <div class="speed-big" id="speedBig">0.0</div>
+          <div class="speed-unit" id="speedUnit">Mbps</div>
+        </div>
+      </div>
+      <div class="gauge-side">
+        <div class="status-line"><span class="dot" id="statusDot"></span><span id="statusText">空闲 · 点击下方「开始测速」</span></div>
+        <div class="stats">
+          <div class="stat"><div class="k">平均速度</div><div class="v" id="stAvg">—</div></div>
+          <div class="stat"><div class="k">峰值速度</div><div class="v" id="stPeak">—</div></div>
+          <div class="stat"><div class="k">已消耗流量</div><div class="v" id="stBytes">—</div></div>
+          <div class="stat"><div class="k">已测时长</div><div class="v" id="stTime">—</div></div>
+          <div class="stat"><div class="k">节点延迟</div><div class="v" id="stPing">—</div></div>
+          <div class="stat"><div class="k">延迟抖动</div><div class="v" id="stJit">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实时曲线 -->
+  <div class="card">
+    <h2>实时速度曲线 (最近 30 秒)</h2>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+  </div>
+
+  <!-- 节点选择 -->
+  <div class="card">
+    <h2>测速节点</h2>
+    <div class="chips" id="chips"></div>
+    <div class="node-hint" id="nodeHint"></div>
+    <div class="url-row">
+      <input id="customUrl" type="url" placeholder="输入自定义文件直链（建议选择 10MB 以上的大文件）">
+      <button class="btn" id="probeBtn">检测并添加</button>
+    </div>
+    <div class="msg" id="nodeMsg"></div>
+  </div>
+
+  <!-- 选项与控制 -->
+  <div class="card">
+    <h2>测速选项</h2>
+    <div class="opts">
+      <div class="opt">并发线程
+        <span class="seg" id="segThreads">
+          <button data-v="1">1</button><button data-v="2" class="active">2</button>
+          <button data-v="4">4</button><button data-v="6">6</button><button data-v="8">8</button>
+        </span>
+      </div>
+      <div class="opt">流量上限
+        <span class="seg" id="segCap">
+          <button data-v="0" class="active">不限</button><button data-v="100">100MB</button>
+          <button data-v="500">500MB</button><button data-v="1024">1GB</button><button data-v="5120">5GB</button>
+        </span>
+      </div>
+      <div class="opt">测速引擎
+        <span class="seg" id="segEngine">
+          <button data-v="auto" class="active">自动</button><button data-v="stream">流式(实时曲线)</button>
+          <button data-v="compat">兼容(免跨域)</button>
+        </span>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" id="startBtn">▶ 开始测速</button>
+      <button class="btn danger" id="stopBtn" disabled>■ 停止</button>
+    </div>
+    <div class="msg" id="runMsg"></div>
+  </div>
+
+  <footer>
+    测速原理：浏览器真实下载所选节点的文件并统计吞吐量（流式模式按字节流实时计算；兼容模式按整文件耗时计算），文件不会被保存。<br>
+    测速会<b style="color:var(--amber)">真实消耗流量</b>，使用移动网络请注意套餐余量 · 页面灵感参考 FlowLoss (net.arsn.cn)
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ================= 默认节点 ================= */
+const DEFAULT_NODES = [
+  { name:"天翼云桌面 · EXE", url:"https://desk.ctyun.cn:8999/desktop-prod/software/windows_tob_client/15/64/202010003/CtyunClouddeskUniversal_2.1.0_202010003_x86_20230905151733_Setup_signed.exe", size:78729200, rec:true,
+    note:"75MB 大文件，测速最准确。该节点跨域受限流，「自动」引擎会在跨域失败时自动切换兼容模式。" },
+  { name:"中国联通 · JPG", url:"https://m1.ad.10010.com/small_video/uploadImg/1598021193891.jpg", size:52398,
+    note:"52KB 小文件，跨域稳定，适合低带宽或快速验证；高带宽下建议换 EXE 大文件节点。" },
+  { name:"移动咪咕 · GIF", url:"https://img.cmvideo.cn/publish/noms/2023/12/06/1O4SHFIFR36BD.gif", size:164,
+    note:"164B 超小文件，仅用于验证连通性，不建议用于测速。" },
+];
+
+/* ================= 状态 ================= */
+const S = {
+  running:false, url:null, threads:2, capMB:0,
+  engine:"auto",          // 用户选择: auto | stream | compat
+  mode:null,              // 实际运行: stream | compat
+  totalBytes:0, startTs:0, ctrl:null,
+  compatImgs:[],          // 兼容模式中的 Image 对象
+  compatDone:[],          // {t, size, dt} 兼容模式完成记录（聚合计算吞吐）
+  samples:[],             // {t, bytes} 流式模式累计采样
+  history:[],             // {t, mbps} 速度曲线
+  pings:[], peak:0, ema:0, errStreak:0,
+  uiTimer:null, pingTimer:null,
+  customNodes: JSON.parse(localStorage.getItem("np_custom_nodes")||"[]"),
+};
+S.url     = localStorage.getItem("np_last_url") || DEFAULT_NODES[0].url;
+S.threads = +(localStorage.getItem("np_threads")||2);
+S.capMB   = +(localStorage.getItem("np_cap")||0);
+S.engine  = localStorage.getItem("np_engine")||"auto";
+
+/* ================= 工具 ================= */
+const $ = id => document.getElementById(id);
+function fmtSpeed(Bps, withUnit=true){           // bytes/s -> Mbps/Gbps
+  const mbps = Bps*8/1e6;
+  if(mbps>=1000) return (mbps/1000).toFixed(2)+(withUnit?" Gbps":"");
+  return (mbps>=100?mbps.toFixed(0):mbps>=10?mbps.toFixed(1):mbps.toFixed(2))+(withUnit?" Mbps":"");
+}
+function fmtBytes(n){
+  if(n>=1<<30) return (n/(1<<30)).toFixed(2)+" GB";
+  if(n>=1<<20) return (n/(1<<20)).toFixed(1)+" MB";
+  if(n>=1024)  return (n/1024).toFixed(0)+" KB";
+  return n+" B";
+}
+function fmtDur(ms){
+  const s=ms/1000;
+  return s<60 ? s.toFixed(1)+" s" : Math.floor(s/60)+"m"+Math.floor(s%60)+"s";
+}
+function bust(url){ return url + (url.includes("?")?"&":"?") + "_np=" + Date.now() + "_" + Math.random().toString(36).slice(2); }
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const curNode = () => allNodes().find(n=>n.url===S.url);
+
+/* ================= 节点 chips ================= */
+function allNodes(){ return [...DEFAULT_NODES, ...S.customNodes]; }
+function renderChips(){
+  const box=$("chips"); box.innerHTML="";
+  allNodes().forEach((n,i)=>{
+    const c=document.createElement("div");
+    c.className="chip"+(n.url===S.url?" active":"");
+    c.innerHTML = `<span>${n.name}</span>` +
+      (n.rec?`<span class="rec">推荐</span>`:"") +
+      `<span class="sz">${n.size?fmtBytes(n.size):"未知"}</span>` +
+      (i>=DEFAULT_NODES.length?`<span class="del" title="删除">×</span>`:"");
+    c.onclick=e=>{
+      if(e.target.classList.contains("del")){
+        S.customNodes.splice(i-DEFAULT_NODES.length,1);
+        localStorage.setItem("np_custom_nodes",JSON.stringify(S.customNodes));
+        if(S.url===n.url) S.url=DEFAULT_NODES[0].url;
+        renderChips(); return;
+      }
+      S.url=n.url; localStorage.setItem("np_last_url",n.url);
+      setNodeMsg(""); renderChips();
+      if(S.running) startTest();   // 运行中切换节点 => 自动重启测速
+    };
+    box.appendChild(c);
+  });
+  const sel=curNode();
+  $("nodeHint").textContent = sel ? ("已选："+sel.name+" · "+(sel.size?fmtBytes(sel.size):"大小未知")+(sel.note?" — "+sel.note:"")) : "";
+}
+function setNodeMsg(t,err){ const m=$("nodeMsg"); m.textContent=t; m.className="msg"+(err?" err":""); }
+function setRunMsg(t,err){ const m=$("runMsg"); m.textContent=t; m.className="msg"+(err?" err":""); }
+
+/* 自定义链接：检测大小并添加 */
+$("probeBtn").onclick=async()=>{
+  const inp=$("customUrl"); const u=inp.value.trim();
+  if(!u) return setNodeMsg("请输入链接",true);
+  if(!/^https?:\/\//i.test(u)) return setNodeMsg("链接需以 http:// 或 https:// 开头",true);
+  if(location.protocol==="https:" && u.startsWith("http:"))
+    return setNodeMsg("当前页面为 HTTPS，浏览器将拦截 HTTP 资源（混合内容），请换用 HTTPS 链接",true);
+  if(allNodes().some(n=>n.url===u)) return setNodeMsg("该链接已在节点列表中",true);
+  const btn=$("probeBtn"); btn.disabled=true; btn.textContent="检测中…"; setNodeMsg("");
+  try{
+    // 先尝试 CORS 检测（可读到文件大小与类型）
+    const ctrl=new AbortController();
+    const res=await fetch(u,{signal:ctrl.signal,cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const size=+res.headers.get("content-length")||0;
+    const type=res.headers.get("content-type")||"";
+    ctrl.abort();
+    addCustom(u,size,type);
+    setNodeMsg("✓ 已添加「"+curNode().name+"」"+(size?"，大小 "+fmtBytes(size):"，大小未知")+
+      (type?"，类型 "+type:"")+(size&&size<5*1024*1024?" · 文件较小，将循环重复下载以保持测速":""));
+  }catch(e){
+    // CORS 失败：尝试免跨域探测（Image 加载仅能确认可达，无法获知大小 → 询问仍可添加? 无法计算速度，拒绝）
+    setNodeMsg("✗ 检测失败："+(e.message||e)+"。目标服务器未允许跨域访问且无法获知文件大小，该链接无法用于测速。",true);
+  }finally{ btn.disabled=false; btn.textContent="检测并添加"; }
+  inp.value="";
+};
+function addCustom(u,size,type){
+  let name=new URL(u).hostname.replace(/^www\./,"");
+  const ext=(u.split("?")[0].match(/\.([a-z0-9]{2,5})$/i)||[])[1];
+  if(ext) name+=" · "+ext.toUpperCase();
+  S.customNodes.push({name, url:u, size});
+  localStorage.setItem("np_custom_nodes",JSON.stringify(S.customNodes));
+  S.url=u; localStorage.setItem("np_last_url",u);
+  renderChips();
+}
+
+/* ================= 测速核心：流式模式（CORS + ReadableStream） ================= */
+async function streamWorker(){
+  while(S.running && S.mode==="stream"){
+    try{
+      const res=await fetch(S.url,{signal:S.ctrl.signal,cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      if(!res.body) throw new Error("浏览器不支持流式读取");
+      const rd=res.body.getReader();
+      for(;;){
+        const {done,value}=await rd.read();
+        if(done) break;
+        S.totalBytes+=value.length;
+        if(!S.running || S.mode!=="stream"){ try{rd.cancel()}catch(_){ } break; }
+      }
+      S.errStreak=0;
+    }catch(e){
+      if(!S.running || S.mode!=="stream") break;
+      S.errStreak++;
+      const node=curNode();
+      if(S.errStreak>=3 && S.engine==="auto" && node && node.size){ switchToCompat(); break; }
+      if(S.errStreak>=8){
+        stopTest();
+        setRunMsg("✗ 连续请求失败，已自动停止。该节点可能不支持跨域测速（缺少 Access-Control-Allow-Origin）或当前网络无法访问，请更换节点，或改用「兼容(免跨域)」引擎。("+ (e.message||e) +")",true);
+        break;
+      }
+      setRunMsg("流式请求失败("+S.errStreak+")，重试中… ("+ (e.message||e) +")",true);
+      await sleep(1000);
+    }
+  }
+}
+
+/* ================= 测速核心：兼容模式（Image 整文件下载 + 资源计时） ================= */
+async function compatWorker(){
+  while(S.running && S.mode==="compat"){
+    const node=curNode();
+    if(!node || !node.size){ stopTest(); setRunMsg("✗ 兼容模式需要已知文件大小的节点。",true); break; }
+    const src=bust(S.url), t0=performance.now();
+    const ev=await new Promise(res=>{
+      const img=new Image();
+      const done=(type)=>{ img.onload=img.onerror=null;
+        const i=S.compatImgs.indexOf(img); if(i>=0)S.compatImgs.splice(i,1);
+        res({type, nw:img.naturalWidth|0}); };
+      img.onload=()=>done("load"); img.onerror=()=>done("error");
+      S.compatImgs.push(img);
+      img.src=src;
+    });
+    if(!S.running || S.mode!=="compat") break;
+    // 优先使用资源计时（跨域也可用 startTime/responseEnd）
+    let dt=performance.now()-t0;
+    const ents=performance.getEntriesByName(src);
+    if(ents.length){ const e=ents[ents.length-1]; if(e.responseEnd>e.startTime) dt=e.responseEnd-e.startTime; }
+    performance.clearResourceTimings();
+    // 有效性校验：图片文件 onload 且 naturalWidth>0 => 必然完整下载；
+    // 非图片文件（onload 不会触发）用 3Gbps 物理合理性下限过滤“秒回错误页”
+    const validImg = ev.type==="load" && ev.nw>0;
+    const minDt = node.size*8/3e9*1000;   // ms
+    if(!validImg && dt<minDt){
+      S.errStreak++;
+      if(S.errStreak>=8){ stopTest(); setRunMsg("✗ 节点响应异常（可能被限流或已失效），连续校验失败，已自动停止。请稍后重试或更换节点。",true); break; }
+      setRunMsg("节点返回了异常响应（疑似限流/错误页），重试中… ("+S.errStreak+")",true);
+      await sleep(1000); continue;
+    }
+    if(S.errStreak>0) setRunMsg("兼容模式：通过 Image 完整下载文件并计时，每完成一个文件更新一次速度（不受跨域限制）。");
+    S.errStreak=0;
+    S.totalBytes+=node.size;
+    S.compatDone.push({t:performance.now(), size:node.size, dt});
+    if(S.compatDone.length>500) S.compatDone.splice(0,S.compatDone.length-500);
+    await sleep(dt>2000?120:20);   // 大文件适当间隔，避免对节点高频轰炸
+  }
+}
+function switchToCompat(){
+  if(S.mode==="compat") return;
+  S.mode="compat"; S.errStreak=0; S.ema=0; S.samples=[];
+  if(S.ctrl){ try{S.ctrl.abort()}catch(_){} S.ctrl=new AbortController(); }
+  setRunMsg("该节点跨域受限，已自动切换「兼容模式」：整文件下载计时，每完成一个文件更新一次速度。");
+  updateStatusText();
+  for(let i=0;i<S.threads;i++) compatWorker();
+}
+
+/* ================= 流程控制 ================= */
+function startTest(){
+  abortInflight();
+  const node=curNode()||{};
+  S.mode = S.engine==="compat" ? "compat" : "stream";
+  if(S.mode==="compat" && !node.size){
+    S.mode="stream";
+    setRunMsg("「兼容(免跨域)」引擎需要已知文件大小，当前节点大小未知，已改用流式模式。",true);
+  }
+  S.running=true; S.totalBytes=0; S.peak=0; S.ema=0; S.errStreak=0;
+  S.samples=[]; S.history=[]; S.pings=[]; S.compatDone=[];
+  S.startTs=performance.now(); S.ctrl=new AbortController();
+  for(let i=0;i<S.threads;i++) S.mode==="stream" ? streamWorker() : compatWorker();
+  S.uiTimer=setInterval(uiTick,200);
+  S.pingTimer=setInterval(pingOnce,1500); pingOnce();
+  $("startBtn").disabled=true; $("stopBtn").disabled=false;
+  $("statusDot").className="dot on";
+  updateStatusText();
+  if(S.mode==="stream")
+    setRunMsg("流式模式：每个线程循环下载并实时统计字节流（cache: no-store 绕过缓存），直至手动停止或达到流量上限。");
+  else if(S.engine==="compat")
+    setRunMsg("兼容模式：通过 Image 完整下载文件并计时，每完成一个文件更新一次速度（不受跨域限制）。");
+}
+function updateStatusText(){
+  const n=curNode();
+  $("statusText").textContent="测速中 · "+(S.mode==="stream"?"流式模式":"兼容模式")+" · 「"+(n?n.name:"自定义节点")+"」";
+}
+function abortInflight(){
+  if(S.ctrl) try{S.ctrl.abort()}catch(_){}
+  S.ctrl=null;
+  S.compatImgs.slice().forEach(img=>{ img.onload=img.onerror=null; img.src=""; });
+  S.compatImgs=[];
+  clearInterval(S.uiTimer); clearInterval(S.pingTimer);
+}
+function stopTest(doneMsg){
+  S.running=false; abortInflight();
+  $("startBtn").disabled=false; $("stopBtn").disabled=false;
+  $("statusDot").className="dot";
+  $("statusText").textContent="已停止";
+  if(doneMsg) setRunMsg(doneMsg);
+}
+$("startBtn").onclick=()=>{ if(!S.running) startTest(); };
+$("stopBtn").onclick=()=>stopTest("已手动停止。共消耗 "+fmtBytes(S.totalBytes)+"，平均 "+fmtSpeed(avgSpeed())+"。");
+
+function avgSpeed(){
+  const el=performance.now()-S.startTs;
+  return el>0 ? S.totalBytes/(el/1000) : 0;
+}
+
+/* ================= 延迟探测 ================= */
+async function pingOnce(){
+  if(!S.running) return;
+  const t0=performance.now();
+  try{
+    const res=await fetch(S.url,{signal:S.ctrl?S.ctrl.signal:undefined,cache:"no-store"});
+    const dt=performance.now()-t0;                 // fetch resolve = 收到响应头 ≈ TTFB
+    try{ res.body && await res.body.cancel(); }catch(_){}
+    S.pings.push(dt); if(S.pings.length>20) S.pings.shift();
+  }catch(_){}
+}
+
+/* ================= UI 刷新 ================= */
+function uiTick(){
+  const now=performance.now();
+  if(S.mode==="stream"){
+    S.samples.push({t:now,bytes:S.totalBytes});
+    const win=S.samples.filter(s=>s.t>=now-900);
+    if(win.length>=2){
+      const raw=(win[win.length-1].bytes-win[0].bytes)/((win[win.length-1].t-win[0].t)/1000);
+      S.ema = S.ema===0 ? raw : S.ema*0.65+raw*0.35;
+    }
+    if(S.ema>S.peak) S.peak=S.ema;
+    if(S.samples.length>300) S.samples.splice(0,S.samples.length-300);
+  }else if(S.mode==="compat"){
+    // 聚合吞吐：最近窗口内完成的文件总量 ÷ 窗口实际跨度（跨度补上一个平均单文件耗时）
+    const done=S.compatDone;
+    if(done.length){
+      const last=done.slice(-10).map(d=>d.dt).sort((a,b)=>a-b);
+      const medDt=last[Math.floor((last.length-1)/2)];
+      const W=Math.max(8000,3*medDt);
+      const win=done.filter(d=>d.t>=now-W);
+      while(done.length && done[0].t<now-W-10000) done.shift();
+      if(win.length){
+        const avgDt=win.reduce((a,d)=>a+d.dt,0)/win.length;
+        const span=Math.max((win[win.length-1].t-win[0].t)+avgDt, 300);
+        const raw=win.reduce((a,d)=>a+d.size,0)/(span/1000);
+        S.ema = S.ema===0 ? raw : S.ema*0.6+raw*0.4;
+        if(S.ema>S.peak) S.peak=S.ema;
+      }
+    }
+  }
+  S.history.push({t:now-S.startTs,mbps:S.ema*8/1e6});
+  if(S.history.length>150) S.history.shift();
+
+  $("speedBig").textContent=fmtSpeed(S.ema,false);
+  $("speedUnit").textContent=S.ema*8/1e6>=1000?"Gbps":"Mbps";
+  $("stAvg").innerHTML=fmtSpeed(avgSpeed(),false)+"<small>Mbps</small>";
+  $("stPeak").innerHTML=fmtSpeed(S.peak,false)+"<small>"+(S.peak*8/1e6>=1000?"Gbps":"Mbps")+"</small>";
+  $("stBytes").textContent=fmtBytes(S.totalBytes);
+  $("stTime").textContent=fmtDur(now-S.startTs);
+  if(S.pings.length){
+    const p=S.pings[S.pings.length-1];
+    $("stPing").innerHTML=p.toFixed(0)+"<small>ms</small>";
+    const m=S.pings.reduce((a,b)=>a+b,0)/S.pings.length;
+    const sd=Math.sqrt(S.pings.reduce((a,b)=>a+(b-m)**2,0)/S.pings.length);
+    $("stJit").innerHTML=sd.toFixed(1)+"<small>ms</small>";
+  }
+  if(S.mode==="compat" && S.running){
+    const n=curNode();
+    $("statusText").textContent="测速中 · 兼容模式 · 「"+(n?n.name:"自定义节点")+"」"+
+      (S.compatDone.length?"":" · 首个文件下载中，完成后显示速度…");
+  }
+  drawGauge(S.ema*8/1e6, Math.max(S.peak*8/1e6,50));
+  drawChart();
+
+  if(S.capMB>0 && S.totalBytes>=S.capMB*1024*1024){
+    stopTest("✓ 已达到流量上限 "+S.capMB+"MB。实际消耗 "+fmtBytes(S.totalBytes)+"，平均 "+fmtSpeed(avgSpeed())+"。");
+    $("statusText").textContent="已完成";
+  }
+}
+
+/* ================= 仪表盘 SVG ================= */
+function niceCeil(v){
+  const steps=[10,20,50,100,200,300,500,800,1000,1500,2000,3000,5000,10000];
+  for(const s of steps) if(v<=s) return s;
+  return Math.ceil(v/10000)*10000;
+}
+function drawGauge(mbps,refPeak){
+  const svg=$("gaugeSvg"), cx=115, cy=118, r=92, a0=135, a1=405;
+  const max=niceCeil(refPeak*1.25);
+  const pol=(a,rr)=>{const rad=(a-90)*Math.PI/180;return [cx+rr*Math.cos(rad),cy+rr*Math.sin(rad)];};
+  const arc=(aA,aB,rr)=>{const[x1,y1]=pol(aA,rr),[x2,y2]=pol(aB,rr);
+    return `M ${x1} ${y1} A ${rr} ${rr} 0 ${aB-aA>180?1:0} 1 ${x2} ${y2}`;};
+  let h=`<path d="${arc(a0,a1,r)}" fill="none" stroke="#1d2547" stroke-width="13" stroke-linecap="round"/>`;
+  const frac=Math.min(mbps/max,1);
+  if(frac>0.002){
+    h+=`<path d="${arc(a0,a0+(a1-a0)*frac,r)}" fill="none" stroke="url(#gg)" stroke-width="13" stroke-linecap="round"/>`;
+  }
+  for(let i=0;i<=10;i++){  // 刻度
+    const a=a0+(a1-a0)*i/10,[x1,y1]=pol(a,r-13),[x2,y2]=pol(a,r-19);
+    h+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#39436f" stroke-width="2"/>`;
+    if(i%2===0){const[tx,ty]=pol(a,r-30);
+      h+=`<text x="${tx}" y="${ty+3}" fill="#5a648c" font-size="9" text-anchor="middle">${Math.round(max*i/10)}</text>`;}
+  }
+  h=`<defs><linearGradient id="gg" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#436cef"/><stop offset="1" stop-color="#7ee0ff"/></linearGradient></defs>`+h;
+  svg.innerHTML=h;
+}
+
+/* ================= 曲线图 ================= */
+function drawChart(){
+  const cv=$("chart"), dpr=devicePixelRatio||1;
+  const W=cv.clientWidth, H=cv.clientHeight;
+  if(cv.width!==W*dpr){cv.width=W*dpr;cv.height=H*dpr;}
+  const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  const padL=46,padR=10,padT=10,padB=20, iw=W-padL-padR, ih=H-padT-padB;
+  const data=S.history; if(data.length<2) return;
+  const tMax=Math.max(30000,data[data.length-1].t), tMin=tMax-30000;
+  const vMax=niceCeil(Math.max(...data.map(d=>d.mbps))*1.2||10);
+  // 网格
+  ctx.strokeStyle="#1c2444"; ctx.fillStyle="#5a648c"; ctx.font="10px sans-serif"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=padT+ih*i/4;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillText((vMax*(4-i)/4).toFixed(0),8,y+3);
+  }
+  ctx.fillText("Mbps",8,padT+8);
+  for(let s=0;s<=30;s+=10){
+    const x=padL+iw*(s*1000)/(tMax-tMin);
+    ctx.fillText("-"+(30-s)+"s",x-8,H-6);
+  }
+  // 曲线
+  const xy=data.map(d=>[padL+iw*(d.t-tMin)/(tMax-tMin), padT+ih*(1-Math.min(d.mbps/vMax,1))]);
+  const grad=ctx.createLinearGradient(0,padT,0,padT+ih);
+  grad.addColorStop(0,"rgba(67,108,239,.45)");grad.addColorStop(1,"rgba(67,108,239,0)");
+  ctx.beginPath(); ctx.moveTo(xy[0][0],padT+ih);
+  xy.forEach(p=>ctx.lineTo(p[0],p[1])); ctx.lineTo(xy[xy.length-1][0],padT+ih);
+  ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+  ctx.beginPath(); xy.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  ctx.strokeStyle="#6a8bff"; ctx.lineWidth=2; ctx.lineJoin="round"; ctx.stroke();
+  const lp=xy[xy.length-1];
+  ctx.beginPath();ctx.arc(lp[0],lp[1],3.5,0,7);ctx.fillStyle="#7ee0ff";ctx.fill();
+}
+
+/* ================= 选项 ================= */
+function bindSeg(id,key,storage,numeric,onChange){
+  const seg=$(id);
+  [...seg.children].forEach(b=>{
+    const val=numeric?+b.dataset.v:b.dataset.v;
+    if(val===S[key]){[...seg.children].forEach(x=>x.classList.remove("active"));b.classList.add("active");}
+    b.onclick=()=>{
+      [...seg.children].forEach(x=>x.classList.remove("active"));
+      b.classList.add("active"); S[key]=val; localStorage.setItem(storage,b.dataset.v);
+      if(onChange) onChange();
+    };
+  });
+}
+bindSeg("segThreads","threads","np_threads",true,()=>{ if(S.running) startTest(); });
+bindSeg("segCap","capMB","np_cap",true);
+bindSeg("segEngine","engine","np_engine",false,()=>{ if(S.running) startTest(); });
+
+/* ================= 初始化 ================= */
+renderChips();
+drawGauge(0,50);
+addEventListener("resize",()=>{ drawChart(); drawGauge(S.ema*8/1e6,Math.max(S.peak*8/1e6,50)); });
+</script>
+</body>
+</html>
